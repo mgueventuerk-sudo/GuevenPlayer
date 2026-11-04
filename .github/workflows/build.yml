@@ -2,7 +2,8 @@ name: Android APK Build
 
 on:
   push:
-    branches: [ main ]
+    # Zusätzlich die Claude-Arbeitszweige (ccr-*): APK und Prüfungen ohne Merge nach main.
+    branches: [ main, 'ccr-*' ]
   workflow_dispatch:
 
 permissions:
