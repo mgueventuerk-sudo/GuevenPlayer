@@ -13,18 +13,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewModelScope
 import androidx.tv.material3.Text
-import com.mg.player.core.di.AppContainer
-import com.mg.player.domain.model.Category
 import com.mg.player.domain.model.Channel
 import com.mg.player.ui.common.appViewModel
 import com.mg.player.ui.live.LiveStillCard
-import com.mg.player.ui.live.LiveStillScanner
-import com.mg.player.ui.live.MosaicPlan
 import com.mg.player.ui.player.EngineSurface
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppText
@@ -32,36 +26,8 @@ import com.mg.player.ui.theme.CardSize
 import com.mg.player.ui.theme.Dimens
 import com.mg.player.ui.theme.Spacing
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 
-/**
- * „Läuft gerade“ (ab 3.41): Favoriten-Sender (sonst die ersten der Liste) mit echten, aktuellen Standbildern statt
- * Logos – man sieht, was läuft, bevor man umschaltet. Nutzt den Abtaster des Mosaiks: eine Verbindung, stumm,
- * Bilder alle 2 min, höchstens 5 Runden je Besuch der Startseite.
- */
-class LiveNowViewModel(private val container: AppContainer) : ViewModel() {
-
-    val scanner = LiveStillScanner(container, viewModelScope, logTag = "Läuft gerade")
-
-    fun setActive(active: Boolean) {
-        if (!active) {
-            scanner.stop()
-            return
-        }
-        scanner.start(roundMs = MosaicPlan.HOME_ROUND_MS, maxRounds = MosaicPlan.HOME_MAX_ROUNDS) {
-            val playlistId = container.settingsRepository.settings.first().activePlaylistId ?: return@start emptyList()
-            val live = container.liveRepository
-            val count = MosaicPlan.homeCount(scanner.lowTier)
-            val ids = live.channelIds(playlistId, Category.FAVORITES).ifEmpty { live.channelIds(playlistId, Category.ALL) }
-            MosaicPlan.pick(ids, null, count).mapNotNull { live.channel(it) }
-        }
-    }
-
-    override fun onCleared() {
-        scanner.release()
-    }
-}
-
+/** Startseiten-Zeile „Läuft gerade“ ([LiveNowViewModel]). */
 @Composable
 internal fun LiveNowRow(onOpen: (Channel) -> Unit, onLongClick: (Channel) -> Unit) {
     val vm = appViewModel(key = "home-live-now") { LiveNowViewModel(it) }

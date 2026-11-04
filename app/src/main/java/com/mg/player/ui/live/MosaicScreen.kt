@@ -212,6 +212,8 @@ internal fun LiveStillCard(
 
 /** Anteil der laufenden Sendung (0..1) oder null ohne gültige Zeiten. */
 internal fun liveProgress(startMs: Long?, endMs: Long?, nowMs: Long): Float? {
-    if (startMs == null || endMs == null || endMs <= startMs || nowMs < startMs) return null
-    return ((nowMs - startMs).toFloat() / (endMs - startMs)).coerceIn(0f, 1f)
+    if (startMs == null || endMs == null) return null
+    val duration = endMs - startMs
+    if (duration <= 0 || nowMs < startMs) return null
+    return ((nowMs - startMs).toFloat() / duration).coerceIn(0f, 1f)
 }
