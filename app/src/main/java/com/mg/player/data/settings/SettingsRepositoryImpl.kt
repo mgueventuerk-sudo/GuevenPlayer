@@ -85,6 +85,7 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         val SUPERVISOR = booleanPreferencesKey("playback_supervisor")
         val PASSTHROUGH = booleanPreferencesKey("audio_passthrough")
         val SEARCH_PAGE = longPreferencesKey("search_page_playlist")
+        val RECENT_SEARCHES = stringPreferencesKey("recent_searches")
         val SPORT_LEAGUES = stringSetPreferencesKey("sport_leagues")
         val SPORTMONKS_TOKEN = stringPreferencesKey("sportmonks_token")
         val BZZOIRO_TOKEN = stringPreferencesKey("bzzoiro_token")
@@ -142,6 +143,7 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
             audioPassthrough = this[Keys.PASSTHROUGH] ?: defaults.audioPassthrough,
             playbackSupervisor = this[Keys.SUPERVISOR] ?: defaults.playbackSupervisor,
             searchPagePlaylistId = this[Keys.SEARCH_PAGE],
+            recentSearches = this[Keys.RECENT_SEARCHES]?.split('\n')?.filter { it.isNotBlank() }.orEmpty(),
             sportLeagues = this[Keys.SPORT_LEAGUES],
             sportmonksToken = this[Keys.SPORTMONKS_TOKEN]?.let(SecretCipher::decrypt).orEmpty(),
             bzzoiroToken = this[Keys.BZZOIRO_TOKEN]?.let(SecretCipher::decrypt).orEmpty(),
@@ -185,6 +187,7 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         this[Keys.PASSTHROUGH] = s.audioPassthrough
         this[Keys.SUPERVISOR] = s.playbackSupervisor
         s.searchPagePlaylistId?.let { this[Keys.SEARCH_PAGE] = it } ?: remove(Keys.SEARCH_PAGE)
+        if (s.recentSearches.isEmpty()) remove(Keys.RECENT_SEARCHES) else this[Keys.RECENT_SEARCHES] = s.recentSearches.joinToString("\n")
         s.sportLeagues?.let { this[Keys.SPORT_LEAGUES] = it } ?: remove(Keys.SPORT_LEAGUES)
         this[Keys.ONLINE_EXTRAS] = s.onlineExtras
         this[Keys.SPORT_GUIDE] = s.sportGuide

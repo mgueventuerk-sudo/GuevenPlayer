@@ -1,6 +1,12 @@
 package com.mg.player.ui.guide
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,11 +21,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -41,6 +50,7 @@ import com.mg.player.ui.common.glass
 import com.mg.player.ui.live.ChannelLogo
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
+import com.mg.player.ui.theme.AppShapes
 import com.mg.player.ui.theme.StaticIcon
 
 internal val GUIDE_ROW_HEIGHT = 58.dp
@@ -280,6 +290,40 @@ internal fun GuideFocusInfo(focus: GuideFocus?, nowMs: Long, modifier: Modifier 
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Lade-Gerüst des TV-Guides: Sender-Spalte und Sendungsblöcke als ruhig pulsierende Flächen, in den Maßen des echten
+ * Rasters. Mit „Effekte reduzieren“ ohne Pulsieren.
+ */
+@Composable
+internal fun GuideSkeleton(timelineWidth: Dp, rows: Int = 8) {
+    val pulse = if (AppColors.reducedEffects) {
+        1f
+    } else {
+        val transition = rememberInfiniteTransition(label = "guideSkeleton")
+        val value by transition.animateFloat(
+            initialValue = 0.55f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+            label = "pulse",
+        )
+        value
+    }
+    // Wechselnde Blockbreiten wie bei echten Sendungen (Anteile der Zeitleiste).
+    val pattern = listOf(listOf(0.35f, 0.4f, 0.25f), listOf(0.5f, 0.3f, 0.2f), listOf(0.25f, 0.45f, 0.3f))
+    Column(Modifier.graphicsLayer { alpha = pulse }, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        repeat(rows) { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(Modifier.width(GUIDE_CHANNEL_WIDTH).height(52.dp).clip(AppShapes.Row).background(AppColors.Glass))
+                Row(Modifier.width(timelineWidth), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    pattern[row % pattern.size].forEach { share ->
+                        Box(Modifier.weight(share).height(52.dp).clip(AppShapes.Small).background(AppColors.Glass))
+                    }
+                }
             }
         }
     }

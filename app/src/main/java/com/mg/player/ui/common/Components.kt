@@ -103,7 +103,16 @@ fun LoadingIndicator(modifier: Modifier = Modifier, size: Dp = 40.dp) {
 }
 
 @Composable
-fun CenteredMessage(title: String, modifier: Modifier = Modifier, subtitle: String? = null, loading: Boolean = false, icon: AppIcon? = null) {
+fun CenteredMessage(
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    loading: Boolean = false,
+    icon: AppIcon? = null,
+    /** Leerer Zustand mit Ausweg (wie Apple TV): Knopf, der direkt weiterhilft, z. B. „Alle Sender zeigen“. */
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+) {
     Column(
         // Seitenrand: Am Handy liefen lange Texte sonst bis an den Bildschirmrand.
         modifier = modifier.fillMaxSize().padding(horizontal = 24.dp),
@@ -129,6 +138,10 @@ fun CenteredMessage(title: String, modifier: Modifier = Modifier, subtitle: Stri
                 textAlign = TextAlign.Center,
                 modifier = Modifier.widthIn(max = 540.dp),
             )
+        }
+        if (actionLabel != null && onAction != null && !loading) {
+            Spacer(Modifier.height(20.dp))
+            ActionButton(actionLabel, onClick = onAction, primary = true)
         }
     }
 }

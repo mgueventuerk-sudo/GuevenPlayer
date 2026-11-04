@@ -339,6 +339,14 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P5 Mit gesetzter PIN: Bearbeiten fragt zuerst nach der PIN.
 - [ ] P6 QR-Code im Bearbeiten-Bildschirm: Daten vom Handy landen im Formular (gespeichert wird erst mit „Prüfen & speichern“).
 
+## 16b. Neu in 3.42 – Bedienkomfort
+
+- [ ] K1 Live → Favoriten leer: Knopf „Alle Sender zeigen“ wechselt zu „Alle“; Filme/Serien → Favoriten leer: „Alle anzeigen“.
+- [ ] K2 Gruppenliste: Sport-, Nachrichten-, Film-, Kinder-Gruppen mit passendem Farbpunkt; „Alle“/„Favoriten“ ohne Punkt.
+- [ ] K3 Suche: Begriff eingeben, 2 s warten, Suche verlassen und wieder öffnen → Begriff steht unter „Zuletzt gesucht“; Chip sucht erneut.
+- [ ] K4 „Verlauf löschen“ leert die Liste dauerhaft (auch nach Neustart).
+- [ ] K5 TV-Guide beim ersten Öffnen: pulsierendes Raster bis die Sender da sind, kein kurzes „Keine Sender“.
+
 ## 16a. Neu in 3.41 – Oberfläche
 
 - [ ] O1 Startseite: Fokus in den Inhalt → Schriftzug blendet aus, andere Bereiche gedimmt; „Hoch“ holt die Leiste wieder nach vorn.

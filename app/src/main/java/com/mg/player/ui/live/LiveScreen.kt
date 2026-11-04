@@ -151,6 +151,9 @@ fun LiveScreen(modifier: Modifier = Modifier) {
                     },
                     loading = loading,
                     icon = if (favorites) AppIcons.Heart else AppIcons.LiveTv,
+                    // Leerer Zustand mit Ausweg statt Sackgasse.
+                    actionLabel = "Alle Sender zeigen".takeIf { favorites || selectedCategory == Category.FREQUENT },
+                    onAction = vm::showAll,
                 )
             } else {
                 RestoreScroll(restoreChannelId, channels, listState)

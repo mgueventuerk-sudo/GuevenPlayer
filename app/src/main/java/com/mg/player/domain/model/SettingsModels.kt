@@ -88,6 +88,8 @@ data class AppSettings(
     val playbackSupervisor: Boolean = true,
     /** Zuletzt gewählte Seite der Suche: null = „Alle Playlists“, sonst die ID der Playlist. */
     val searchPagePlaylistId: Long? = null,
+    /** Zuletzt gesuchte Begriffe (neueste zuerst, nur auf dem Gerät), siehe Suche. */
+    val recentSearches: List<String> = emptyList(),
     /** Ligen, denen man in der Sport-Sektion folgt; null = Voreinstellung (deutsche Ligen und Europapokal). */
     val sportLeagues: Set<String>? = null,
     /** Eigener Sportmonks-Schlüssel (verschlüsselt gespeichert); leer = nur ESPN. */

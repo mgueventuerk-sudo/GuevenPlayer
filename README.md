@@ -271,6 +271,17 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.42 (Bedienkomfort)
+
+- **Leere Zustände mit Ausweg:** Leere Favoriten/Sehgewohnheiten (Live) und leere Favoriten/Weiterschauen (Filme,
+  Serien) zeigen einen Knopf „Alle Sender zeigen“ bzw. „Alle anzeigen“ statt einer Sackgasse.
+- **Farbige Gruppen-Akzente:** Ein Punkt vor dem Gruppennamen zeigt die Art – Sport grün, Nachrichten blau, Filme rot,
+  Kinder gelb, Doku hellblau, Musik violett. Erkannt am Namen (de, en, tr, fr, es); unbekannte Gruppen ohne Punkt.
+- **Zuletzt gesucht:** Bei leerem Suchfeld stehen die letzten 8 Begriffe als Chips (nur auf dem Gerät gespeichert),
+  dazu „Verlauf löschen“. Ein Begriff gilt als gesucht, wenn das Tippen 2 s ruht.
+- **TV-Guide lädt mit Gerüst:** Während die Sender laden, steht ein pulsierendes Raster statt „Keine Sender“.
+- **Ladekarten** der Startseite in den Maßen des Gestaltungssystems (2:3).
+
 ## Neu in 3.41 (Oberfläche: Gestaltungssystem, Liquid Glass, Kontextmenü, „Läuft gerade“)
 
 - **Gestaltungssystem** (`ui/theme/DesignSystem.kt`): feste Stufen für Abstände (4-dp-Raster), fünf Schriftrollen

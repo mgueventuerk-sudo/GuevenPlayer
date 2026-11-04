@@ -5,7 +5,9 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +15,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
@@ -30,6 +34,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.tv.material3.Text
 import com.mg.player.domain.model.Category
 import com.mg.player.domain.model.ContentType
 import com.mg.player.domain.model.PlayRequest
@@ -37,13 +42,17 @@ import com.mg.player.domain.model.Playlist
 import com.mg.player.domain.model.SearchHit
 import com.mg.player.domain.model.SearchPages
 import com.mg.player.ui.common.CenteredMessage
+import com.mg.player.ui.common.ChoiceChip
 import com.mg.player.ui.common.TvTextField
 import com.mg.player.ui.common.appViewModel
 import com.mg.player.ui.common.edgePadding
 import com.mg.player.ui.common.isTouch
 import com.mg.player.ui.navigation.LocalNavigator
 import com.mg.player.ui.navigation.Screen
+import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
+import com.mg.player.ui.theme.AppText
+import com.mg.player.ui.theme.Spacing
 import kotlinx.coroutines.flow.map
 
 /** Globale Suche über Sender, Filme und Serien aller Playlists – mit Seiten je Playlist und Bereichs-Filter. */
@@ -56,6 +65,7 @@ fun SearchScreen(modifier: Modifier = Modifier) {
     val page by vm.page.collectAsStateWithLifecycle()
     val playlists by vm.playlists.collectAsStateWithLifecycle()
     val filter by vm.filter.collectAsStateWithLifecycle()
+    val recent by vm.recent.collectAsStateWithLifecycle()
     val touch = isTouch
     val multi = playlists.size > 1
     val pageIds = remember(playlists) { listOf<Long?>(null) + playlists.map { it.id } }
@@ -122,6 +132,10 @@ fun SearchScreen(modifier: Modifier = Modifier) {
             }
         }
         Spacer(Modifier.height(6.dp))
+        // Zuletzt gesucht: ein Klick sucht erneut (nur solange noch nichts eingegeben ist).
+        if (pages == null && recent.isNotEmpty()) {
+            RecentSearchChips(recent, onPick = vm::onQueryChange, onClear = vm::clearRecent, Modifier.padding(top = 12.dp, end = edge))
+        }
         when {
             pages == null -> CenteredMessage(
                 "Wonach suchst du?",
@@ -180,3 +194,18 @@ private fun SearchPage(
 }
 
 internal const val SEARCH_PLACEHOLDER = "Sender, Filme oder Serien suchen"
+
+@Composable
+private fun RecentSearchChips(recent: List<String>, onPick: (String) -> Unit, onClear: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text("Zuletzt gesucht", style = AppText.caption, color = AppColors.TextSecondary)
+        LazyRow(
+            modifier = Modifier.padding(top = Spacing.Xs),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.Xs),
+            contentPadding = PaddingValues(horizontal = Spacing.Xxs, vertical = Spacing.Xxs),
+        ) {
+            items(recent, key = { it }) { term -> ChoiceChip(term, selected = false, onClick = { onPick(term) }, icon = AppIcons.Clock) }
+            item(key = "__clear__") { ChoiceChip("Verlauf löschen", selected = false, onClick = onClear, icon = AppIcons.Trash) }
+        }
+    }
+}

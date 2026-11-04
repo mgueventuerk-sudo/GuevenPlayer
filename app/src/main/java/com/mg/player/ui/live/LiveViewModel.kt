@@ -305,6 +305,12 @@ class LiveViewModel(private val container: AppContainer) : ViewModel() {
         selectCategory(category.id)
     }
 
+    /** Leere Favoriten/Sehgewohnheiten: zurück zu allen Sendern. */
+    fun showAll() {
+        categoryJob?.cancel()
+        selectCategory(Category.ALL)
+    }
+
     private fun selectCategory(id: String) {
         if (_selectedCategoryId.value == id) return
         startAt.value = 0

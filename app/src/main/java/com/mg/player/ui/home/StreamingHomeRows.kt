@@ -234,9 +234,9 @@ internal fun SkeletonRow() {
 internal fun SkeletonCard(touch: Boolean) {
     Box(
         Modifier
-            .width(if (touch) 142.dp else 132.dp)
-            .aspectRatio(if (touch) 1.42f else 0.82f)
-            .clip(RoundedCornerShape(if (touch) 18.dp else 8.dp))
+            .width(if (touch) 142.dp else CardSize.PosterWidth)
+            .aspectRatio(if (touch) 1.42f else CardSize.POSTER_RATIO)
+            .clip(if (touch) RoundedCornerShape(18.dp) else SmoothShape(CardSize.Radius))
             .background(Brush.linearGradient(listOf(AppColors.Glass, AppColors.GlassRaised, AppColors.Glass))),
     )
 }

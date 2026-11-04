@@ -123,7 +123,12 @@ fun GuideScreen(modifier: Modifier = Modifier) {
             Column {
                 TimeHeader(windowStart, timelineWidth)
                 if (channels.itemCount == 0) {
-                    CenteredMessage("Keine Sender in dieser Kategorie", icon = AppIcons.Guide)
+                    // Beim Laden ein Gerüst des Rasters statt „Keine Sender“ – die Seite springt danach nicht.
+                    if (channels.loadState.refresh is androidx.paging.LoadState.Loading) {
+                        GuideSkeleton(timelineWidth)
+                    } else {
+                        CenteredMessage("Keine Sender in dieser Kategorie", icon = AppIcons.Guide)
+                    }
                     return@Column
                 }
                 LazyColumn(

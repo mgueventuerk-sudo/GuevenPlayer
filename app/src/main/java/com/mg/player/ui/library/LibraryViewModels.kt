@@ -72,9 +72,16 @@ abstract class LibraryViewModel<T : Any>(private val appContainer: AppContainer)
         _selectedCategoryId.value = category.id
     }
 
-    /** OK gedrückt halten auf einem Poster: Favorit an/aus, [onResult] meldet den neuen Zustand. */
+    /** Leerer Zustand „Favoriten“/„Weiterschauen“: zurück zu allen Titeln. */
+    fun showAll() {
+        focusJob?.cancel()
+        _selectedCategoryId.value = Category.ALL
+    }
+
     /** Aktueller Favoriten-Status (für die Beschriftung im Kontextmenü). */
     suspend fun isFavoriteNow(itemId: String): Boolean = appContainer.playbackRepository.isFavorite(contentType, itemId).first()
+
+    /** OK gedrückt halten auf einem Poster: Favorit an/aus, [onResult] meldet den neuen Zustand. */
 
     fun toggleFavorite(itemId: String, onResult: (Boolean) -> Unit) {
         viewModelScope.launch {

@@ -59,6 +59,24 @@ class SearchViewModel(private val container: AppContainer) : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    /** Zuletzt gesuchte Begriffe (nur auf dem Gerät), angezeigt, solange das Suchfeld leer ist. */
+    val recent: StateFlow<List<String>> = container.settingsRepository.settings
+        .map { it.recentSearches }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    init {
+        // Ein Begriff gilt als „gesucht“, wenn das Tippen 2 s ruht – so landen keine halben Wörter im Verlauf.
+        viewModelScope.launch {
+            _query.debounce(RECENT_DELAY_MS).collect { q ->
+                if (q.trim().length >= 2) container.settingsRepository.update { it.copy(recentSearches = RecentSearches.add(it.recentSearches, q)) }
+            }
+        }
+    }
+
+    fun clearRecent() {
+        viewModelScope.launch { container.settingsRepository.update { it.copy(recentSearches = emptyList()) } }
+    }
+
     fun onQueryChange(value: String) {
         _query.value = value
     }
@@ -83,5 +101,6 @@ class SearchViewModel(private val container: AppContainer) : ViewModel() {
     private companion object {
         const val NOT_CHOSEN = -2L
         const val ALL = -1L
+        const val RECENT_DELAY_MS = 2_000L
     }
 }

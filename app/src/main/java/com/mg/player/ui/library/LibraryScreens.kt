@@ -119,6 +119,9 @@ private fun <T : Any> LibraryLayout(
                 else -> emptyIcon
             },
             restoreKey = restoreKey,
+            // Leere Favoriten/Weiterschauen: direkter Weg zu allen Titeln statt Sackgasse.
+            emptyActionLabel = "Alle anzeigen".takeIf { selected == Category.FAVORITES || selected == Category.CONTINUE },
+            onEmptyAction = vm::showAll,
             // Einheitliches Kontextmenü: Öffnen und Favorit an einer Stelle.
             onLongClick = { item ->
                 val title = toPoster(item).title

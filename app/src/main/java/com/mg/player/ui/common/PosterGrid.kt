@@ -172,6 +172,8 @@ fun <T : Any> PagingPosterGrid(
     onClick: (T) -> Unit,
     modifier: Modifier = Modifier,
     emptyText: String = "Keine Einträge",
+    emptyActionLabel: String? = null,
+    onEmptyAction: (() -> Unit)? = null,
     restoreKey: String? = null,
     onLongClick: ((T) -> Unit)? = null,
     emptyIcon: AppIcon? = null,
@@ -181,7 +183,14 @@ fun <T : Any> PagingPosterGrid(
 ) {
     if (items.itemCount == 0) {
         val loading = items.loadState.refresh is androidx.paging.LoadState.Loading
-        CenteredMessage(title = if (loading) "Lädt…" else emptyText, loading = loading, modifier = modifier, icon = emptyIcon)
+        CenteredMessage(
+            title = if (loading) "Lädt…" else emptyText,
+            loading = loading,
+            modifier = modifier,
+            icon = emptyIcon,
+            actionLabel = emptyActionLabel,
+            onAction = onEmptyAction,
+        )
         return
     }
     val backdrop = LocalBackdrop.current
