@@ -1,6 +1,7 @@
 package com.mg.player.ui.live
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -51,5 +52,22 @@ class MosaicPlanTest {
         assertEquals(9, MosaicPlan.defaultSize(lowTier = false))
         assertEquals(9, MosaicPlan.toggled(4))
         assertEquals(4, MosaicPlan.toggled(9))
+    }
+
+    @Test
+    fun homeRowIsSmallerOnWeakDevicesAndRoundsAreSlower() {
+        assertEquals(4, MosaicPlan.homeCount(lowTier = true))
+        assertEquals(8, MosaicPlan.homeCount(lowTier = false))
+        assertEquals(120_000L, MosaicPlan.restAfterRound(roundStartedMs = 0, nowMs = 0, roundMs = MosaicPlan.HOME_ROUND_MS))
+        assertTrue(MosaicPlan.HOME_ROUND_MS > MosaicPlan.ROUND_MS)
+    }
+
+    @Test
+    fun liveProgressFollowsTheRunningProgramme() {
+        assertEquals(0.5f, liveProgress(1_000, 3_000, 2_000)!!, 0.0001f)
+        assertEquals(1f, liveProgress(1_000, 3_000, 9_000)!!, 0.0001f)
+        assertNull(liveProgress(null, 3_000, 2_000))
+        assertNull(liveProgress(3_000, 1_000, 2_000))
+        assertNull(liveProgress(5_000, 6_000, 2_000))
     }
 }

@@ -26,11 +26,15 @@ import com.mg.player.domain.model.Movie
 import com.mg.player.domain.model.PlayRequest
 import com.mg.player.domain.model.TmdbHomeRecommendations
 import com.mg.player.ui.common.LocalAppContainer
+import com.mg.player.ui.common.ContextAction
+import com.mg.player.ui.common.LocalContextMenu
 import com.mg.player.ui.common.LocalToast
 import com.mg.player.ui.common.isTouch
 import com.mg.player.ui.navigation.LocalNavigator
 import com.mg.player.ui.navigation.Screen
+import com.mg.player.ui.theme.AppIcons
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
@@ -44,6 +48,7 @@ fun StreamingHomeScreen(
     val container = LocalAppContainer.current
     val navigator = LocalNavigator.current
     val toast = LocalToast.current
+    val contextMenu = LocalContextMenu.current
     val scope = rememberCoroutineScope()
     val touch = isTouch
     val settings by container.settingsRepository.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
@@ -149,6 +154,35 @@ fun StreamingHomeScreen(
         }
     }
 
+    // Einheitliches Kontextmenü (OK gedrückt halten) für alle Karten der Startseite.
+    fun showMenu(entry: HomeEntry) {
+        val target = entry.target
+        scope.launch {
+            val favorite = target !is HomeTarget.RecommendationTarget && container.playbackRepository.isFavorite(target.type, target.id).first()
+            contextMenu.show(
+                title = entry.title,
+                subtitle = entry.subtitle,
+                actions = buildList {
+                    add(ContextAction("Abspielen", AppIcons.Play) { play(entry) })
+                    if (target !is HomeTarget.ChannelTarget) add(ContextAction("Details", AppIcons.Info) { openDetails(entry) })
+                    if (target !is HomeTarget.RecommendationTarget) {
+                        add(
+                            ContextAction(
+                                if (favorite) "Aus „Meine Liste“ entfernen" else "Zu „Meine Liste“",
+                                if (favorite) AppIcons.HeartFilled else AppIcons.Heart,
+                            ) {
+                                scope.launch {
+                                    container.playbackRepository.toggleFavorite(target.type, target.id)
+                                    toast.show(if (favorite) "Aus „Meine Liste“ entfernt" else "Zu „Meine Liste“ hinzugefügt")
+                                }
+                            },
+                        )
+                    }
+                },
+            )
+        }
+    }
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = if (touch) 28.dp else 24.dp),
@@ -186,6 +220,15 @@ fun StreamingHomeScreen(
                 )
             }
         }
+        // „Läuft gerade“ mit echten Standbildern (Fernseher; am Handy spart die Logo-Zeile unten Datenvolumen).
+        if (!touch && playlistId != null) {
+            item(key = "live-now") {
+                LiveNowRow(
+                    onOpen = { channel -> play(channelEntry(channel)) },
+                    onLongClick = { channel -> showMenu(channelEntry(channel)) },
+                )
+            }
+        }
         if (!settings.tmdbActive && playlistId != null) {
             item(key = "tmdb-setup") {
                 TmdbSetupPrompt { onOpenSection(HomeViewModel.SECTION_SETTINGS) }
@@ -199,6 +242,7 @@ fun StreamingHomeScreen(
                 "Noch keine Filme angefangen",
                 { onOpenSection(HomeViewModel.SECTION_MOVIES) },
                 ::openDetails,
+                ::showMenu,
             )
         }
         item(key = "continue-series") {
@@ -209,20 +253,50 @@ fun StreamingHomeScreen(
                 "Noch keine Serien angefangen",
                 { onOpenSection(HomeViewModel.SECTION_SERIES) },
                 ::openDetails,
+                ::showMenu,
             )
         }
         if (settings.tmdbActive) {
             item(key = "tmdb-new-movies") {
-                TmdbContentRow("Neueste Filme", newestMovies, tmdbState, { onOpenSection(HomeViewModel.SECTION_MOVIES) }, ::openDetails, showAttribution = true)
+                TmdbContentRow(
+                    "Neueste Filme",
+                    newestMovies,
+                    tmdbState,
+                    { onOpenSection(HomeViewModel.SECTION_MOVIES) },
+                    ::openDetails,
+                    showAttribution = true,
+                    onLongClick = ::showMenu,
+                )
             }
             item(key = "tmdb-top-movies") {
-                TmdbContentRow("Top-bewertete Filme", topRatedMovies, tmdbState, { onOpenSection(HomeViewModel.SECTION_MOVIES) }, ::openDetails)
+                TmdbContentRow(
+                    "Top-bewertete Filme",
+                    topRatedMovies,
+                    tmdbState,
+                    { onOpenSection(HomeViewModel.SECTION_MOVIES) },
+                    ::openDetails,
+                    onLongClick = ::showMenu,
+                )
             }
             item(key = "tmdb-new-series") {
-                TmdbContentRow("Neueste Serien", newestSeries, tmdbState, { onOpenSection(HomeViewModel.SECTION_SERIES) }, ::openDetails)
+                TmdbContentRow(
+                    "Neueste Serien",
+                    newestSeries,
+                    tmdbState,
+                    { onOpenSection(HomeViewModel.SECTION_SERIES) },
+                    ::openDetails,
+                    onLongClick = ::showMenu,
+                )
             }
             item(key = "tmdb-top-series") {
-                TmdbContentRow("Top-bewertete Serien", topRatedSeries, tmdbState, { onOpenSection(HomeViewModel.SECTION_SERIES) }, ::openDetails)
+                TmdbContentRow(
+                    "Top-bewertete Serien",
+                    topRatedSeries,
+                    tmdbState,
+                    { onOpenSection(HomeViewModel.SECTION_SERIES) },
+                    ::openDetails,
+                    onLongClick = ::showMenu,
+                )
             }
         }
         item(key = "movies") {
@@ -233,6 +307,7 @@ fun StreamingHomeScreen(
                 "Keine Filme vorhanden",
                 { onOpenSection(HomeViewModel.SECTION_MOVIES) },
                 ::openDetails,
+                ::showMenu,
             )
         }
         item(key = "series") {
@@ -243,6 +318,7 @@ fun StreamingHomeScreen(
                 "Keine Serien vorhanden",
                 { onOpenSection(HomeViewModel.SECTION_SERIES) },
                 ::openDetails,
+                ::showMenu,
             )
         }
         item(key = "favorite-movies") {
@@ -253,6 +329,7 @@ fun StreamingHomeScreen(
                 "Noch keine Filme gespeichert",
                 { onOpenSection(HomeViewModel.SECTION_MOVIES) },
                 ::openDetails,
+                ::showMenu,
             )
         }
         item(key = "favorite-series") {
@@ -263,17 +340,21 @@ fun StreamingHomeScreen(
                 "Noch keine Serien gespeichert",
                 { onOpenSection(HomeViewModel.SECTION_SERIES) },
                 ::openDetails,
+                ::showMenu,
             )
         }
-        item(key = "live") {
-            ContentRow(
-                "Live-TV & aktuelles Programm",
-                liveChannels,
-                ::channelEntry,
-                "Keine Sender vorhanden",
-                { onOpenSection(HomeViewModel.SECTION_LIVE) },
-                ::play,
-            )
+        if (touch) {
+            item(key = "live") {
+                ContentRow(
+                    "Live-TV & aktuelles Programm",
+                    liveChannels,
+                    ::channelEntry,
+                    "Keine Sender vorhanden",
+                    { onOpenSection(HomeViewModel.SECTION_LIVE) },
+                    ::play,
+                    ::showMenu,
+                )
+            }
         }
     }
 }

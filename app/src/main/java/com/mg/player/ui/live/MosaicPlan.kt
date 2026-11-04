@@ -34,7 +34,15 @@ internal object MosaicPlan {
     }
 
     /** Wartezeit nach einer Runde, damit eine Runde nie kürzer als [ROUND_MS] ist (schont Anbieter und Datenvolumen). */
-    fun restAfterRound(roundStartedMs: Long, nowMs: Long): Long = (ROUND_MS - (nowMs - roundStartedMs)).coerceIn(0L, ROUND_MS)
+    fun restAfterRound(roundStartedMs: Long, nowMs: Long, roundMs: Long = ROUND_MS): Long =
+        (roundMs - (nowMs - roundStartedMs)).coerceIn(0L, roundMs)
+
+    /** Startseite: Standbilder alle 2 min, höchstens 5 Runden je Besuch (Datenvolumen, Anbieter-Verbindungen). */
+    const val HOME_ROUND_MS = 120_000L
+    const val HOME_MAX_ROUNDS = 5
+
+    /** Startseite: so viele Sender in der Zeile „Läuft gerade“ (schwache Geräte weniger). */
+    fun homeCount(lowTier: Boolean): Int = if (lowTier) 4 else 8
 
     /** Größe beim Umschalten (2×2 ↔ 3×3). */
     fun toggled(size: Int): Int = if (size == SIZES.first()) SIZES.last() else SIZES.first()

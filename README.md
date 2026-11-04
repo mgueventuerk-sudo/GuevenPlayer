@@ -271,6 +271,22 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.41 (Oberfläche: Gestaltungssystem, Liquid Glass, Kontextmenü, „Läuft gerade“)
+
+- **Gestaltungssystem** (`ui/theme/DesignSystem.kt`): feste Stufen für Abstände (4-dp-Raster), fünf Schriftrollen
+  (`AppText`), eine Kartengröße je Inhaltsart (Poster 2:3, Sender 16:9, fließende 12-dp-Ecken) und Federbewegungen
+  (`AppMotion`). Startseite, Bibliothek, Mosaik, Kontextmenü und Leiste nutzen es; ältere Bildschirme folgen schrittweise.
+- **Liquid-Glass-Leiste:** Die obere Leiste ist ein schwebendes Glas-Element mit Lichtrand und Schatten. Liegt der
+  Fokus im Inhalt, zieht sie sich mit einer Feder auf den gewählten Bereich zusammen (Schriftzug und andere Bereiche
+  blenden aus); „Hoch“ fährt sie wieder aus. Mit „Effekte reduzieren“ ohne Rand und Schatten.
+- **Einheitliches Kontextmenü:** OK gedrückt halten öffnet überall dasselbe Menü statt einer versteckten
+  Sofort-Aktion – Senderliste (Abspielen, Favorit, Mosaik ab hier), Filme/Serien (Öffnen, Favorit), Gruppen (Öffnen,
+  Oben anheften), TV-Guide (Ansehen, Aufnehmen/Aufnahme entfernen), Startseite (Abspielen, Details, Meine Liste).
+- **„Läuft gerade“** (Startseite am Fernseher, direkt unter dem großen Titel): Favoriten-Sender (ohne Favoriten die
+  ersten der Liste) mit echten, aktuellen Standbildern, Sendung und Fortschritt. Nutzt den Abtaster des Mosaiks:
+  eine Verbindung, stumm, Bilder alle 2 min, höchstens 5 Runden je Besuch; scrollt die Zeile aus dem Bild, endet die
+  Verbindung. Am Handy bleibt die Logo-Zeile (Datenvolumen).
+
 ## Neu in 3.40 (Ambient-Licht und Live-Mosaik)
 
 - **Ambient-Licht:** Läuft in der Senderliste die Vorschau, färben sich die beiden Farbflächen des App-Hintergrunds

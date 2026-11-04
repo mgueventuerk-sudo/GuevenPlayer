@@ -9,11 +9,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,7 +42,11 @@ import com.mg.player.ui.navigation.Screen
 import com.mg.player.ui.player.EngineSurface
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
+import com.mg.player.ui.theme.AppText
+import com.mg.player.ui.theme.CardSize
 import com.mg.player.ui.theme.Dimens
+import com.mg.player.ui.theme.SmoothShape
+import com.mg.player.ui.theme.Spacing
 
 /**
  * Live-Mosaik (z. B. Sport-Konferenz): 2×2 oder 3×3 Sender einer Gruppe als Standbilder, alle 30 s neu.
@@ -52,10 +56,10 @@ import com.mg.player.ui.theme.Dimens
 fun MosaicScreen(categoryId: String, startChannelId: String?) {
     val vm = appViewModel(key = "mosaic:$categoryId:$startChannelId") { MosaicViewModel(it, categoryId, startChannelId) }
     val navigator = LocalNavigator.current
-    val tiles by vm.tiles.collectAsStateWithLifecycle()
+    val tiles by vm.scanner.tiles.collectAsStateWithLifecycle()
     val size by vm.size.collectAsStateWithLifecycle()
-    val scanning by vm.scanning.collectAsStateWithLifecycle()
-    val engine by vm.engine.collectAsStateWithLifecycle()
+    val scanning by vm.scanner.scanning.collectAsStateWithLifecycle()
+    val engine by vm.scanner.engine.collectAsStateWithLifecycle()
 
     LifecycleResumeEffect(Unit) {
         vm.setActive(true)
@@ -100,13 +104,13 @@ fun MosaicScreen(categoryId: String, startChannelId: String?) {
                         Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                             row.forEachIndexed { colIndex, tile ->
                                 val index = rowIndex * columns + colIndex
-                                MosaicTileCard(
+                                LiveStillCard(
                                     tile = tile,
                                     live = scanning == index,
                                     content = {
                                         val current = engine
                                         if (scanning == index && current != null) {
-                                            EngineSurface(current, Modifier.fillMaxSize(), onContainer = vm::onSurface)
+                                            EngineSurface(current, Modifier.fillMaxSize(), onContainer = vm.scanner::onSurface)
                                         }
                                     },
                                     onClick = { navigator.push(Screen.Player(PlayRequest.Live(tile.channel.id, categoryId))) },
@@ -125,18 +129,25 @@ fun MosaicScreen(categoryId: String, startChannelId: String?) {
     }
 }
 
+/**
+ * Sender-Kachel mit Standbild (Mosaik und Startseite „Läuft gerade“): Bild bzw. Logo, darüber kurz das Live-Bild des
+ * Abtasters ([content], wenn [live]), unten Name, laufende Sendung und Fortschritt auf einem Verlauf.
+ */
 @Composable
-private fun MosaicTileCard(
+internal fun LiveStillCard(
     tile: MosaicTile,
     live: Boolean,
     content: @Composable () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
+    nowMs: Long? = null,
 ) {
     FocusSurface(
         onClick = onClick,
+        onLongClick = onLongClick,
         modifier = modifier.fillMaxSize(),
-        shape = RoundedCornerShape(14.dp),
+        shape = SmoothShape(CardSize.Radius),
         focusedScale = 1.04f,
         sheen = false,
     ) {
@@ -163,7 +174,7 @@ private fun MosaicTileCard(
                     }
                     Text(
                         tile.channel.name,
-                        style = MaterialTheme.typography.titleSmall,
+                        style = AppText.label,
                         color = Color.White,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -176,13 +187,31 @@ private fun MosaicTileCard(
                 subtitle?.let {
                     Text(
                         it,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = AppText.caption,
                         color = Color.White.copy(alpha = 0.72f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                val progress = nowMs?.let { liveProgress(tile.channel.nowStartMs, tile.channel.nowEndMs, it) }
+                if (progress != null) {
+                    Box(
+                        Modifier
+                            .padding(top = Spacing.Xxs)
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .background(Color.White.copy(alpha = 0.25f), CircleShape),
+                    ) {
+                        Box(Modifier.fillMaxWidth(progress).height(3.dp).background(Color.White, CircleShape))
+                    }
+                }
             }
         }
     }
+}
+
+/** Anteil der laufenden Sendung (0..1) oder null ohne gültige Zeiten. */
+internal fun liveProgress(startMs: Long?, endMs: Long?, nowMs: Long): Float? {
+    if (startMs == null || endMs == null || endMs <= startMs || nowMs < startMs) return null
+    return ((nowMs - startMs).toFloat() / (endMs - startMs)).coerceIn(0f, 1f)
 }

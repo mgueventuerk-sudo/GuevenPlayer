@@ -54,6 +54,7 @@ internal fun TmdbContentRow(
     onSeeAll: () -> Unit,
     onClick: (HomeEntry) -> Unit,
     showAttribution: Boolean = false,
+    onLongClick: ((HomeEntry) -> Unit)? = null,
 ) {
     val touch = isTouch
     if (!touch && !showAttribution && entries.isEmpty()) return
@@ -92,7 +93,7 @@ internal fun TmdbContentRow(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.CardGap),
             ) {
                 items(entries, key = { it.id }, contentType = { "tmdb-home-card" }) { entry ->
-                    MediaCard(entry, onClick = { onClick(entry) }, touch = touch)
+                    MediaCard(entry, onClick = { onClick(entry) }, touch = touch, onLongClick = onLongClick?.let { { it(entry) } })
                 }
             }
         }
@@ -107,6 +108,7 @@ internal fun <T : Any> ContentRow(
     emptyText: String,
     onSeeAll: () -> Unit,
     onClick: (HomeEntry) -> Unit,
+    onLongClick: ((HomeEntry) -> Unit)? = null,
 ) {
     val touch = isTouch
     if (!touch && paged.itemCount == 0 && paged.loadState.refresh is LoadState.NotLoading) return
@@ -149,7 +151,7 @@ internal fun <T : Any> ContentRow(
                 ) { index ->
                     paged[index]?.let { value ->
                         val entry = remember(value) { toEntry(value) }
-                        MediaCard(entry, onClick = { onClick(entry) }, touch = touch)
+                        MediaCard(entry, onClick = { onClick(entry) }, touch = touch, onLongClick = onLongClick?.let { { it(entry) } })
                     } ?: SkeletonCard(touch)
                 }
             }
@@ -158,7 +160,7 @@ internal fun <T : Any> ContentRow(
 }
 
 @Composable
-internal fun MediaCard(entry: HomeEntry, onClick: () -> Unit, touch: Boolean) {
+internal fun MediaCard(entry: HomeEntry, onClick: () -> Unit, touch: Boolean, onLongClick: (() -> Unit)? = null) {
     val context = LocalContext.current
     val live = entry.target is HomeTarget.ChannelTarget
     val imageUrl = if (!touch && !live) entry.posterUrl ?: entry.imageUrl else entry.imageUrl ?: entry.posterUrl
@@ -175,6 +177,7 @@ internal fun MediaCard(entry: HomeEntry, onClick: () -> Unit, touch: Boolean) {
     Column(Modifier.width(width)) {
         FocusSurface(
             onClick = onClick,
+            onLongClick = onLongClick,
             modifier = Modifier.fillMaxWidth().aspectRatio(cardRatio),
             shape = if (touch) RoundedCornerShape(18.dp) else SmoothShape(CardSize.Radius),
             focusedScale = if (touch) 1.06f else 1.025f,

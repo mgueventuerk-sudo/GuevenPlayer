@@ -339,6 +339,18 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P5 Mit gesetzter PIN: Bearbeiten fragt zuerst nach der PIN.
 - [ ] P6 QR-Code im Bearbeiten-Bildschirm: Daten vom Handy landen im Formular (gespeichert wird erst mit „Prüfen & speichern“).
 
+## 16a. Neu in 3.41 – Oberfläche
+
+- [ ] O1 Startseite: Fokus in den Inhalt → Leiste zieht sich auf den gewählten Bereich zusammen; „Hoch“ fährt sie aus, alle Bereiche wieder da.
+- [ ] O2 Leiste: links/rechts blättern und Verweilen öffnet weiterhin den Bereich; OK springt in den Inhalt.
+- [ ] O3 „Effekte reduzieren“: Leiste ohne Lichtrand/Schatten, Einziehen funktioniert trotzdem.
+- [ ] O4 OK gedrückt halten auf Sender, Film, Serie, Gruppe, Guide-Sendung und Startseiten-Karte: Menü erscheint, erster Eintrag hat den Fokus, Zurück schließt es.
+- [ ] O5 Menü-Einträge wirken: Favorit an/aus (Beschriftung passt zum Zustand), Mosaik ab hier, Aufnehmen/Aufnahme entfernen, Oben anheften.
+- [ ] O6 Startseite am Fernseher: „Läuft gerade“ zeigt nacheinander kurz live, dann Standbilder; kein Ton.
+- [ ] O7 Zugang mit nur einer Verbindung: „Läuft gerade“ ohne „Zu viele Verbindungen“; Sender öffnen funktioniert sofort.
+- [ ] O8 „Läuft gerade“ aus dem Bild scrollen oder Player öffnen: Anbieter zeigt 0 aktive Verbindungen der Zeile.
+- [ ] O9 Poster überall 2:3 mit gleichen Ecken; Sender-Kacheln 16:9.
+
 ## 15z. Neu in 3.40 – Ambient-Licht und Live-Mosaik
 
 - [ ] A1 Senderliste, Vorschau läuft: Hintergrund nimmt nach 1–2 s die Farben des Bildes an, Übergang ohne Flackern.
