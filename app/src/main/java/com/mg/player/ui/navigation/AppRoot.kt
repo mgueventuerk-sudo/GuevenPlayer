@@ -59,6 +59,7 @@ import com.mg.player.ui.detail.MovieDetailScreen
 import com.mg.player.ui.detail.SeriesDetailScreen
 import com.mg.player.ui.detail.TmdbCatalogTitleScreen
 import com.mg.player.ui.home.HomeScreen
+import com.mg.player.ui.live.MosaicScreen
 import com.mg.player.ui.phone.PhoneHomeScreen
 import com.mg.player.ui.phone.PhoneMovieDetail
 import com.mg.player.ui.phone.PhoneSeriesDetail
@@ -198,6 +199,8 @@ fun AppRoot(container: AppContainer) {
                         Screen.Surfshark -> SurfsharkScreen()
 
                         is Screen.SportAssign -> SportAssignScreen(screen.leagueKey)
+
+                        is Screen.Mosaic -> MosaicScreen(screen.categoryId, screen.startChannelId)
                     }
                 }
             }

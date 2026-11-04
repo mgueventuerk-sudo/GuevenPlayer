@@ -130,6 +130,9 @@ interface VideoPlayerEngine {
     /** Video- bzw. Tonspur abwählen und wieder wählen (startet den Decoder neu). false = kann diese Engine nicht. */
     fun refreshTrack(video: Boolean): Boolean = false
 
+    /** Ton aus (z. B. Mosaik-Standbilder). Gilt auch für folgende [prepare]-Aufrufe. Standard: Engine ohne Steuerung. */
+    fun setMuted(muted: Boolean) = Unit
+
     fun attachSurface(container: FrameLayout)
     fun detachSurface(container: FrameLayout)
 

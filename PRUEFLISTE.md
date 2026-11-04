@@ -339,6 +339,19 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P5 Mit gesetzter PIN: Bearbeiten fragt zuerst nach der PIN.
 - [ ] P6 QR-Code im Bearbeiten-Bildschirm: Daten vom Handy landen im Formular (gespeichert wird erst mit „Prüfen & speichern“).
 
+## 15z. Neu in 3.40 – Ambient-Licht und Live-Mosaik
+
+- [ ] A1 Senderliste, Vorschau läuft: Hintergrund nimmt nach 1–2 s die Farben des Bildes an, Übergang ohne Flackern.
+- [ ] A2 Schwarzbild/Senderwechsel: Hintergrund kehrt sanft zu den Akzentfarben zurück, kein Sprung.
+- [ ] A3 „Effekte reduzieren“ an: kein Ambient-Licht, Hintergrund ruhig wie bisher.
+- [ ] A4 Heller Modus: Schrift auf den Glasflächen bleibt bei grellen Bildern lesbar.
+- [ ] A5 Vollbild öffnen und zurück: Ambient-Licht läuft weiter, kein Ruckeln beim Durchblättern der Liste.
+- [ ] M1 Senderliste → Mosaik: 3×3 (Fire TV Stick Lite: 2×2) ab dem markierten Sender; Kacheln werden nacheinander kurz live, dann Standbild.
+- [ ] M2 Zugang mit nur einer Verbindung: Mosaik läuft ohne „Zu viele Verbindungen“.
+- [ ] M3 Umschalter 2×2 ↔ 3×3, OK auf einer Kachel öffnet den Sender im Vollbild, Zurück führt ins Mosaik.
+- [ ] M4 Kein Ton aus dem Mosaik; Sender ohne Bild zeigen Logo und „Kein Bild“.
+- [ ] M5 App in den Hintergrund: Mosaik schließt die Verbindung (Anbieter-Statusseite: 0 aktive Verbindungen).
+
 ## 15y. Neu in 3.39 – Dachmarke + 4K
 
 - [ ] T1 TRT 1 → Mehr → Quelle: keine „TRT UHD“/„TRT 4K“-Quelle; TRT 2 ebenso.

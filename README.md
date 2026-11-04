@@ -271,6 +271,20 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.40 (Ambient-Licht und Live-Mosaik)
+
+- **Ambient-Licht:** Läuft in der Senderliste die Vorschau, färben sich die beiden Farbflächen des App-Hintergrunds
+  langsam in die Farben des Bildes (links oben = linke Bildhälfte, rechts unten = rechte), ähnlich wie Ambilight.
+  Gemessen wird alle 1,2 s an einem 32×18-Bild (`PixelCopy`, GPU-skaliert); schwarze Balken und dunkle Szenen zählen
+  nicht, grelle Farben werden gezähmt, damit Schrift lesbar bleibt. Aus mit „Effekte reduzieren“ (auf schwachen Geräten
+  automatisch). DRM-geschützte oder getunnelte Streams liefern kein Bild – dann bleiben die Akzentfarben.
+- **Live-Mosaik** (*Senderliste → Mosaik*): 2×2 oder 3×3 Sender der Gruppe ab dem markierten Sender als Standbilder,
+  alle 30 s neu. Ein einziger, stummer Abtaster öffnet die Sender nacheinander in ihrer Kachel und sichert das Bild –
+  das Mosaik belegt nie mehr als eine Verbindung beim Anbieter und dekodiert nie mehr als ein Video. Zwischen den
+  Runden ist die Verbindung geschlossen. OK öffnet den Sender im Vollbild; schwache Geräte starten mit 2×2.
+- **Bewegte Kategorie-Kacheln:** bewusst nicht umgesetzt – Trailer gibt es nur als YouTube-Schlüssel (TMDB/Xtream),
+  die sich ohne WebView oder Umgehung der YouTube-Nutzungsbedingungen nicht stumm in einer Kachel abspielen lassen.
+
 ## Neu in 3.39 (Dachmarke + 4K ist ein eigener Sender)
 
 - **Gemeldet:** „TRT 4K ist ein eingestellter Sender, er hat nichts mit TRT 1 oder TRT 2 zu tun.“ Ursache: Aus „TRT 4K“ bzw.

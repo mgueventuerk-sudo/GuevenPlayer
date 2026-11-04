@@ -28,6 +28,9 @@ sealed interface Screen {
     data object FavoritesOrder : Screen
     data object Surfshark : Screen
 
+    /** Live-Mosaik: Sender der Gruppe [categoryId] ab [startChannelId] als Standbilder. */
+    data class Mosaic(val categoryId: String, val startChannelId: String?) : Screen
+
     /** [leagueKey]: gleich die Senderauswahl dieser Liga öffnen. */
     data class SportAssign(val leagueKey: String? = null) : Screen
 }

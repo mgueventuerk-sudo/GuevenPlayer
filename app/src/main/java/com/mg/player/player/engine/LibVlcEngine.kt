@@ -41,6 +41,7 @@ class LibVlcEngine(context: Context) : VideoPlayerEngine {
     private val worker = VlcWorker()
     private var videoLayout: VLCVideoLayout? = null
     private var viewsAttached = false
+    private var muted = false
 
     override val positionMs: Long get() = player?.time?.coerceAtLeast(0) ?: 0
     override val durationMs: Long get() = player?.length?.coerceAtLeast(0) ?: 0
@@ -72,8 +73,12 @@ class LibVlcEngine(context: Context) : VideoPlayerEngine {
                 }
             }
 
-            MediaPlayer.Event.Playing -> _state.update {
-                it.copy(status = PlaybackStatus.READY, isPlaying = true, errorMessage = null, videoFrameRate = currentFrameRate() ?: it.videoFrameRate)
+            MediaPlayer.Event.Playing -> {
+                // LibVLC übernimmt die Lautstärke erst mit geöffneter Tonausgabe – daher hier (erneut) setzen.
+                if (muted) player?.setVolume(0)
+                _state.update {
+                    it.copy(status = PlaybackStatus.READY, isPlaying = true, errorMessage = null, videoFrameRate = currentFrameRate() ?: it.videoFrameRate)
+                }
             }
 
             MediaPlayer.Event.Paused -> _state.update { it.copy(isPlaying = false) }
@@ -104,6 +109,11 @@ class LibVlcEngine(context: Context) : VideoPlayerEngine {
             mp.attachViews(layout, null, true, false)
             viewsAttached = true
         }
+    }
+
+    override fun setMuted(muted: Boolean) {
+        this.muted = muted
+        player?.takeUnless { it.isReleased }?.setVolume(if (muted) 0 else 100)
     }
 
     override fun attachSurface(container: FrameLayout) {

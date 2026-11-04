@@ -160,6 +160,10 @@ fun paletteFor(dark: Boolean, accent: AccentColor): Palette {
     }
 }
 
+/** Farben des Ambient-Lichts: linke und rechte Bildhälfte, schon für den Hintergrund gezähmt. */
+@Immutable
+data class VideoAmbient(val left: Color, val right: Color)
+
 /** Automatisch: von 7 bis 19 Uhr hell, sonst dunkel. */
 fun isDarkFor(mode: ThemeMode, hourOfDay: Int = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)): Boolean = when (mode) {
     ThemeMode.DARK -> true
@@ -178,6 +182,12 @@ object AppColors {
 
     /** „Effekte reduzieren“: Glas ohne Verlauf/Rand, Hintergrund ohne Farbflächen und Bilder. */
     var reducedEffects by mutableStateOf(false)
+
+    /**
+     * Ambient-Licht: Farben des laufenden Vorschaubilds (links, rechts). Der App-Hintergrund färbt seine beiden
+     * Farbflächen sanft darauf um; null = wieder die Akzentfarben. Bei „Effekte reduzieren“ nie gesetzt.
+     */
+    var videoAmbient by mutableStateOf<VideoAmbient?>(null)
 
     /** Aktive Farben. Solange ein Videobild zu sehen ist ([VideoScope]), immer die dunkle Variante. */
     val palette: Palette get() = if (videoScopes > 0) darkVariant else current

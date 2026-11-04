@@ -34,6 +34,7 @@ class NativeEngine(context: Context) : VideoPlayerEngine {
     private var currentHolder: SurfaceHolder? = null
     private var aspectLayout: AspectRatioFrameLayout? = null
     private var prepared = false
+    private var muted = false
 
     override val positionMs: Long get() = if (prepared) player?.currentPosition?.toLong() ?: 0 else 0
     override val durationMs: Long get() = if (prepared) player?.duration?.toLong()?.coerceAtLeast(0) ?: 0 else 0
@@ -82,6 +83,12 @@ class NativeEngine(context: Context) : VideoPlayerEngine {
         aspectLayout = null
     }
 
+    override fun setMuted(muted: Boolean) {
+        this.muted = muted
+        val volume = if (muted) 0f else 1f
+        runCatching { player?.setVolume(volume, volume) }
+    }
+
     override fun prepare(request: StreamRequest) {
         releasePlayer()
         prepared = false
@@ -95,6 +102,7 @@ class NativeEngine(context: Context) : VideoPlayerEngine {
                 .build(),
         )
         mp.setScreenOnWhilePlaying(true)
+        if (muted) mp.setVolume(0f, 0f)
         currentHolder?.let { mp.setDisplay(it) }
         mp.setOnPreparedListener {
             prepared = true

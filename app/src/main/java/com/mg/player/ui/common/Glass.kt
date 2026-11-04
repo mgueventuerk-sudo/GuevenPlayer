@@ -2,6 +2,7 @@ package com.mg.player.ui.common
 
 import android.os.Build
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -82,33 +83,14 @@ val LocalBackdrop = staticCompositionLocalOf { BackdropState() }
 @Composable
 fun AmbientBackground(modifier: Modifier = Modifier, artworkUrl: String? = null, content: @Composable BoxScope.() -> Unit) {
     val background = AppColors.Background
-    val auroraA = AppColors.AuroraA
-    val auroraB = AppColors.AuroraB
     val plain = AppColors.reducedEffects
     Box(
         modifier
             .fillMaxSize()
-            .background(background)
-            .drawBehind {
-                if (plain) return@drawBehind
-                drawRect(
-                    Brush.radialGradient(
-                        listOf(auroraA, Color.Transparent),
-                        center = Offset(size.width * 0.12f, size.height * 0.05f),
-                        radius =
-                            size.width * 0.55f,
-                    ),
-                )
-                drawRect(
-                    Brush.radialGradient(
-                        listOf(auroraB, Color.Transparent),
-                        center = Offset(size.width * 0.92f, size.height * 0.95f),
-                        radius =
-                            size.width * 0.5f,
-                    ),
-                )
-            },
+            .background(background),
     ) {
+        // Eigene Ebene: Das Ambient-Licht ändert sich laufend und soll nur sie neu zeichnen, nie den Inhalt.
+        if (!plain) AuroraLayer()
         // Erst nach kurzem Verweilen wechseln: Beim schnellen Durchblättern lädt und überblendet nicht jedes Poster.
         var shown by remember { mutableStateOf(artworkUrl) }
         LaunchedEffect(artworkUrl) {
@@ -120,6 +102,38 @@ fun AmbientBackground(modifier: Modifier = Modifier, artworkUrl: String? = null,
         }
         content()
     }
+}
+
+/**
+ * Zwei weiche Farbflächen in Akzent- und Partnerfarbe. Ambient-Licht: Läuft eine Vorschau, nehmen sie langsam die
+ * Farben des Bildes an (links oben = linke Bildhälfte, rechts unten = rechte). Gelesen wird nur beim Zeichnen.
+ */
+@Composable
+private fun AuroraLayer() {
+    val ambient = AppColors.videoAmbient
+    val ambientAlpha = if (AppColors.isDark) 0.34f else 0.22f
+    val auroraA = animateColorAsState(ambient?.left?.copy(alpha = ambientAlpha) ?: AppColors.AuroraA, tween(AMBIENT_FADE_MS), label = "ambientA")
+    val auroraB = animateColorAsState(ambient?.right?.copy(alpha = ambientAlpha) ?: AppColors.AuroraB, tween(AMBIENT_FADE_MS), label = "ambientB")
+    Box(
+        Modifier
+            .fillMaxSize()
+            .drawBehind {
+                drawRect(
+                    Brush.radialGradient(
+                        listOf(auroraA.value, Color.Transparent),
+                        center = Offset(size.width * 0.12f, size.height * 0.05f),
+                        radius = size.width * 0.55f,
+                    ),
+                )
+                drawRect(
+                    Brush.radialGradient(
+                        listOf(auroraB.value, Color.Transparent),
+                        center = Offset(size.width * 0.92f, size.height * 0.95f),
+                        radius = size.width * 0.5f,
+                    ),
+                )
+            },
+    )
 }
 
 @Composable
@@ -150,3 +164,6 @@ private fun BlurredArtwork(url: String) {
 }
 
 private const val ARTWORK_DELAY_MS = 350L
+
+/** Überblendzeit des Ambient-Lichts: langsam, damit Schnitte im Bild nicht flackern. */
+private const val AMBIENT_FADE_MS = 1_400

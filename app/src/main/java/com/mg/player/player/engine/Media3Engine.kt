@@ -62,6 +62,7 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
 
     private var player: ExoPlayer? = null
     private var playerView: PlayerView? = null
+    private var muted = false
     private var httpFactory: OkHttpDataSource.Factory? = null
     private var builtFor: Media3Config? = null
     private var lastRequest: StreamRequest? = null
@@ -168,6 +169,11 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
         }
     }
 
+    override fun setMuted(muted: Boolean) {
+        this.muted = muted
+        player?.volume = if (muted) 0f else 1f
+    }
+
     override fun attachSurface(container: FrameLayout) {
         val view = Media3Build.view(container.context, player)
         container.removeAllViews()
@@ -190,7 +196,10 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
         if (player == null || builtFor != config) {
             // Erste Wiedergabe oder geänderte Einstellungen (z. B. Catch-up nach Live ohne Tunneling).
             releasePlayer()
-            player = buildPlayer(config).also { playerView?.player = it }
+            player = buildPlayer(config).also {
+                playerView?.player = it
+                if (muted) it.volume = 0f
+            }
             builtFor = config
         }
         lastRequest = request

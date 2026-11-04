@@ -196,7 +196,12 @@ fun LiveScreen(modifier: Modifier = Modifier) {
             }
         }
 
-        LiveDetailsPane(vm, nowMs, Modifier.weight(1f).fillMaxHeight().padding(top = 12.dp))
+        LiveDetailsPane(
+            vm = vm,
+            nowMs = nowMs,
+            onMosaic = { channelId -> navigator.push(Screen.Mosaic(selectedCategory, channelId)) },
+            modifier = Modifier.weight(1f).fillMaxHeight().padding(top = 12.dp),
+        )
     }
 }
 
@@ -205,7 +210,7 @@ fun LiveScreen(modifier: Modifier = Modifier) {
  * neu gezeichnet wird – nicht der ganze Bildschirm samt Senderliste.
  */
 @Composable
-private fun LiveDetailsPane(vm: LiveViewModel, nowMs: Long, modifier: Modifier) {
+private fun LiveDetailsPane(vm: LiveViewModel, nowMs: Long, onMosaic: (String?) -> Unit, modifier: Modifier) {
     val focusedChannel by vm.focusedChannel.collectAsStateWithLifecycle()
     val epg by vm.epg.collectAsStateWithLifecycle()
     val isFavorite by vm.isFavorite.collectAsStateWithLifecycle()
@@ -224,7 +229,8 @@ private fun LiveDetailsPane(vm: LiveViewModel, nowMs: Long, modifier: Modifier) 
         ) {
             val engine = previewEngine
             if (engine != null) {
-                EngineSurface(engine, Modifier.fillMaxSize())
+                // Ambient-Licht: Das Vorschaubild färbt den Hintergrund (aus bei „Effekte reduzieren“).
+                EngineSurface(engine, Modifier.fillMaxSize(), ambient = true)
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     AnimatedIcon(AppIcons.LiveTv, tint = AppColors.TextMuted, active = focusedChannel != null, size = 34.dp)
@@ -242,12 +248,21 @@ private fun LiveDetailsPane(vm: LiveViewModel, nowMs: Long, modifier: Modifier) 
             Column(Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 14.dp)) {
                 EpgDetails(focusedChannel, epg, nowMs, Modifier.weight(1f))
                 if (focusedChannel != null) {
-                    ActionButton(
-                        text = if (isFavorite) "Aus Favoriten entfernen" else "Zu Favoriten",
-                        icon = if (isFavorite) AppIcons.HeartFilled else AppIcons.Heart,
-                        onClick = vm::toggleFavorite,
-                        compact = true,
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        ActionButton(
+                            text = if (isFavorite) "Aus Favoriten entfernen" else "Zu Favoriten",
+                            icon = if (isFavorite) AppIcons.HeartFilled else AppIcons.Heart,
+                            onClick = vm::toggleFavorite,
+                            compact = true,
+                        )
+                        // Live-Mosaik ab diesem Sender: die nächsten Sender der Gruppe als Standbilder.
+                        ActionButton(
+                            text = "Mosaik",
+                            icon = AppIcons.Grid,
+                            onClick = { onMosaic(focusedChannel?.id) },
+                            compact = true,
+                        )
+                    }
                 }
             }
         }
