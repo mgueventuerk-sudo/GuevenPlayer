@@ -341,7 +341,7 @@ schicken (Zeilen beginnen mit „Wächter:“).
 
 ## 16a. Neu in 3.41 – Oberfläche
 
-- [ ] O1 Startseite: Fokus in den Inhalt → Leiste zieht sich auf den gewählten Bereich zusammen; „Hoch“ fährt sie aus, alle Bereiche wieder da.
+- [ ] O1 Startseite: Fokus in den Inhalt → Schriftzug blendet aus, andere Bereiche gedimmt; „Hoch“ holt die Leiste wieder nach vorn.
 - [ ] O2 Leiste: links/rechts blättern und Verweilen öffnet weiterhin den Bereich; OK springt in den Inhalt.
 - [ ] O3 „Effekte reduzieren“: Leiste ohne Lichtrand/Schatten, Einziehen funktioniert trotzdem.
 - [ ] O4 OK gedrückt halten auf Sender, Film, Serie, Gruppe, Guide-Sendung und Startseiten-Karte: Menü erscheint, erster Eintrag hat den Fokus, Zurück schließt es.

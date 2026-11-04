@@ -1,6 +1,7 @@
 package com.mg.player.ui.common
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -29,6 +30,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -58,6 +60,9 @@ import kotlinx.coroutines.delay
 private val START_WIDTH = 200.dp
 private val END_WIDTH = 240.dp
 
+/** Deckkraft der nicht gewählten Bereiche, solange die Leiste eingezogen ist (Fokus im Inhalt). */
+private const val COLLAPSED_ALPHA = 0.45f
+
 data class TopBarItem(val id: String, val label: String, val icon: AppIcon)
 
 /**
@@ -66,8 +71,8 @@ data class TopBarItem(val id: String, val label: String, val icon: AppIcon)
  * Ein Bereich wird erst nach kurzem Verweilen geöffnet ([onSelect]), damit schnelles Durchlaufen nicht jeden Bereich
  * lädt; OK ([onOpen]) öffnet sofort und springt in den Inhalt.
  *
- * Ab 3.41 im „Liquid Glass“-Stil: Liegt der Fokus im Inhalt ([collapsed]), zieht sich die Leiste zu einer Pille mit
- * dem gewählten Bereich zusammen und gibt dem Inhalt Raum; „Hoch“ fährt sie mit einer Feder wieder aus.
+ * Ab 3.41 im „Liquid Glass“-Stil: Liegt der Fokus im Inhalt ([collapsed]), tritt die Leiste zurück – Schriftzug aus,
+ * die anderen Bereiche gedimmt, nur der gewählte bleibt hell; „Hoch“ holt sie mit einer Feder wieder nach vorn.
  */
 @Composable
 fun TopBar(
@@ -123,23 +128,21 @@ fun TopBar(
         ) {
             items.forEach { item ->
                 val selected = item.id == selectedId
-                // Eingezogen bleibt nur der gewählte Bereich sichtbar – er ist das Ziel von „Hoch“ aus dem Inhalt.
-                AnimatedVisibility(
-                    visible = selected || !collapsed,
-                    enter = fadeIn(AppMotion.surface()) + expandHorizontally(AppMotion.surface()),
-                    exit = fadeOut(AppMotion.surface()) + shrinkHorizontally(AppMotion.surface()),
-                ) {
-                    TopBarTab(
-                        item = item,
-                        selected = selected,
-                        onSelect = onSelect,
-                        // „Hoch“ aus dem Inhalt landet auf dem gewählten Bereich – nicht auf dem Tab, der zufällig darüber
-                        // liegt (z. B. aus den Film-Gruppen auf „Live TV“). Nur beim Blättern mit links/rechts bleibt er.
-                        onEnteredFromContent = { if (!browsing) runCatching { selectedRequester.requestFocus() } },
-                        onOpen = onOpen,
-                        modifier = if (selected) Modifier.focusRequester(selectedRequester) else Modifier,
-                    )
-                }
+                // Eingezogen treten die anderen Bereiche zurück (gedimmt), der gewählte bleibt hell – er ist das Ziel von
+                // „Hoch“ aus dem Inhalt. Alle Bereiche bleiben erreichbar (Bedienungshilfen, Tests).
+                val dim by animateFloatAsState(if (collapsed && !selected) COLLAPSED_ALPHA else 1f, AppMotion.surface(), label = "tabDim")
+                TopBarTab(
+                    item = item,
+                    selected = selected,
+                    onSelect = onSelect,
+                    // „Hoch“ aus dem Inhalt landet auf dem gewählten Bereich – nicht auf dem Tab, der zufällig darüber
+                    // liegt (z. B. aus den Film-Gruppen auf „Live TV“). Nur beim Blättern mit links/rechts bleibt er.
+                    onEnteredFromContent = { if (!browsing) runCatching { selectedRequester.requestFocus() } },
+                    onOpen = onOpen,
+                    modifier = Modifier
+                        .graphicsLayer { alpha = dim }
+                        .then(if (selected) Modifier.focusRequester(selectedRequester) else Modifier),
+                )
             }
         }
         Spacer(Modifier.weight(1f))

@@ -277,8 +277,8 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   (`AppText`), eine Kartengröße je Inhaltsart (Poster 2:3, Sender 16:9, fließende 12-dp-Ecken) und Federbewegungen
   (`AppMotion`). Startseite, Bibliothek, Mosaik, Kontextmenü und Leiste nutzen es; ältere Bildschirme folgen schrittweise.
 - **Liquid-Glass-Leiste:** Die obere Leiste ist ein schwebendes Glas-Element mit Lichtrand und Schatten. Liegt der
-  Fokus im Inhalt, zieht sie sich mit einer Feder auf den gewählten Bereich zusammen (Schriftzug und andere Bereiche
-  blenden aus); „Hoch“ fährt sie wieder aus. Mit „Effekte reduzieren“ ohne Rand und Schatten.
+  Fokus im Inhalt, tritt sie zurück (Schriftzug blendet aus, die anderen Bereiche werden gedimmt, der gewählte bleibt
+  hell); „Hoch“ holt sie mit einer Feder wieder nach vorn. Mit „Effekte reduzieren“ ohne Rand und Schatten.
 - **Einheitliches Kontextmenü:** OK gedrückt halten öffnet überall dasselbe Menü statt einer versteckten
   Sofort-Aktion – Senderliste (Abspielen, Favorit, Mosaik ab hier), Filme/Serien (Öffnen, Favorit), Gruppen (Öffnen,
   Oben anheften), TV-Guide (Ansehen, Aufnehmen/Aufnahme entfernen), Startseite (Abspielen, Details, Meine Liste).
