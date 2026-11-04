@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- Android 17: Heimnetz (QR-Einrichtung vom Handy, IPTV-Server im LAN) nur mit „Geräte in der Nähe“. -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Aufnahmen laufen in einem Vordergrund-Dienst weiter, auch wenn man die App verlässt. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Geplante Aufnahmen: pünktlich wecken und nach einem Neustart neu einplanen. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Optionaler Hinweis beim VPN-Abbruch (Schalter in „Sicherheit &amp; VPN“, Standard aus). -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+    <!-- WLAN-Status wird nur für die Stream-Info gelesen: auch Boxen nur mit LAN-Anschluss bleiben kompatibel. -->
+    <uses-feature
+        android:name="android.hardware.wifi"
+        android:required="false" />
+
+    <!-- Sprachsuche: prüfen, ob eine Spracherkennung installiert ist (ab Android 11 nötig). -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".core.PlayerApp"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="false"
+        android:banner="@drawable/tv_banner"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:largeHeap="true"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.GuevenPlayer"
+        android:usesCleartextTraffic="true">
+
+        <activity
+            android:name=".ui.MainActivity"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode|density"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:resizeableActivity="true"
+            android:supportsPictureInPicture="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".data.recording.RecordingService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Aufnahme eines laufenden Live-TV-Streams auf Wunsch des Nutzers" />
+        </service>
+
+        <receiver
+            android:name=".data.recording.RecordingAlarmReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".data.reminder.ReminderReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".data.recording.RecordingBootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+        <!-- Eingebautes VPN: Start nach dem Einschalten und Knopf „Neu verbinden“ in der Benachrichtigung.
+             Den VpnService selbst bringt die WireGuard-Bibliothek mit (GoBackend$VpnService). -->
+        <receiver
+            android:name=".core.vpn.VpnBootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name=".core.vpn.VpnActionReceiver"
+            android:exported="false" />
+        <!--
+            WorkManager erst bei Bedarf starten (PlayerApp ist Configuration.Provider): Der automatische Start kostete
+            im Labor 3.23 0,47 s auf dem Hauptthread in bindApplication, vor dem ersten Bild.
+        -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+    </application>
+</manifest>

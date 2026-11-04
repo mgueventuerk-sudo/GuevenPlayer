@@ -1,0 +1,29 @@
+# Baseline Profile für GuevenPlayer (von Hand, ab 3.13).
+# Android übersetzt diese Klassen/Methoden schon bei der Installation vor (über ProfileInstaller auch bei
+# Installation per APK ohne Play Store) – Start und erstes Scrollen ruckeln auf schwachen Sticks weniger.
+# Abgedeckt: Start (App, Container, Activity, Navigation), Startseite/Leiste, Senderliste samt Paging,
+# Player (Media3-Engine, Overlay, Live-Sitzung), Design-System und die Datenbank-Zugriffe dieser Wege.
+# Erzeugt nicht per Macrobenchmark (kein Gerät in der Build-Umgebung) – bei Bedarf später mit BaselineProfileRule ersetzen.
+HSPLcom/mg/player/core/PlayerApp;->**(**)**
+HSPLcom/mg/player/core/di/**;->**(**)**
+HSPLcom/mg/player/core/log/AppLog;->**(**)**
+HSPLcom/mg/player/core/security/**;->**(**)**
+HSPLcom/mg/player/ui/MainActivity;->**(**)**
+HSPLcom/mg/player/ui/navigation/**;->**(**)**
+HSPLcom/mg/player/ui/home/**;->**(**)**
+HSPLcom/mg/player/ui/live/**;->**(**)**
+HSPLcom/mg/player/ui/common/**;->**(**)**
+HSPLcom/mg/player/ui/theme/**;->**(**)**
+HSPLcom/mg/player/ui/player/**;->**(**)**
+HSPLcom/mg/player/ui/phone/**;->**(**)**
+HSPLcom/mg/player/player/**;->**(**)**
+HSPLcom/mg/player/data/repository/**;->**(**)**
+HSPLcom/mg/player/data/db/**;->**(**)**
+HSPLcom/mg/player/data/settings/**;->**(**)**
+HSPLcom/mg/player/domain/**;->**(**)**
+Lcom/mg/player/core/**;
+Lcom/mg/player/ui/**;
+Lcom/mg/player/player/**;
+Lcom/mg/player/data/repository/**;
+Lcom/mg/player/data/db/**;
+Lcom/mg/player/domain/**;

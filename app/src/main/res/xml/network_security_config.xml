@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    IPTV-Anbieter liefern oft unverschlüsselte HTTP-Streams. Android konfiguriert diese Ausnahme statisch;
+    die pro-Zugang-Freigabe erzwingt die App in ihren Fetchern, beim Auflösen der Stream-URL und
+    im Media3-HTTP-Client. Neue Zugänge sind standardmäßig gesperrt.
+-->
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <base-config
+        cleartextTrafficPermitted="true"
+        tools:ignore="InsecureBaseConfiguration">
+        <trust-anchors>
+            <!-- Nur System-Zertifikate: vom Nutzer installierte CAs würden Mitlesen per Proxy erleichtern. -->
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <!--
+        Zertifikats-Pinning (ab 3.22) für die Dienste, an die Schlüssel, Zugangsdaten oder DNS-Anfragen gehen.
+        Gepinnt sind die öffentlichen Schlüssel (SPKI, SHA-256) der Wurzel-CAs, nicht die Serverzertifikate:
+        Server tauschen ihre Zertifikate alle 60–90 Tage, die Wurzeln bleiben. Kreuzsignaturen (z. B. GTS Root R4
+        unter GlobalSign) tragen denselben Schlüssel und passen damit auch auf alten Android-Versionen.
+        Ein Angreifer mit einem Zertifikat einer anderen (auch vertrauenswürdigen) CA scheitert.
+        Ablaufdatum: Danach gilt wieder die normale Prüfung – lieber vorübergehend ohne Pinning als eine App ohne
+        Daten, falls ein Dienst die CA wechselt. Erneuern: Schritte in docs/Pinning.md, Test NetworkSecurityConfigTest.
+        Spezifischere domain-configs gehen der Sammelregel unten vor (Subdomains der Sammelregel bleiben unverändert).
+    -->
+    <!-- TMDB-API (API-Schlüssel): Amazon Trust Services -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="false">api.themoviedb.org</domain>
+        <pin-set expiration="2027-08-01">
+            <pin digest="SHA-256">++MBgDH5WGvL9Bcn5Be30cRcL0f5O+NyoXuWtQdX1aI=</pin> <!-- Amazon Root CA 1 -->
+            <pin digest="SHA-256">f0KW/FtqTjs108NpYj42SrGvOB2PpxIVM8nWxjPqJGE=</pin> <!-- Amazon Root CA 2 -->
+            <pin digest="SHA-256">NqvDJlas/GRcYbcWE8S/IceH9cq77kg0jVhZeAPXq8k=</pin> <!-- Amazon Root CA 3 -->
+            <pin digest="SHA-256">9+ze1cZgR9KO1kZrVDxA4HQ6voHRCSVNz4RdTCx4U8U=</pin> <!-- Amazon Root CA 4 -->
+            <pin digest="SHA-256">KwccWaCgrnaw6tsrrSO61FgLacNgG2MMLq8GE6+oP5I=</pin> <!-- Starfield Services Root CA G2 -->
+        </pin-set>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+    <!-- Hinter Cloudflare (Schlüssel/Token bzw. Surfshark-Anmeldung, DNS über HTTPS): Cloudflare stellt wechselnd über Google Trust Services, Let’s Encrypt, SSL.com und DigiCert aus -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="false">sports.bzzoiro.com</domain>
+        <domain includeSubdomains="false">api.sportmonks.com</domain>
+        <domain includeSubdomains="false">api.surfshark.com</domain>
+        <domain includeSubdomains="false">cloudflare-dns.com</domain>
+        <pin-set expiration="2027-08-01">
+            <pin digest="SHA-256">hxqRlPTu1bMS/0DITB1SSu0vd4u/8l8TjPgfaAp63Gc=</pin> <!-- GTS Root R1 -->
+            <pin digest="SHA-256">QXnt2YHvdHR3tJYmQIr0Paosp6t/nggsEGD4QJZ3Q0g=</pin> <!-- GTS Root R3 -->
+            <pin digest="SHA-256">mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c=</pin> <!-- GTS Root R4 -->
+            <pin digest="SHA-256">C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=</pin> <!-- ISRG Root X1 -->
+            <pin digest="SHA-256">diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=</pin> <!-- ISRG Root X2 -->
+            <pin digest="SHA-256">oyD01TTXvpfBro3QSZc1vIlcMjrdLTiL/M9mLCPX+Zo=</pin> <!-- SSL.com Root CA ECC -->
+            <pin digest="SHA-256">0cRTd+vc1hjNFlHcLgLCHXUeWqn80bNDH/bs9qMTSPo=</pin> <!-- SSL.com Root CA RSA -->
+            <pin digest="SHA-256">G/ANXI8TwJTdF+AFBM8IiIUPEv0Gf6H5LA/b9guG4yE=</pin> <!-- SSL.com TLS ECC Root CA 2022 -->
+            <pin digest="SHA-256">K89VOmb1cJAN3TK6bf4ezAbJGC1mLcG2Dh97dnwr3VQ=</pin> <!-- SSL.com TLS RSA Root CA 2022 -->
+            <pin digest="SHA-256">i7WTqTvh0OioIruIfFR4kMPnBqrS2rdiVPl/s2uC/CY=</pin> <!-- DigiCert Global Root G2 -->
+            <pin digest="SHA-256">uUwZgwDOxcBXrQcntwu+kYFpkiVkOaezL0WYEZ3anJc=</pin> <!-- DigiCert Global Root G3 -->
+        </pin-set>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+    <!-- Quad9 (DNS über HTTPS): DigiCert, Reserve Let’s Encrypt -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="false">dns.quad9.net</domain>
+        <pin-set expiration="2027-08-01">
+            <pin digest="SHA-256">i7WTqTvh0OioIruIfFR4kMPnBqrS2rdiVPl/s2uC/CY=</pin> <!-- DigiCert Global Root G2 -->
+            <pin digest="SHA-256">uUwZgwDOxcBXrQcntwu+kYFpkiVkOaezL0WYEZ3anJc=</pin> <!-- DigiCert Global Root G3 -->
+            <pin digest="SHA-256">C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=</pin> <!-- ISRG Root X1 -->
+            <pin digest="SHA-256">diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=</pin> <!-- ISRG Root X2 -->
+        </pin-set>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+    <!--
+        Dienste, an die die App Schlüssel, Kennungen oder Abfragen schickt, nur verschlüsselt: Eine Weiterleitung
+        von https auf http (followSslRedirects) würde den Bzzoiro-/TMDB-/Sportmonks-Schlüssel sonst im Klartext senden.
+        IPTV-Anbieter bleiben davon unberührt (base-config).
+    -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">themoviedb.org</domain>
+        <domain includeSubdomains="true">tmdb.org</domain>
+        <domain includeSubdomains="true">bzzoiro.com</domain>
+        <domain includeSubdomains="true">sportmonks.com</domain>
+        <domain includeSubdomains="true">espn.com</domain>
+        <domain includeSubdomains="true">epgshare01.online</domain>
+        <domain includeSubdomains="true">surfshark.com</domain>
+        <domain includeSubdomains="true">quad9.net</domain>
+        <domain includeSubdomains="true">ipify.org</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

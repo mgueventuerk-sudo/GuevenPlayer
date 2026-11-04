@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Keine Cloud-Sicherung und keine Geräteübertragung (Android 12+): Die Datenbank enthält Zugangsdaten,
+    die mit einem gerätegebundenen Schlüssel verschlüsselt sind und auf einem anderen Gerät ohnehin
+    unlesbar wären. Für den Umzug gibt es die verschlüsselte Sicherung in den Einstellungen.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>

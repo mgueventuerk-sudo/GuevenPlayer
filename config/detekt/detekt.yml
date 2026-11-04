@@ -1,0 +1,65 @@
+# Projektregeln (auf der Standard-Konfiguration aufbauend). Grenzwerte aus claude/Plan-Wiedergabe-Waechter-und-Clean-Code.md §3.1.
+config:
+  validation: true
+
+complexity:
+  LongMethod:
+    threshold: 60
+    ignoreAnnotated: ['Composable']
+  LongParameterList:
+    functionThreshold: 6
+    constructorThreshold: 8
+    ignoreDefaultParameters: true
+    ignoreAnnotated: ['Composable']
+  NestedBlockDepth:
+    threshold: 4
+  CyclomaticComplexMethod:
+    threshold: 15
+    ignoreAnnotated: ['Composable']
+  LargeClass:
+    threshold: 400
+  TooManyFunctions:
+    thresholdInFiles: 25
+    thresholdInClasses: 25
+    thresholdInInterfaces: 25
+    thresholdInObjects: 25
+    ignorePrivate: true
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+  TopLevelPropertyNaming:
+    constantPattern: '[A-Z][A-Za-z0-9_]*'
+
+style:
+  MaxLineLength:
+    maxLineLength: 160
+    excludeCommentStatements: true
+  MagicNumber:
+    excludes: ['**/test/**', '**/ui/**']
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreNamedArgument: true
+    # Einheiten-Umrechnungen (ms/s/min/h/Tag, Prozent, KiB) und HTTP-Statuscodes sind keine „magischen“ Zahlen.
+    ignoreNumbers: ['-1', '0', '1', '2', '24', '60', '100', '1000', '1_000', '1024', '1_024', '3600', '401', '403', '404', '429']
+  ReturnCount:
+    max: 4
+  ForbiddenComment:
+    active: false
+  WildcardImport:
+    active: true
+
+exceptions:
+  # CancellationException muss immer weitergereicht werden; leere catch-Blöcke sind verboten.
+  SwallowedException:
+    active: true
+    ignoredExceptionTypes: ['CancellationException', 'InterruptedException', 'NumberFormatException', 'MalformedURLException']
+  TooGenericExceptionCaught:
+    active: true
+    exceptionNames: ['Error', 'Throwable', 'RuntimeException']
+
+coroutines:
+  GlobalCoroutineUsage:
+    active: true
+  InjectDispatcher:
+    active: false

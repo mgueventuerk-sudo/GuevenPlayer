@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 9.5.0" type="baseline" client="gradle" dependencies="false" name="AGP (9.5.0)" variant="all" version="9.5.0">
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 26"
+        errorLine1="        if (enabled &amp;&amp; activity != null &amp;&amp; Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {"
+        errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/mg/player/ui/player/PictureInPicture.kt"
+            line="65"
+            column="44"/>
+    </issue>
+
+    <issue
+        id="UsableSpace"
+        message="Consider also using `StorageManager#getAllocatableBytes` and `allocateBytes` which will consider clearable cached data"
+        errorLine1="            DbMaintenance.vacuumIfWorthIt(container.database, applicationContext.filesDir.usableSpace)"
+        errorLine2="                                                                                          ~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/mg/player/data/sync/NightlyWork.kt"
+            line="38"
+            column="91"/>
+    </issue>
+
+    <issue
+        id="IconMissingDensityFolder"
+        message="Missing density variation folders in `src/main/res`: drawable-hdpi, drawable-mdpi, drawable-xxhdpi">
+        <location
+            file="src/main/res"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        if (!prefs.edit().apply { if (value == null) remove(KEY) else putString(KEY, value) }.commit()) {"
+        errorLine2="             ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/mg/player/core/security/PinHasher.kt"
+            line="123"
+            column="14"/>
+    </issue>
+
+</issues>

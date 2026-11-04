@@ -1,0 +1,394 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:AppRoot.kt$settings.startWithLastChannel &amp;&amp; lastChannel != null &amp;&amp; !(settings.parentalPinHash != null &amp;&amp; isLockedChannel(container, lastChannel, category))</ID>
+    <ID>ComplexCondition:LiveComponents.kt$channel.nowTitle != null &amp;&amp; start != null &amp;&amp; end != null &amp;&amp; end &gt; start</ID>
+    <ID>ComplexCondition:LiveScore.kt$match == null || goals == null || before == null || goals == before</ID>
+    <ID>ComplexCondition:ManageCategoriesViewModel.kt$from &lt; 0 || delta == 0 || to !in list.indices || list[to].pinned != list[from].pinned</ID>
+    <ID>ComplexCondition:PlayerExtras.kt$!expected || !healthy || stoppedByLifecycle || live.zapPending || autoFallbackActive</ID>
+    <ID>ComplexCondition:StreamTarget.kt$StreamTarget.Companion$name.isNotEmpty() &amp;&amp; value.isNotEmpty() &amp;&amp; name.none { it == '\n' || it == '\r' } &amp;&amp; value.none { it == '\n' || it == '\r' }</ID>
+    <ID>ComplexCondition:VpnConfigParser.kt$VpnConfigParser$allowed.any { it.mask == 0 &amp;&amp; it.address.address.size == 4 } &amp;&amp; allowed.none { it.mask == 0 &amp;&amp; it.address.address.size == 16 }</ID>
+    <ID>ComplexCondition:XmltvParser.kt$XmltvParser$channel != null &amp;&amp; start != null &amp;&amp; stop != null &amp;&amp; !title.isNullOrBlank()</ID>
+    <ID>CyclomaticComplexMethod:BackupManager.kt$BackupManager$private suspend fun exportPlain(): String</ID>
+    <ID>CyclomaticComplexMethod:BackupManager.kt$BackupManager$suspend fun restore(text: String, passphrase: String?): Long?</ID>
+    <ID>CyclomaticComplexMethod:BingeController.kt$BingeController$fun tick(positionMs: Long, durationMs: Long, nowMs: Long): Pair&lt;BingeState, BingeAction?&gt;</ID>
+    <ID>CyclomaticComplexMethod:ChannelEventMatcher.kt$ChannelEventMatcher$suspend fun match( events: List&lt;SportEvent&gt;, preferredPlaylistId: Long? = null, manual: Map&lt;String, String&gt; = emptyMap(), all: List&lt;SportEvent&gt; = events, ): List&lt;SportEventChannelEntity&gt;</ID>
+    <ID>CyclomaticComplexMethod:CountryDetector.kt$CountryDetector$fun detect(raw: String): String?</ID>
+    <ID>CyclomaticComplexMethod:DeviceShareServer.kt$DeviceShareServer$private suspend fun handle(request: MiniHttpServer.Request): MiniHttpServer.Response</ID>
+    <ID>CyclomaticComplexMethod:EpgImporter.kt$EpgImporter$suspend fun refresh(playlist: PlaylistEntity, onProgress: (ImportProgress) -&gt; Unit): Boolean</ID>
+    <ID>CyclomaticComplexMethod:EspnSource.kt$EspnSource$internal fun parse(body: String, league: League): List&lt;SportEvent&gt;</ID>
+    <ID>CyclomaticComplexMethod:EventGroupRefresh.kt$EventGroupRefresh$private suspend fun refreshPlaylist(playlistId: Long, creds: XtreamApi.Credentials): Int</ID>
+    <ID>CyclomaticComplexMethod:GuideMatching.kt$GuideMatching$fun scorer(event: SportEvent): ((List&lt;String&gt;) -&gt; Int?)?</ID>
+    <ID>CyclomaticComplexMethod:GuideSeries.kt$GuideSeries.Companion$internal fun events(series: Series, guide: SportGuide, fromMs: Long, toMs: Long): List&lt;SportEvent&gt;</ID>
+    <ID>CyclomaticComplexMethod:KickoffCheck.kt$KickoffCheck$suspend fun run(rematch: suspend (List&lt;SportEvent&gt;) -&gt; Unit = {}): Int</ID>
+    <ID>CyclomaticComplexMethod:M3uParser.kt$M3uParser$suspend fun parse(input: InputStream, onHeaderEpg: suspend (String) -&gt; Unit, onEntry: suspend (Entry) -&gt; Unit)</ID>
+    <ID>CyclomaticComplexMethod:M3uParser.kt$M3uParser.LineScanner$fun next(): LineResult</ID>
+    <ID>CyclomaticComplexMethod:MiniHttpServer.kt$MiniHttpServer$private suspend fun handle(client: Socket)</ID>
+    <ID>CyclomaticComplexMethod:PlayerKeys.kt$internal fun handlePlayerKey(event: KeyEvent, isLive: Boolean, vm: PlayerViewModel, actions: PlayerKeyActions): Boolean</ID>
+    <ID>CyclomaticComplexMethod:SettingsRepositoryImpl.kt$SettingsRepositoryImpl$private fun Preferences.toSettings(): AppSettings</ID>
+    <ID>CyclomaticComplexMethod:SportRepository.kt$SportRepository$suspend fun refresh(force: Boolean = false, onlyLeagues: Set&lt;String&gt;? = null)</ID>
+    <ID>CyclomaticComplexMethod:StreamRecorder.kt$StreamRecorder$private suspend fun recordHls( playlistUrl: String, out: OutputStream, untilMs: Long, session: RecordingSession, hasSpace: () -&gt; Boolean, count: (Int) -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:StreamRecorder.kt$StreamRecorder$suspend fun record(url: String, file: File, untilMs: Long, session: RecordingSession, hasSpace: () -&gt; Boolean, onBytes: (Long) -&gt; Unit): Long</ID>
+    <ID>CyclomaticComplexMethod:SyncManager.kt$SyncManager$@Synchronized private fun launchSync(playlistId: Long, kind: Kind, block: suspend () -&gt; Unit): Job</ID>
+    <ID>CyclomaticComplexMethod:TmdbRepositoryImpl.kt$TmdbRepositoryImpl$override suspend fun similarInLibrary(type: ContentType, info: TmdbInfo, excludeId: String): List&lt;SearchHit&gt;</ID>
+    <ID>CyclomaticComplexMethod:VpnController.kt$VpnController$private suspend fun runLoop(b: VpnBackend)</ID>
+    <ID>CyclomaticComplexMethod:XmltvParser.kt$XmltvParser$private suspend fun readProgramme(parser: XmlPullParser, callback: Callback)</ID>
+    <ID>InstanceOfCheckForException:VpnBackend.kt$WireGuardBackend$e is IllegalStateException</ID>
+    <ID>LongMethod:BackupManager.kt$BackupManager$private suspend fun exportPlain(): String</ID>
+    <ID>LongMethod:BackupManager.kt$BackupManager$suspend fun restore(text: String, passphrase: String?): Long?</ID>
+    <ID>LongMethod:M3uImporter.kt$M3uImporter$suspend fun import(playlist: PlaylistEntity, generation: Long, onProgress: (ImportProgress) -&gt; Unit)</ID>
+    <ID>LongMethod:PlayerKeys.kt$internal fun handlePlayerKey(event: KeyEvent, isLive: Boolean, vm: PlayerViewModel, actions: PlayerKeyActions): Boolean</ID>
+    <ID>LongMethod:SecuritySettings.kt$internal fun LazyListScope.securityItems(c: SettingsContext, profiles: List&lt;VpnProfile&gt;, activeId: String?, enabled: Boolean, alertSound: Boolean)</ID>
+    <ID>LongMethod:Theme.kt$fun paletteFor(dark: Boolean, accent: AccentColor): Palette</ID>
+    <ID>LongParameterList:CatchupUrlBuilder.kt$CatchupUrlBuilder$(baseUrl: String, username: String, password: String, streamId: String, startMs: Long, endMs: Long, serverTimezone: String)</ID>
+    <ID>LongParameterList:CatchupUrlBuilder.kt$CatchupUrlBuilder$(streamUrl: String, type: String?, source: String?, startMs: Long, endMs: Long, nowMs: Long)</ID>
+    <ID>LongParameterList:M3uImporter.kt$M3uImporter$( pid: Long, entry: M3uParser.Entry, categories: CategoryCollector, index: Int, generation: Long, stored: (String, Map&lt;String, String&gt;) -&gt; String, )</ID>
+    <ID>LongParameterList:SettingsExtras.kt$( bzzoiroToken: String, onSaveBzzoiro: (String) -&gt; Unit, token: String, followedCount: Int, problem: String?, summary: Pair&lt;Int, Int&gt;?, onSaveToken: (String) -&gt; Unit, onLeagues: () -&gt; Unit, onAssign: () -&gt; Unit, )</ID>
+    <ID>LongParameterList:SettingsExtras.kt$( hasPin: Boolean, unlocked: Boolean, onSetPin: () -&gt; Unit, onRemovePin: () -&gt; Unit, onLockAgain: () -&gt; Unit, onManageCategories: () -&gt; Unit, onSortFavorites: () -&gt; Unit, )</ID>
+    <ID>LongParameterList:SettingsPages.kt$SettingsContext$( val vm: SettingsViewModel, val s: AppSettings, val navigator: Navigator, val playlists: List&lt;Playlist&gt;, val connections: Map&lt;Long, ConnectionStatus&gt;, val sync: SyncState, val hasPin: Boolean, val unlocked: Boolean, val gate: ParentalGateState, val touch: Boolean, val sportProblem: String?, val sportSummary: Pair&lt;Int, Int&gt;?, val onSetPin: () -&gt; Unit, val vpn: VpnSettings = VpnSettings(), val onEditAutoRefresh: (Playlist) -&gt; Unit = {}, )</ID>
+    <ID>LongParameterList:SportRepository.kt$SportRepository$( fetched: Map&lt;String, List&lt;SportEvent&gt;&gt;, followed: Set&lt;String&gt;, current: AppSettings, now: Long, full: Boolean, rematchAll: Boolean, )</ID>
+    <ID>LongParameterList:StreamRecorder.kt$StreamRecorder$( playlistUrl: String, out: OutputStream, untilMs: Long, session: RecordingSession, hasSpace: () -&gt; Boolean, count: (Int) -&gt; Unit, )</ID>
+    <ID>LongParameterList:StreamRecorder.kt$StreamRecorder$(url: String, file: File, untilMs: Long, session: RecordingSession, hasSpace: () -&gt; Boolean, onBytes: (Long) -&gt; Unit)</ID>
+    <ID>LongParameterList:StreamRecorder.kt$StreamRecorder$(url: String, out: OutputStream, untilMs: Long, session: RecordingSession, hasSpace: () -&gt; Boolean, count: (Int) -&gt; Unit)</ID>
+    <ID>LongParameterList:VodDao.kt$VodDao$( id: String, plot: String?, backdropUrl: String?, durationSec: Int?, year: String?, rating: Float?, posterUrl: String?, tmdbId: String?, )</ID>
+    <ID>LongParameterList:XtreamImporter.kt$XtreamImporter.Companion$( api: XtreamApi, playlistId: Long, item: Map&lt;String, String?&gt;, categoryCountry: String?, sortIndex: Int, generation: Long, )</ID>
+    <ID>LoopWithTooManyJumpStatements:EventGroupRefresh.kt$EventGroupRefresh$for</ID>
+    <ID>LoopWithTooManyJumpStatements:LibraryApiLevelTest.kt$LibraryApiLevelTest.ApiVersions$while</ID>
+    <ID>LoopWithTooManyJumpStatements:M3uParser.kt$M3uParser$while</ID>
+    <ID>LoopWithTooManyJumpStatements:MiniHttpServer.kt$MiniHttpServer$for</ID>
+    <ID>LoopWithTooManyJumpStatements:MiniHttpServer.kt$MiniHttpServer$while</ID>
+    <ID>LoopWithTooManyJumpStatements:SportRepository.kt$SportRepository$for</ID>
+    <ID>LoopWithTooManyJumpStatements:StreamRecorder.kt$StreamRecorder$while</ID>
+    <ID>LoopWithTooManyJumpStatements:TmdbRepositoryImpl.kt$TmdbRepositoryImpl$for</ID>
+    <ID>LoopWithTooManyJumpStatements:VpnController.kt$VpnController$while</ID>
+    <ID>LoopWithTooManyJumpStatements:VpnImporter.kt$VpnImporter$for</ID>
+    <ID>LoopWithTooManyJumpStatements:XmltvParser.kt$XmltvParser$while</ID>
+    <ID>MagicNumber:AppContainer.kt$AppContainer$2_000</ID>
+    <ID>MagicNumber:AppContainer.kt$AppContainer$45</ID>
+    <ID>MagicNumber:AppContainer.kt$AppContainer$7</ID>
+    <ID>MagicNumber:AutoFrameRate.kt$AutoFrameRate$0.0001f</ID>
+    <ID>MagicNumber:BackupCrypto.kt$BackupCrypto$12</ID>
+    <ID>MagicNumber:BackupCrypto.kt$BackupCrypto$16</ID>
+    <ID>MagicNumber:BatchWriter.kt$0x01000193</ID>
+    <ID>MagicNumber:BatchWriter.kt$17</ID>
+    <ID>MagicNumber:BatchWriter.kt$31</ID>
+    <ID>MagicNumber:BingeController.kt$BingeController$2_000</ID>
+    <ID>MagicNumber:BingeController.kt$BingeController$5_000</ID>
+    <ID>MagicNumber:BingeController.kt$BingeController$999</ID>
+    <ID>MagicNumber:BzzoiroSource.kt$BzzoiroSource.Companion$19</ID>
+    <ID>MagicNumber:BzzoiroSource.kt$BzzoiroSource.Companion$60_000L</ID>
+    <ID>MagicNumber:CatchupUrlBuilder.kt$CatchupUrlBuilder$59_999</ID>
+    <ID>MagicNumber:CatchupUrlBuilder.kt$CatchupUrlBuilder$60_000</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$0x3320646e</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$0x61707865</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$0x6b206574</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$0x79622d32</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$0xFF</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$10</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$11</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$12</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$13</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$14</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$15</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$16</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$3</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$4</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$5</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$6</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$64</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$7</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$8</ID>
+    <ID>MagicNumber:ChaCha20.kt$ChaCha20$9</ID>
+    <ID>MagicNumber:ChannelEventMatcher.kt$ChannelEventMatcher$80</ID>
+    <ID>MagicNumber:ChannelEventMatcher.kt$ChannelEventMatcher.Companion$4</ID>
+    <ID>MagicNumber:ChannelEventMatcher.kt$ChannelEventMatcher.Companion$6</ID>
+    <ID>MagicNumber:ChannelHabits.kt$HabitRanking$10</ID>
+    <ID>MagicNumber:ChannelHabits.kt$HabitRanking$11</ID>
+    <ID>MagicNumber:ChannelHabits.kt$HabitRanking$16</ID>
+    <ID>MagicNumber:ChannelHabits.kt$HabitRanking$17</ID>
+    <ID>MagicNumber:ChannelHabits.kt$HabitRanking$22</ID>
+    <ID>MagicNumber:ChannelHabits.kt$HabitRanking$3</ID>
+    <ID>MagicNumber:ChannelHabits.kt$HabitRanking$5</ID>
+    <ID>MagicNumber:ChannelHabits.kt$HabitRanking$9_999</ID>
+    <ID>MagicNumber:ConnectionStatus.kt$7</ID>
+    <ID>MagicNumber:CounterpartFinder.kt$TitleKey.Companion$4</ID>
+    <ID>MagicNumber:CountryDetector.kt$CountryDetector$3</ID>
+    <ID>MagicNumber:CountryFilter.kt$CountryFilter$3</ID>
+    <ID>MagicNumber:DeviceShareServer.kt$DeviceShareServer$200</ID>
+    <ID>MagicNumber:DeviceShareServer.kt$DeviceShareServer$400</ID>
+    <ID>MagicNumber:DeviceShareServer.kt$DeviceShareServer$409</ID>
+    <ID>MagicNumber:DeviceTier.kt$DeviceTier.Companion$192</ID>
+    <ID>MagicNumber:DeviceTier.kt$DeviceTier.Companion$1_536</ID>
+    <ID>MagicNumber:DeviceTier.kt$DeviceTier.Companion$256</ID>
+    <ID>MagicNumber:DeviceTier.kt$DeviceTier.Companion$3_584</ID>
+    <ID>MagicNumber:DeviceTier.kt$DeviceTier.Companion$512</ID>
+    <ID>MagicNumber:DeviceTier.kt$DeviceTier.HIGH$64L</ID>
+    <ID>MagicNumber:DeviceTier.kt$DeviceTier.NORMAL$48L</ID>
+    <ID>MagicNumber:DeviceVideo.kt$DeviceVideo$2160</ID>
+    <ID>MagicNumber:DeviceVideo.kt$DeviceVideo$3840</ID>
+    <ID>MagicNumber:EpgImporter.kt$EpgImporter$2_000</ID>
+    <ID>MagicNumber:EpgImporter.kt$EpgImporter$6</ID>
+    <ID>MagicNumber:EpgImporter.kt$EpgImporter$7</ID>
+    <ID>MagicNumber:EpgImporter.kt$EpgImporter.&lt;no name provided&gt;$5_000</ID>
+    <ID>MagicNumber:EpgSchedule.kt$FallbackEpgGate.Companion$1125899906842597L</ID>
+    <ID>MagicNumber:EpgSchedule.kt$FallbackEpgGate.Companion$31</ID>
+    <ID>MagicNumber:EventGroupRefresh.kt$EventGroupRefresh.Companion$4</ID>
+    <ID>MagicNumber:GuideCatalog.kt$GuideCatalog$3</ID>
+    <ID>MagicNumber:GuideMatching.kt$GuideMatching$14</ID>
+    <ID>MagicNumber:GuideMatching.kt$GuideMatching$15</ID>
+    <ID>MagicNumber:GuideMatching.kt$GuideMatching$20</ID>
+    <ID>MagicNumber:GuideMatching.kt$GuideMatching$240</ID>
+    <ID>MagicNumber:GuideMatching.kt$GuideMatching$30</ID>
+    <ID>MagicNumber:GuideMatching.kt$GuideMatching$4</ID>
+    <ID>MagicNumber:GuideMatching.kt$GuideMatching$40</ID>
+    <ID>MagicNumber:GuideMatching.kt$GuideMatching$5</ID>
+    <ID>MagicNumber:GuideMatching.kt$GuideMatching$75</ID>
+    <ID>MagicNumber:GuideMatching.kt$GuideMatching$90</ID>
+    <ID>MagicNumber:GuideSeries.kt$GuideSeries.Companion$10</ID>
+    <ID>MagicNumber:GuideSeries.kt$GuideSeries.Companion$1950</ID>
+    <ID>MagicNumber:GuideSeries.kt$GuideSeries.Companion$25</ID>
+    <ID>MagicNumber:GuideSeries.kt$GuideSeries.Companion$36</ID>
+    <ID>MagicNumber:GuideSeries.kt$GuideSeries.Companion$4</ID>
+    <ID>MagicNumber:HlsPlaylist.kt$HlsPlaylist.Companion$16</ID>
+    <ID>MagicNumber:HlsPlaylist.kt$HlsPlaylist.Companion$32</ID>
+    <ID>MagicNumber:HlsPlaylist.kt$HlsPlaylist.Companion$6.0</ID>
+    <ID>MagicNumber:HttpFetcher.kt$HttpFetcher$0x8b</ID>
+    <ID>MagicNumber:HttpFetcher.kt$HttpFetcher$4</ID>
+    <ID>MagicNumber:HttpFetcher.kt$HttpFetcher.Companion$15</ID>
+    <ID>MagicNumber:HttpFetcher.kt$ThroughputGuard$16</ID>
+    <ID>MagicNumber:KickoffCheck.kt$KickoffCheck$10</ID>
+    <ID>MagicNumber:KickoffCheck.kt$KickoffCheck$20</ID>
+    <ID>MagicNumber:KickoffCheck.kt$KickoffCheck$3_600_000L</ID>
+    <ID>MagicNumber:KickoffCheck.kt$KickoffCheck.Companion$20</ID>
+    <ID>MagicNumber:LibVlcEngine.kt$LibVlcEngine$0xFFFFFFFFL</ID>
+    <ID>MagicNumber:M3uParser.kt$M3uClassifier$3</ID>
+    <ID>MagicNumber:M3uParser.kt$M3uParser$64</ID>
+    <ID>MagicNumber:Mappers.kt$0.02f</ID>
+    <ID>MagicNumber:Media3Engine.kt$Media3Engine$0.97f</ID>
+    <ID>MagicNumber:Media3Engine.kt$Media3Engine$1.03f</ID>
+    <ID>MagicNumber:Media3Support.kt$10_000L</ID>
+    <ID>MagicNumber:Media3Support.kt$6_000L</ID>
+    <ID>MagicNumber:Media3Support.kt$Media3Support$410</ID>
+    <ID>MagicNumber:Media3Support.kt$Media3Support$6</ID>
+    <ID>MagicNumber:MediaTitle.kt$MediaTitle$10</ID>
+    <ID>MagicNumber:MediaTitle.kt$MediaTitle$20</ID>
+    <ID>MagicNumber:MediaTitle.kt$MediaTitle$30</ID>
+    <ID>MagicNumber:MediaTitle.kt$MediaTitle$40</ID>
+    <ID>MagicNumber:MediaTitle.kt$MediaTitle$5</ID>
+    <ID>MagicNumber:MediaTitle.kt$MediaTitle$50</ID>
+    <ID>MagicNumber:MiniHttpServer.kt$0xFF</ID>
+    <ID>MagicNumber:MiniHttpServer.kt$8</ID>
+    <ID>MagicNumber:MiniHttpServer.kt$MiniHttpServer$15_000</ID>
+    <ID>MagicNumber:MiniHttpServer.kt$MiniHttpServer$16</ID>
+    <ID>MagicNumber:MiniHttpServer.kt$MiniHttpServer$200</ID>
+    <ID>MagicNumber:MiniHttpServer.kt$MiniHttpServer$400</ID>
+    <ID>MagicNumber:MiniHttpServer.kt$MiniHttpServer$409</ID>
+    <ID>MagicNumber:MiniHttpServer.kt$MiniHttpServer$4_096</ID>
+    <ID>MagicNumber:MiniHttpServer.kt$MiniHttpServer$500</ID>
+    <ID>MagicNumber:MiniHttpServer.kt$MiniHttpServer$64</ID>
+    <ID>MagicNumber:MiniHttpServer.kt$MiniHttpServer$8_192</ID>
+    <ID>MagicNumber:NameNormalizer.kt$NameNormalizer$3</ID>
+    <ID>MagicNumber:NameNormalizer.kt$NameNormalizer$4</ID>
+    <ID>MagicNumber:NightlyWork.kt$DbMaintenance$1_048_576</ID>
+    <ID>MagicNumber:NightlyWork.kt$NightlyWorker.Companion$6</ID>
+    <ID>MagicNumber:ParentalControl.kt$ParentalControl$5</ID>
+    <ID>MagicNumber:PinHasher.kt$PinHasher$10_000_000</ID>
+    <ID>MagicNumber:PinHasher.kt$PinHasher$16</ID>
+    <ID>MagicNumber:PinHasher.kt$PinHasher$3</ID>
+    <ID>MagicNumber:PinHasher.kt$PinHasher$8</ID>
+    <ID>MagicNumber:PlaybackRepositoryImpl.kt$PlaybackRepositoryImpl$0.96</ID>
+    <ID>MagicNumber:PlayerApp.kt$PlayerApp$0.2</ID>
+    <ID>MagicNumber:PlayerApp.kt$PlayerApp$256L</ID>
+    <ID>MagicNumber:PrivateDns.kt$PrivateDns$3</ID>
+    <ID>MagicNumber:QrSetupServer.kt$QrSetupServer$200</ID>
+    <ID>MagicNumber:QrSetupServer.kt$QrSetupServer$400</ID>
+    <ID>MagicNumber:ReconnectPolicy.kt$ReconnectPolicy$3</ID>
+    <ID>MagicNumber:RecordingManager.kt$RecordingManager$36</ID>
+    <ID>MagicNumber:RecordingManager.kt$RecordingManager$80</ID>
+    <ID>MagicNumber:ReminderManager.kt$ReminderManager$30</ID>
+    <ID>MagicNumber:ReminderManager.kt$ReminderManager$60_000</ID>
+    <ID>MagicNumber:ReminderManager.kt$ReminderManager$60_000L</ID>
+    <ID>MagicNumber:SearchMerge.kt$3</ID>
+    <ID>MagicNumber:SearchMerge.kt$4</ID>
+    <ID>MagicNumber:SearchMerge.kt$5</ID>
+    <ID>MagicNumber:SearchRepositoryImpl.kt$SearchRepositoryImpl$1_000_000L</ID>
+    <ID>MagicNumber:SearchRepositoryImpl.kt$SearchRepositoryImpl$3</ID>
+    <ID>MagicNumber:SearchRepositoryImpl.kt$SearchRepositoryImpl$40</ID>
+    <ID>MagicNumber:SearchText.kt$SearchText$4</ID>
+    <ID>MagicNumber:SecretCipher.kt$SecretCipher$256</ID>
+    <ID>MagicNumber:SecretCipher.kt$SecretCipher$32</ID>
+    <ID>MagicNumber:SecretCipher.kt$SecretCipher$32L</ID>
+    <ID>MagicNumber:SettingsModels.kt$BufferProfile.STABLE$3_000</ID>
+    <ID>MagicNumber:SettingsModels.kt$BufferProfile.STANDARD$1_500</ID>
+    <ID>MagicNumber:SportChannelFinder.kt$SportChannelFinder$31</ID>
+    <ID>MagicNumber:SportChannelIndex.kt$SportChannelIndex.Wanted$6</ID>
+    <ID>MagicNumber:SportDao.kt$SportDao$3_600_000L</ID>
+    <ID>MagicNumber:SportDao.kt$SportDao$6</ID>
+    <ID>MagicNumber:SportEventFilter.kt$60_000</ID>
+    <ID>MagicNumber:SportEventFilter.kt$SportEventFilter$120</ID>
+    <ID>MagicNumber:SportEventFilter.kt$SportEventFilter$150</ID>
+    <ID>MagicNumber:SportEventFilter.kt$SportEventFilter$180</ID>
+    <ID>MagicNumber:SportEventFilter.kt$SportEventFilter$300</ID>
+    <ID>MagicNumber:SportEventFilter.kt$SportEventFilter$365</ID>
+    <ID>MagicNumber:SportEventFilter.kt$SportEventFilter$4</ID>
+    <ID>MagicNumber:SportEventFilter.kt$SportEventFilter$400</ID>
+    <ID>MagicNumber:SportEventFilter.kt$SportEventFilter$60_000L</ID>
+    <ID>MagicNumber:SportGuideStore.kt$SportGuideStore$12</ID>
+    <ID>MagicNumber:SportGuideStore.kt$SportGuideStore$8</ID>
+    <ID>MagicNumber:SportGuideStore.kt$SportGuideStore.Companion$3</ID>
+    <ID>MagicNumber:SportGuideStore.kt$SportGuideStore.Companion$4</ID>
+    <ID>MagicNumber:SportGuideStore.kt$SportGuideStore.Companion$5</ID>
+    <ID>MagicNumber:SportGuideStore.kt$SportGuideStore.Companion$6</ID>
+    <ID>MagicNumber:SportRepository.kt$SportRepository$12</ID>
+    <ID>MagicNumber:SportRepository.kt$SportRepository$30_000L</ID>
+    <ID>MagicNumber:SportRepository.kt$SportRepository$6</ID>
+    <ID>MagicNumber:SportmonksSource.kt$SportmonksSource$30</ID>
+    <ID>MagicNumber:SportmonksSource.kt$SportmonksSource$60_000L</ID>
+    <ID>MagicNumber:SportmonksSource.kt$SportmonksSource.Companion$13</ID>
+    <ID>MagicNumber:SportmonksSource.kt$SportmonksSource.Companion$21</ID>
+    <ID>MagicNumber:SportmonksSource.kt$SportmonksSource.Companion$22</ID>
+    <ID>MagicNumber:SportmonksSource.kt$SportmonksSource.Companion$25</ID>
+    <ID>MagicNumber:SportmonksSource.kt$SportmonksSource.Companion$3</ID>
+    <ID>MagicNumber:SportmonksSource.kt$SportmonksSource.Companion$4</ID>
+    <ID>MagicNumber:SportmonksSource.kt$SportmonksSource.Companion$5</ID>
+    <ID>MagicNumber:SportmonksSource.kt$SportmonksSource.Companion$6</ID>
+    <ID>MagicNumber:SportmonksSource.kt$SportmonksSource.Companion$7</ID>
+    <ID>MagicNumber:SportmonksSource.kt$SportmonksSource.Companion$8</ID>
+    <ID>MagicNumber:SportmonksSource.kt$SportmonksSource.Companion$9</ID>
+    <ID>MagicNumber:StreamRecorder.kt$StreamRecorder$16</ID>
+    <ID>MagicNumber:StreamRecorder.kt$StreamRecorder$500</ID>
+    <ID>MagicNumber:StreamRecorder.kt$StreamRecorder$5_000</ID>
+    <ID>MagicNumber:SurfsharkApi.kt$SurfsharkApi$200</ID>
+    <ID>MagicNumber:SurfsharkApi.kt$SurfsharkApi$201</ID>
+    <ID>MagicNumber:SurfsharkApi.kt$SurfsharkApi$299</ID>
+    <ID>MagicNumber:SurfsharkApi.kt$SurfsharkApi$400</ID>
+    <ID>MagicNumber:SurfsharkApi.kt$SurfsharkApi$409</ID>
+    <ID>MagicNumber:SyncManager.kt$5</ID>
+    <ID>MagicNumber:TextFold.kt$TextFold$0x1F150</ID>
+    <ID>MagicNumber:TextFold.kt$TextFold$0x1F169</ID>
+    <ID>MagicNumber:TextFold.kt$TextFold$0x1F170</ID>
+    <ID>MagicNumber:TextFold.kt$TextFold$0x1F189</ID>
+    <ID>MagicNumber:TextFold.kt$TextFold$0x7F</ID>
+    <ID>MagicNumber:TextFold.kt$TextFold$0xFFFF</ID>
+    <ID>MagicNumber:TimeUtils.kt$TimeUtils$10</ID>
+    <ID>MagicNumber:TimeUtils.kt$TimeUtils$12</ID>
+    <ID>MagicNumber:TimeUtils.kt$TimeUtils$13</ID>
+    <ID>MagicNumber:TimeUtils.kt$TimeUtils$14</ID>
+    <ID>MagicNumber:TimeUtils.kt$TimeUtils$146_097L</ID>
+    <ID>MagicNumber:TimeUtils.kt$TimeUtils$153</ID>
+    <ID>MagicNumber:TimeUtils.kt$TimeUtils$3</ID>
+    <ID>MagicNumber:TimeUtils.kt$TimeUtils$365</ID>
+    <ID>MagicNumber:TimeUtils.kt$TimeUtils$399</ID>
+    <ID>MagicNumber:TimeUtils.kt$TimeUtils$4</ID>
+    <ID>MagicNumber:TimeUtils.kt$TimeUtils$400</ID>
+    <ID>MagicNumber:TimeUtils.kt$TimeUtils$5</ID>
+    <ID>MagicNumber:TimeUtils.kt$TimeUtils$6</ID>
+    <ID>MagicNumber:TimeUtils.kt$TimeUtils$719_468L</ID>
+    <ID>MagicNumber:TimeUtils.kt$TimeUtils$8</ID>
+    <ID>MagicNumber:TimeUtils.kt$TimeUtils$86_400L</ID>
+    <ID>MagicNumber:TimeUtils.kt$TimeUtils$9</ID>
+    <ID>MagicNumber:TitleCleaner.kt$TitleCleaner$1900</ID>
+    <ID>MagicNumber:TmdbApi.kt$TmdbApi$12</ID>
+    <ID>MagicNumber:TmdbApi.kt$TmdbApi$20</ID>
+    <ID>MagicNumber:TmdbApi.kt$TmdbApi$4</ID>
+    <ID>MagicNumber:TmdbRepositoryImpl.kt$TmdbRepositoryImpl$10</ID>
+    <ID>MagicNumber:TmdbRepositoryImpl.kt$TmdbRepositoryImpl$12</ID>
+    <ID>MagicNumber:TmdbRepositoryImpl.kt$TmdbRepositoryImpl$3</ID>
+    <ID>MagicNumber:UrlUtils.kt$UrlUtils$3</ID>
+    <ID>MagicNumber:VideoPlayerEngine.kt$BufferLimit.Companion$256</ID>
+    <ID>MagicNumber:VideoPlayerEngine.kt$BufferLimit.Companion$5</ID>
+    <ID>MagicNumber:VideoPlayerEngine.kt$BufferLimit.Companion$80</ID>
+    <ID>MagicNumber:VpnConfigParser.kt$VpnConfigParser$16</ID>
+    <ID>MagicNumber:VpnConfigParser.kt$VpnConfigParser$4</ID>
+    <ID>MagicNumber:VpnStore.kt$VpnStore$40</ID>
+    <ID>MagicNumber:VpnStore.kt$VpnStore$99</ID>
+    <ID>MagicNumber:VpnSystem.kt$AndroidVpnAlerts$250</ID>
+    <ID>MagicNumber:VpnSystem.kt$AndroidVpnAlerts$400</ID>
+    <ID>MagicNumber:VpnSystem.kt$AndroidVpnAlerts$80</ID>
+    <ID>MagicNumber:VpnSystem.kt$AndroidVpnAlerts$800</ID>
+    <ID>MagicNumber:XtreamDetailParser.kt$XtreamDetailParser$4</ID>
+    <ID>MagicNumber:XtreamImporter.kt$XtreamImporter$4</ID>
+    <ID>MagicNumber:XtreamImporter.kt$XtreamImporter$500</ID>
+    <ID>MatchingDeclarationName:AccountComponents.kt$AccountsViewModel : ViewModel</ID>
+    <ID>MatchingDeclarationName:AppRoot.kt$StartInfo</ID>
+    <ID>MatchingDeclarationName:FavoritesOrderScreen.kt$FavoritesOrderViewModel : ViewModel</ID>
+    <ID>MatchingDeclarationName:HomeScreen.kt$HomeViewModel : ViewModel</ID>
+    <ID>MatchingDeclarationName:ParentalGate.kt$ParentalGateState</ID>
+    <ID>MatchingDeclarationName:PlayerKeys.kt$PlayerKeyActions</ID>
+    <ID>MatchingDeclarationName:PlayerOverlay.kt$OverlayAction</ID>
+    <ID>MatchingDeclarationName:PlayerTracks.kt$OverlayPanel</ID>
+    <ID>MatchingDeclarationName:PosterGrid.kt$PosterItem</ID>
+    <ID>MatchingDeclarationName:RecordingsScreen.kt$RecordingsViewModel : ViewModel</ID>
+    <ID>MatchingDeclarationName:SearchMerge.kt$SourceHits</ID>
+    <ID>MatchingDeclarationName:SearchResults.kt$SearchSection</ID>
+    <ID>MatchingDeclarationName:SettingsExtras.kt$PinFlow</ID>
+    <ID>MatchingDeclarationName:SportAssignScreen.kt$SportAssignViewModel : ViewModel</ID>
+    <ID>MatchingDeclarationName:SportLeaguesScreen.kt$SportLeaguesViewModel : ViewModel</ID>
+    <ID>MatchingDeclarationName:SurfsharkScreen.kt$SurfsharkViewModel : ViewModel</ID>
+    <ID>MatchingDeclarationName:Toast.kt$ToastState</ID>
+    <ID>MaxLineLength:AppIcons.kt$AppIcons$"M3.8 7A1.2 1.2 0 1 0 6.2 7A1.2 1.2 0 1 0 3.8 7ZM3.8 12A1.2 1.2 0 1 0 6.2 12A1.2 1.2 0 1 0 3.8 12ZM3.8 17A1.2 1.2 0 1 0 6.2 17A1.2 1.2 0 1 0 3.8 17Z"</ID>
+    <ID>MaxLineLength:AppIcons.kt$AppIcons$"M5.5 13.5H9A1.5 1.5 0 0 1 10.5 15V18.5A1.5 1.5 0 0 1 9 20H5.5A1.5 1.5 0 0 1 4 18.5V15A1.5 1.5 0 0 1 5.5 13.5ZM15 13.5H18.5A1.5 1.5 0 0 1 20 15V18.5A1.5 1.5 0 0 1 18.5 20H15A1.5 1.5 0 0 1 13.5 18.5V15A1.5 1.5 0 0 1 15 13.5Z"</ID>
+    <ID>MaxLineLength:AppIcons.kt$AppIcons$"M5.5 4H9A1.5 1.5 0 0 1 10.5 5.5V9A1.5 1.5 0 0 1 9 10.5H5.5A1.5 1.5 0 0 1 4 9V5.5A1.5 1.5 0 0 1 5.5 4ZM15 4H18.5A1.5 1.5 0 0 1 20 5.5V9A1.5 1.5 0 0 1 18.5 10.5H15A1.5 1.5 0 0 1 13.5 9V5.5A1.5 1.5 0 0 1 15 4Z"</ID>
+    <ID>MaxLineLength:AppIcons.kt$AppIcons$"M7 11.5A1.3 1.3 0 1 0 9.6 11.5A1.3 1.3 0 1 0 7 11.5ZM9.9 7.6A1.3 1.3 0 1 0 12.5 7.6A1.3 1.3 0 1 0 9.9 7.6ZM14.4 8.6A1.3 1.3 0 1 0 17 8.6A1.3 1.3 0 1 0 14.4 8.6Z"</ID>
+    <ID>MaxLineLength:AppIcons.kt$AppIcons$"M9 10.6H11L10 12.4A1.3 1.3 0 1 1 8.9 14.4M13.4 10.4H14.6A1 1 0 0 1 15.6 11.4V13.8A1 1 0 0 1 14.6 14.8H13.4A1 1 0 0 1 12.4 13.8V11.4A1 1 0 0 1 13.4 10.4Z"</ID>
+    <ID>MaxLineLength:ShowcaseServer.kt$ShowcaseServer$"Als ein Sturm die Küste erreicht, muss eine Forscherin zwischen ihrer Arbeit und ihrer Familie wählen. Ein ruhiger, bildgewaltiger Film über Entscheidungen."</ID>
+    <ID>NestedBlockDepth:EventGroupRefresh.kt$EventGroupRefresh$private suspend fun refreshPlaylist(playlistId: Long, creds: XtreamApi.Credentials): Int</ID>
+    <ID>NestedBlockDepth:KickoffCheck.kt$KickoffCheck$suspend fun run(rematch: suspend (List&lt;SportEvent&gt;) -&gt; Unit = {}): Int</ID>
+    <ID>NestedBlockDepth:M3uParser.kt$M3uParser$suspend fun parse(input: InputStream, onHeaderEpg: suspend (String) -&gt; Unit, onEntry: suspend (Entry) -&gt; Unit)</ID>
+    <ID>NestedBlockDepth:M3uParser.kt$M3uParser.LineScanner$fun next(): LineResult</ID>
+    <ID>NestedBlockDepth:MiniHttpServer.kt$MiniHttpServer$private suspend fun handle(client: Socket)</ID>
+    <ID>NestedBlockDepth:PrivateDns.kt$PrivateDns$override fun lookup(hostname: String): List&lt;InetAddress&gt;</ID>
+    <ID>NestedBlockDepth:StreamRecorder.kt$StreamRecorder$private suspend fun recordRaw(url: String, out: OutputStream, untilMs: Long, session: RecordingSession, hasSpace: () -&gt; Boolean, count: (Int) -&gt; Unit)</ID>
+    <ID>NestedBlockDepth:XmltvParser.kt$XmltvParser$fun parseShortEpg(input: InputStream): List&lt;ShortEpgItem&gt;</ID>
+    <ID>NestedBlockDepth:XmltvParser.kt$XmltvParser$private suspend fun readProgramme(parser: XmlPullParser, callback: Callback)</ID>
+    <ID>NestedBlockDepth:XtreamDetailParser.kt$XtreamDetailParser$fun parseSeriesInfo(input: InputStream): XSeriesInfo</ID>
+    <ID>ReturnCount:AccountGate.kt$AccountGate$suspend fun beforeStart(contentId: String): AccountChoice</ID>
+    <ID>ReturnCount:AutoFrameRate.kt$AutoFrameRate$fun apply(activity: Activity, frameRate: Float): Boolean</ID>
+    <ID>ReturnCount:BzzoiroSource.kt$BzzoiroSource.Companion$internal fun parseTime(value: String): Long?</ID>
+    <ID>ReturnCount:ConnectionMonitor.kt$ConnectionMonitor.Companion$fun credentialsFromM3u(url: String): XtreamApi.Credentials?</ID>
+    <ID>ReturnCount:CountryDetector.kt$CountryDetector$fun detect(raw: String): String?</ID>
+    <ID>ReturnCount:EpgRepositoryImpl.kt$EpgRepositoryImpl$private suspend fun shortEpg(channelId: String): List&lt;EpgProgram&gt;</ID>
+    <ID>ReturnCount:EventGroupRefresh.kt$EventGroupRefresh$private suspend fun refreshPlaylist(playlistId: Long, creds: XtreamApi.Credentials): Int</ID>
+    <ID>ReturnCount:ExitReasons.kt$ExitReasons$fun takeUnexpectedExit(context: Context): String?</ID>
+    <ID>ReturnCount:FakeXtreamServer.kt$FakeXtreamServer.&lt;no name provided&gt;$override fun dispatch(request: RecordedRequest): MockResponse</ID>
+    <ID>ReturnCount:PinHasher.kt$PinHasher$fun matches(pin: String, stored: String): Boolean</ID>
+    <ID>ReturnCount:PlayerExtras.kt$internal fun PlayerViewModel.handBackToPreview(engine: VideoPlayerEngine): Boolean</ID>
+    <ID>ReturnCount:PlayerKeys.kt$internal fun handlePlayerKey(event: KeyEvent, isLive: Boolean, vm: PlayerViewModel, actions: PlayerKeyActions): Boolean</ID>
+    <ID>ReturnCount:SeriesDetailViewModel.kt$SeriesDetailViewModel$private fun resolveContinue(list: List&lt;Episode&gt;, map: Map&lt;String, PlaybackProgress&gt;): ContinueTarget?</ID>
+    <ID>ReturnCount:StreamUrlResolver.kt$StreamUrlResolver$suspend fun resolve(url: String, ownerId: String? = null): String</ID>
+    <ID>ReturnCount:VpnConfigParser.kt$VpnConfigParser$fun parse(raw: String, fileName: String? = null): Result&lt;ParsedVpnConfig&gt;</ID>
+    <ID>ReturnCount:VpnImporter.kt$VpnImporter$fun import(raw: String, fileName: String? = null, name: String? = null, country: String? = null, replaces: String? = null): Result&lt;VpnProfile&gt;</ID>
+    <ID>SpreadOperator:AppDatabase.kt$AppDatabase.Companion$(*Migrations.ALL)</ID>
+    <ID>SpreadOperator:ChannelPagingSource.kt$ChannelPagingSource.&lt;no name provided&gt;$(*TABLES)</ID>
+    <ID>SpreadOperator:ChannelPagingSource.kt$ChannelPagingSource.Companion$(*IMPORT_TABLES.toTypedArray(), "category_prefs", "favorites", "progress")</ID>
+    <ID>SwallowedException:BackupCrypto.kt$BackupCrypto$e: AEADBadTagException</ID>
+    <ID>SwallowedException:BinaryCompatTest.kt$BinaryCompatTest$e: ClassNotFoundException</ID>
+    <ID>SwallowedException:BinaryCompatTest.kt$BinaryCompatTest$e: LinkageError</ID>
+    <ID>SwallowedException:DeviceShareServer.kt$DeviceShareServer$e: Exception</ID>
+    <ID>SwallowedException:ExternalPlayerEngine.kt$ExternalPlayerEngine$e: ActivityNotFoundException</ID>
+    <ID>SwallowedException:GuideViewModel.kt$GuideViewModel$e: Exception</ID>
+    <ID>SwallowedException:MiniHttpServer.kt$MiniHttpServer$e: SocketException</ID>
+    <ID>SwallowedException:NativeEngine.kt$NativeEngine$e: Exception</ID>
+    <ID>SwallowedException:NativeEngine.kt$NativeEngine$e: IllegalStateException</ID>
+    <ID>SwallowedException:PrivateDns.kt$PrivateDns$e: IOException</ID>
+    <ID>SwallowedException:QrSetupServer.kt$QrSetupServer.Companion$e: IllegalArgumentException</ID>
+    <ID>SwallowedException:StreamTarget.kt$StreamTarget.Companion$e: IllegalArgumentException</ID>
+    <ID>SwallowedException:SurfsharkApi.kt$SurfsharkApi$e: IOException</ID>
+    <ID>SwallowedException:SyncManager.kt$SyncManager$e: OutOfMemoryError</ID>
+    <ID>SwallowedException:TimeUtils.kt$TimeUtils$e: StringIndexOutOfBoundsException</ID>
+    <ID>SwallowedException:TmdbComponents.kt$e: ActivityNotFoundException</ID>
+    <ID>SwallowedException:TmdbRepositoryImpl.kt$TmdbRepositoryImpl$e: TmdbApi.InvalidKeyException</ID>
+    <ID>SwallowedException:UrlUtils.kt$UrlUtils$e: Exception</ID>
+    <ID>SwallowedException:VpnConfigParser.kt$VpnConfigParser$e: Exception</ID>
+    <ID>SwallowedException:VpnConfigParser.kt$VpnConfigParser$e: LinkageError</ID>
+    <ID>SwallowedException:VpnController.kt$VpnController$e: BackgroundStartBlocked</ID>
+    <ID>SwallowedException:VpnController.kt$VpnController$e: Exception</ID>
+    <ID>SwallowedException:VpnImporter.kt$VpnImporter$e: Exception</ID>
+    <ID>SwallowedException:VpnImporter.kt$VpnImporter$e: LinkageError</ID>
+    <ID>SwallowedException:XmltvParser.kt$XmltvParser$e: IllegalArgumentException</ID>
+    <ID>TooGenericExceptionCaught:VpnBackend.kt$WireGuardBackend$e: Throwable</ID>
+    <ID>TooManyFunctions:ChannelDao.kt$ChannelDao</ID>
+    <ID>UseCheckOrError:LiveFailoverTest.kt$LiveFailoverTest$throw IllegalStateException("Adresse nicht auflösbar")</ID>
+  </CurrentIssues>
+</SmellBaseline>
