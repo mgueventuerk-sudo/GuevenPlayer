@@ -40,7 +40,11 @@ import com.mg.player.ui.common.isTouch
 import com.mg.player.ui.detail.TmdbAttribution
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
+import com.mg.player.ui.theme.AppText
+import com.mg.player.ui.theme.CardSize
 import com.mg.player.ui.theme.Dimens
+import com.mg.player.ui.theme.SmoothShape
+import com.mg.player.ui.theme.Spacing
 
 @Composable
 internal fun TmdbContentRow(
@@ -61,7 +65,7 @@ internal fun TmdbContentRow(
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     title,
-                    style = if (touch) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+                    style = if (touch) MaterialTheme.typography.titleLarge else AppText.title,
                     color = AppColors.TextPrimary,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -85,7 +89,7 @@ internal fun TmdbContentRow(
             )
             else -> LazyRow(
                 contentPadding = PaddingValues(horizontal = if (touch) 18.dp else Dimens.ScreenPadding, vertical = if (touch) 10.dp else 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.CardGap),
             ) {
                 items(entries, key = { it.id }, contentType = { "tmdb-home-card" }) { entry ->
                     MediaCard(entry, onClick = { onClick(entry) }, touch = touch)
@@ -114,7 +118,7 @@ internal fun <T : Any> ContentRow(
             Text(
                 title,
                 modifier = Modifier.weight(1f),
-                style = if (touch) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+                style = if (touch) MaterialTheme.typography.titleLarge else AppText.title,
                 color = AppColors.TextPrimary,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -136,7 +140,7 @@ internal fun <T : Any> ContentRow(
             )
             else -> LazyRow(
                 contentPadding = PaddingValues(horizontal = if (touch) 18.dp else Dimens.ScreenPadding, vertical = if (touch) 10.dp else 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.CardGap),
             ) {
                 items(
                     count = paged.itemCount,
@@ -161,13 +165,18 @@ internal fun MediaCard(entry: HomeEntry, onClick: () -> Unit, touch: Boolean) {
     val request = remember(imageUrl) {
         ImageRequest.Builder(context).data(imageUrl).allowRgb565(true).crossfade(false).build()
     }
-    val width = if (touch) 142.dp else if (live) 176.dp else 132.dp
-    val cardRatio = if (touch || live) 1.42f else 0.82f
+    // Gestaltungssystem: am Fernseher eine Größe je Inhaltsart (Poster 2:3, Sender 16:9).
+    val width = if (touch) 142.dp else if (live) CardSize.LandscapeWidth else CardSize.PosterWidth
+    val cardRatio = when {
+        touch -> 1.42f
+        live -> CardSize.LANDSCAPE_RATIO
+        else -> CardSize.POSTER_RATIO
+    }
     Column(Modifier.width(width)) {
         FocusSurface(
             onClick = onClick,
             modifier = Modifier.fillMaxWidth().aspectRatio(cardRatio),
-            shape = RoundedCornerShape(if (touch) 18.dp else 8.dp),
+            shape = if (touch) RoundedCornerShape(18.dp) else SmoothShape(CardSize.Radius),
             focusedScale = if (touch) 1.06f else 1.025f,
             sheen = false,
         ) {
@@ -214,7 +223,7 @@ internal fun MediaCard(entry: HomeEntry, onClick: () -> Unit, touch: Boolean) {
 internal fun SkeletonRow() {
     LazyRow(
         contentPadding = PaddingValues(horizontal = if (isTouch) 18.dp else Dimens.ScreenPadding),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.CardGap),
     ) { items(5) { SkeletonCard(isTouch) } }
 }
 

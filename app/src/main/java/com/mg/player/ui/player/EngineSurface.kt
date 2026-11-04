@@ -75,8 +75,9 @@ private fun AmbientSampler(holder: ContainerHolder) {
         val pixels = IntArray(AMBIENT_WIDTH * AMBIENT_HEIGHT)
         while (isActive) {
             delay(AMBIENT_SAMPLE_MS)
-            val target = holder.view?.let(VideoFrames::findVideoView) ?: continue
-            if (!VideoFrames.copy(target, bitmap)) continue
+            val target = holder.view?.let(VideoFrames::findVideoView)
+            // Noch keine Fläche oder kein Bild (Laden, DRM, Tunneling): nächste Runde.
+            if (target == null || !VideoFrames.copy(target, bitmap)) continue
             bitmap.getPixels(pixels, 0, AMBIENT_WIDTH, 0, 0, AMBIENT_WIDTH, AMBIENT_HEIGHT)
             val dark = AppColors.isDark
             AppColors.videoAmbient = AmbientColors.extract(pixels, AMBIENT_WIDTH, AMBIENT_HEIGHT)?.let { (left, right) ->

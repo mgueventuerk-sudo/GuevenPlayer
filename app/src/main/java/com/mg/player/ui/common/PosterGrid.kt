@@ -84,7 +84,7 @@ fun PosterCard(item: PosterItem, onClick: () -> Unit, modifier: Modifier = Modif
             onLongClick = onLongClick,
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(2f / 3f)
+                .aspectRatio(CardSize.POSTER_RATIO)
                 .onFocusChanged {
                     focused = it.isFocused
                     if (it.isFocused) onFocused?.invoke()

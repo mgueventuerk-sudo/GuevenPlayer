@@ -49,7 +49,7 @@ jobs:
       - name: Code-Qualität prüfen
         run: |
           chmod +x gradlew
-          ./gradlew spotlessCheck detekt :app:lintRelease --stacktrace
+          ./gradlew --continue spotlessCheck detekt :app:lintRelease
 
       - name: Tests ausführen
         run: |
@@ -84,6 +84,18 @@ jobs:
           name: Player-Mapping-${{ github.run_number }}
           path: app/build/outputs/mapping/release/mapping.txt
           if-no-files-found: warn
+
+      # Funde direkt ins Protokoll: Die Berichte sind sonst nur als Artefakt lesbar.
+      - name: Prüfberichte ausgeben (bei Fehlern)
+        if: failure()
+        run: |
+          for f in build/reports/detekt/detekt.txt app/build/reports/lint-results-release.txt; do
+            [ -f "$f" ] && { echo "===== $f"; cat "$f"; }
+          done
+          find app/build/test-results -name '*.xml' -exec grep -l '<failure' {} + 2>/dev/null | head -20 | while read -r f; do
+            echo "===== $f"; grep -A15 '<failure' "$f" | head -40
+          done
+          exit 0
 
       - name: Testberichte hochladen (bei Fehlern)
         if: failure()
