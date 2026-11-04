@@ -75,7 +75,7 @@ object AppText {
  * Bewegung mit Federn wie bei Apple: Ein Ziel wird weich angefahren, ohne feste Dauer; Unterbrechungen (schnelles
  * Weiterblättern) gehen nahtlos in die neue Bewegung über statt neu zu starten.
  */
-object Motion {
+object AppMotion {
     /** Fokus, Anheben von Karten: schnell, ohne Nachschwingen. */
     fun <T> focus(): FiniteAnimationSpec<T> = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
 

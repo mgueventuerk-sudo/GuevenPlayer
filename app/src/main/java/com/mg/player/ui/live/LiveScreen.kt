@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,11 +42,14 @@ import androidx.paging.compose.itemKey
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.mg.player.domain.model.Category
+import com.mg.player.domain.model.Channel
 import com.mg.player.domain.model.PlayRequest
 import com.mg.player.ui.common.ActionButton
 import com.mg.player.ui.common.CategoryColumn
 import com.mg.player.ui.common.CenteredMessage
+import com.mg.player.ui.common.ContextAction
 import com.mg.player.ui.common.GlassPanel
+import com.mg.player.ui.common.LocalContextMenu
 import com.mg.player.ui.common.LocalToast
 import com.mg.player.ui.common.appViewModel
 import com.mg.player.ui.common.glass
@@ -58,6 +62,7 @@ import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
 import com.mg.player.ui.theme.Dimens
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** Live-TV in drei Spalten: Kategorien | Senderliste | EPG-Details & Live-Mini-Vorschau. */
 @Composable
@@ -65,6 +70,8 @@ fun LiveScreen(modifier: Modifier = Modifier) {
     val vm = appViewModel { LiveViewModel(it) }
     val navigator = LocalNavigator.current
     val toast = LocalToast.current
+    val contextMenu = LocalContextMenu.current
+    val scope = rememberCoroutineScope()
     val categories by vm.categories.collectAsStateWithLifecycle()
     val selectedCategory by vm.selectedCategoryId.collectAsStateWithLifecycle()
     val previewResolution by vm.previewResolution.collectAsStateWithLifecycle()
@@ -88,6 +95,13 @@ fun LiveScreen(modifier: Modifier = Modifier) {
     val focusTarget = liveFocusTarget(restoreTarget)
     val restoreChannelId = (focusTarget as? LiveFocusTarget.Restore)?.channelId
     LaunchedEffect(Unit) { vm.onListShown() }
+
+    fun openChannel(channel: Channel) {
+        vm.onOpenChannel(channel, withPreview = true)
+        // Läuft der Sender schon in der Vorschau, spielt er im Vollbild einfach weiter.
+        vm.handOffPreview(channel)
+        navigator.push(Screen.Player(PlayRequest.Live(channel.id, selectedCategory)))
+    }
 
     LifecycleResumeEffect(Unit) {
         vm.setPreviewActive(true)
@@ -169,15 +183,30 @@ fun LiveScreen(modifier: Modifier = Modifier) {
                                 number = channel.listNumber(index),
                                 nowMs = nowMs,
                                 measuredResolution = previewResolution?.takeIf { it.channelId == channel.id }?.label,
-                                onClick = {
-                                    vm.onOpenChannel(channel, withPreview = true)
-                                    // Läuft der Sender schon in der Vorschau, spielt er im Vollbild einfach weiter.
-                                    vm.handOffPreview(channel)
-                                    navigator.push(Screen.Player(PlayRequest.Live(channel.id, selectedCategory)))
-                                },
+                                onClick = { openChannel(channel) },
+                                // Einheitliches Kontextmenü: alles, was mit dem Sender geht.
                                 onLongClick = {
-                                    vm.toggleFavorite(channel) { added ->
-                                        toast.show(if (added) "♥ ${channel.name} ist jetzt ein Favorit" else "${channel.name} aus Favoriten entfernt")
+                                    scope.launch {
+                                        val favorite = vm.isFavoriteNow(channel)
+                                        contextMenu.show(
+                                            title = channel.name,
+                                            subtitle = channel.nowTitle,
+                                            actions = listOf(
+                                                ContextAction("Abspielen", AppIcons.Play) { openChannel(channel) },
+                                                ContextAction(
+                                                    if (favorite) "Aus Favoriten entfernen" else "Zu Favoriten",
+                                                    if (favorite) AppIcons.HeartFilled else AppIcons.Heart,
+                                                ) {
+                                                    vm.toggleFavorite(channel) { added ->
+                                                        val name = channel.name
+                                                        toast.show(if (added) "♥ $name ist jetzt ein Favorit" else "$name aus Favoriten entfernt")
+                                                    }
+                                                },
+                                                ContextAction("Mosaik ab hier", AppIcons.Grid) {
+                                                    navigator.push(Screen.Mosaic(selectedCategory, channel.id))
+                                                },
+                                            ),
+                                        )
                                     }
                                 },
                                 modifier = Modifier

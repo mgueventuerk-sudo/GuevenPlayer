@@ -30,9 +30,14 @@ import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import com.mg.player.domain.model.Channel
+import com.mg.player.domain.model.EpgProgram
+import com.mg.player.domain.model.Recording
 import com.mg.player.ui.common.ActionButton
 import com.mg.player.ui.common.CenteredMessage
 import com.mg.player.ui.common.ChoiceChip
+import com.mg.player.ui.common.ContextAction
+import com.mg.player.ui.common.LocalContextMenu
 import com.mg.player.ui.common.LocalParentalGate
 import com.mg.player.ui.common.appViewModel
 import com.mg.player.ui.common.rememberNotificationPermission
@@ -65,6 +70,23 @@ fun GuideScreen(modifier: Modifier = Modifier) {
             value = System.currentTimeMillis()
         }
     }
+    val contextMenu = LocalContextMenu.current
+
+    fun openProgram(channel: Channel, program: EpgProgram?) {
+        vm.resolveAction(channel, program) { action ->
+            when (action) {
+                is GuideAction.Play -> navigator.push(Screen.Player(action.request))
+
+                is GuideAction.Info -> info = action.message
+
+                is GuideAction.Remind -> {
+                    askNotifications()
+                    info = vm.toggleReminder(action.reminder)
+                }
+            }
+        }
+    }
+
     LaunchedEffect(info) {
         if (info != null) {
             delay(2_500)
@@ -124,22 +146,22 @@ fun GuideScreen(modifier: Modifier = Modifier) {
                             timelineWidth = timelineWidth,
                             nowMs = nowMs,
                             onFocus = { program -> vm.onFocus(channel, program) },
-                            onClick = { program ->
-                                vm.resolveAction(channel, program) { action ->
-                                    when (action) {
-                                        is GuideAction.Play -> navigator.push(Screen.Player(action.request))
-
-                                        is GuideAction.Info -> info = action.message
-
-                                        is GuideAction.Remind -> {
-                                            askNotifications()
-                                            info = vm.toggleReminder(action.reminder)
-                                        }
-                                    }
-                                }
-                            },
+                            onClick = { program -> openProgram(channel, program) },
                             onShift = vm::shiftWindow,
-                            onLongClick = { program -> vm.toggleRecording(channel, program) { message -> info = message } },
+                            // Einheitliches Kontextmenü: Ansehen/Erinnern und Aufnehmen an einer Stelle.
+                            onLongClick = { program ->
+                                val recording = program != null && Recording.programKey(channel.id, program.startMs) in recordingKeys
+                                contextMenu.show(
+                                    title = program?.title ?: channel.name,
+                                    subtitle = channel.name.takeIf { program != null },
+                                    actions = listOf(
+                                        ContextAction("Ansehen", AppIcons.Play) { openProgram(channel, program) },
+                                        ContextAction(if (recording) "Aufnahme entfernen" else "Aufnehmen", AppIcons.Record, destructive = recording) {
+                                            vm.toggleRecording(channel, program) { message -> info = message }
+                                        },
+                                    ),
+                                )
+                            },
                             recordingKeys = recordingKeys,
                             reminderKeys = reminderKeys,
                         )

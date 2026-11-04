@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -51,6 +52,30 @@ fun Modifier.glass(shape: Shape = AppShapes.Panel, raised: Boolean = false, fill
         .clip(shape)
         .background(base)
         .background(Brush.verticalGradient(0f to highlight.copy(alpha = highlight.alpha * 0.22f), 0.35f to Color.Transparent))
+}
+
+/**
+ * „Liquid Glass“ (tvOS 26): schwebendes Material für Leisten und Menüs. Dichter als [glass], mit hellem Lichtrand oben,
+ * weichem Schatten darunter und einem Hauch Abdunklung am unteren Rand – so wirkt die Fläche wie eine Glasscheibe über
+ * dem Inhalt. Bewusst ohne echte Lichtbrechung (Echtzeit-Blur überfordert TV-Sticks). Mit „Effekte reduzieren“: nur
+ * die deckende Fläche.
+ */
+fun Modifier.liquidGlass(shape: Shape): Modifier {
+    if (AppColors.reducedEffects) return this.clip(shape).background(AppColors.GlassRaised)
+    val highlight = AppColors.Highlight
+    val shade = Color.Black.copy(alpha = if (AppColors.isDark) 0.10f else 0.04f)
+    return this
+        .shadow(elevation = 18.dp, shape = shape, ambientColor = AppColors.Shadow, spotColor = AppColors.Shadow)
+        .clip(shape)
+        .background(AppColors.GlassRaised)
+        .background(Brush.verticalGradient(0f to highlight.copy(alpha = highlight.alpha * 0.30f), 0.45f to Color.Transparent, 1f to shade))
+        .border(
+            width = 1.dp,
+            brush = Brush.verticalGradient(
+                listOf(highlight.copy(alpha = highlight.alpha * 0.85f), Color.Transparent, highlight.copy(alpha = highlight.alpha * 0.20f)),
+            ),
+            shape = shape,
+        )
 }
 
 /** Glas-Container mit Innenabstand. */

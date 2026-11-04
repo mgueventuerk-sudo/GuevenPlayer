@@ -238,6 +238,8 @@ fun HomeScreen() {
                 .onFocusChanged { topBarFocused = it.hasFocus },
             selectedRequester = topBarRequester,
             onDown = { hasGroups && runCatching { groupRequester.requestFocus() }.isSuccess },
+            // Liquid Glass: Fokus im Inhalt → Leiste zieht sich ein.
+            collapsed = !topBarFocused,
             trailing = {
                 activeAccount?.let { account -> AccountButton(account, onClick = { switcherOpen = true }) }
             },

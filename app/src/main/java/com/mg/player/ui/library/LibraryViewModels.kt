@@ -73,6 +73,9 @@ abstract class LibraryViewModel<T : Any>(private val appContainer: AppContainer)
     }
 
     /** OK gedrückt halten auf einem Poster: Favorit an/aus, [onResult] meldet den neuen Zustand. */
+    /** Aktueller Favoriten-Status (für die Beschriftung im Kontextmenü). */
+    suspend fun isFavoriteNow(itemId: String): Boolean = appContainer.playbackRepository.isFavorite(contentType, itemId).first()
+
     fun toggleFavorite(itemId: String, onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             val repo = appContainer.playbackRepository

@@ -317,6 +317,9 @@ class LiveViewModel(private val container: AppContainer) : ViewModel() {
 
     fun toggleFavorite() = toggleFavorite(_focusedChannel.value) {}
 
+    /** Aktueller Favoriten-Status (für die Beschriftung im Kontextmenü). */
+    suspend fun isFavoriteNow(channel: Channel): Boolean = container.playbackRepository.isFavorite(ContentType.LIVE, channel.id).first()
+
     /** Schaltet den Favoriten-Status um und meldet den neuen Zustand zurück (für die Bestätigung). */
     fun toggleFavorite(channel: Channel?, onResult: (Boolean) -> Unit) {
         channel ?: return

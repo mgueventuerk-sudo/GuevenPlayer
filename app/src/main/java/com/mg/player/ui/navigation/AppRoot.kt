@@ -42,9 +42,12 @@ import com.mg.player.domain.model.Category
 import com.mg.player.domain.model.PlayRequest
 import com.mg.player.domain.model.Playlist
 import com.mg.player.ui.common.AppLockGate
+import com.mg.player.ui.common.ContextMenuHost
+import com.mg.player.ui.common.ContextMenuState
 import com.mg.player.ui.common.CrashReportHost
 import com.mg.player.ui.common.LoadingIndicator
 import com.mg.player.ui.common.LocalAppContainer
+import com.mg.player.ui.common.LocalContextMenu
 import com.mg.player.ui.common.LocalNetworkPermissionEffect
 import com.mg.player.ui.common.LocalParentalGate
 import com.mg.player.ui.common.LocalToast
@@ -130,6 +133,7 @@ fun AppRoot(container: AppContainer) {
 
     val gate = remember(container) { ParentalGateState(container.parentalControl) }
     val toast = remember { ToastState() }
+    val contextMenu = remember { ContextMenuState() }
     val vpnState by container.vpn.state.collectAsStateWithLifecycle()
     VpnRestoredToast(vpnState, toast)
     CompositionLocalProvider(
@@ -137,6 +141,7 @@ fun AppRoot(container: AppContainer) {
         LocalAppContainer provides container,
         LocalParentalGate provides gate,
         LocalToast provides toast,
+        LocalContextMenu provides contextMenu,
         LocalVpnState provides vpnState,
     ) {
         BackHandler(enabled = navigator.canPop) { navigator.pop() }
@@ -211,6 +216,8 @@ fun AppRoot(container: AppContainer) {
             ToastHost(toast, Modifier.align(Alignment.BottomCenter).padding(bottom = if (touch && !video) 96.dp else 36.dp))
             // Erinnerungen und Starts aus Benachrichtigungen.
             ReminderHost(container, navigator, gate)
+            // Einheitliches Kontextmenü (OK gedrückt halten), über dem Inhalt.
+            ContextMenuHost(contextMenu)
             // PIN-Abfrage der Kindersicherung liegt über allem.
             ParentalGateHost(gate)
             // Nach einem Absturz beim nächsten Start: Bericht anbieten.

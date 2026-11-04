@@ -48,6 +48,8 @@ import com.mg.player.ui.theme.AppIcon
 import com.mg.player.ui.theme.BrandMark
 import com.mg.player.ui.theme.BrandWordmark
 import com.mg.player.ui.theme.Dimens
+import com.mg.player.ui.theme.AppMotion
+import com.mg.player.ui.theme.Spacing
 import com.mg.player.ui.vpn.LocalVpnState
 import com.mg.player.ui.vpn.VpnBadge
 import kotlinx.coroutines.delay
@@ -63,6 +65,9 @@ data class TopBarItem(val id: String, val label: String, val icon: AppIcon)
  * Zugang. Nur der gewählte und der fokussierte Bereich zeigen ihre Beschriftung – die Leiste bleibt schmal.
  * Ein Bereich wird erst nach kurzem Verweilen geöffnet ([onSelect]), damit schnelles Durchlaufen nicht jeden Bereich
  * lädt; OK ([onOpen]) öffnet sofort und springt in den Inhalt.
+ *
+ * Ab 3.41 im „Liquid Glass“-Stil: Liegt der Fokus im Inhalt ([collapsed]), zieht sich die Leiste zu einer Pille mit
+ * dem gewählten Bereich zusammen und gibt dem Inhalt Raum; „Hoch“ fährt sie mit einer Feder wieder aus.
  */
 @Composable
 fun TopBar(
@@ -74,6 +79,7 @@ fun TopBar(
     selectedRequester: FocusRequester = remember { FocusRequester() },
     /** „Runter“ aus den Tabs: true = selbst behandelt (z. B. Fokus auf die Gruppen), sonst Standard-Navigation. */
     onDown: () -> Boolean = { false },
+    collapsed: Boolean = false,
     trailing: @Composable () -> Unit = {},
 ) {
     Row(
@@ -85,8 +91,16 @@ fun TopBar(
     ) {
         Row(Modifier.width(START_WIDTH), verticalAlignment = Alignment.CenterVertically) {
             BrandMark(size = 32.dp)
-            Spacer(Modifier.width(10.dp))
-            BrandWordmark(fontSize = 18.sp)
+            AnimatedVisibility(
+                visible = !collapsed,
+                enter = fadeIn(AppMotion.surface()) + expandHorizontally(AppMotion.surface()),
+                exit = fadeOut(AppMotion.surface()) + shrinkHorizontally(AppMotion.surface()),
+            ) {
+                Row {
+                    Spacer(Modifier.width(Spacing.Xs))
+                    BrandWordmark(fontSize = 18.sp)
+                }
+            }
         }
         Spacer(Modifier.weight(1f))
         // Nur wer mit links/rechts durch die Leiste wandert, wechselt per Verweilen den Bereich. Jede andere Taste
@@ -95,7 +109,7 @@ fun TopBar(
         var browsing by remember { mutableStateOf(false) }
         Row(
             Modifier
-                .glass(RoundedCornerShape(50))
+                .liquidGlass(RoundedCornerShape(50))
                 .padding(5.dp)
                 .selectableGroup()
                 .onPreviewKeyEvent { event ->
@@ -109,16 +123,23 @@ fun TopBar(
         ) {
             items.forEach { item ->
                 val selected = item.id == selectedId
-                TopBarTab(
-                    item = item,
-                    selected = selected,
-                    onSelect = onSelect,
-                    // „Hoch“ aus dem Inhalt landet auf dem gewählten Bereich – nicht auf dem Tab, der zufällig darüber
-                    // liegt (z. B. aus den Film-Gruppen auf „Live TV“). Nur beim Blättern mit links/rechts bleibt er.
-                    onEnteredFromContent = { if (!browsing) runCatching { selectedRequester.requestFocus() } },
-                    onOpen = onOpen,
-                    modifier = if (selected) Modifier.focusRequester(selectedRequester) else Modifier,
-                )
+                // Eingezogen bleibt nur der gewählte Bereich sichtbar – er ist das Ziel von „Hoch“ aus dem Inhalt.
+                AnimatedVisibility(
+                    visible = selected || !collapsed,
+                    enter = fadeIn(AppMotion.surface()) + expandHorizontally(AppMotion.surface()),
+                    exit = fadeOut(AppMotion.surface()) + shrinkHorizontally(AppMotion.surface()),
+                ) {
+                    TopBarTab(
+                        item = item,
+                        selected = selected,
+                        onSelect = onSelect,
+                        // „Hoch“ aus dem Inhalt landet auf dem gewählten Bereich – nicht auf dem Tab, der zufällig darüber
+                        // liegt (z. B. aus den Film-Gruppen auf „Live TV“). Nur beim Blättern mit links/rechts bleibt er.
+                        onEnteredFromContent = { if (!browsing) runCatching { selectedRequester.requestFocus() } },
+                        onOpen = onOpen,
+                        modifier = if (selected) Modifier.focusRequester(selectedRequester) else Modifier,
+                    )
+                }
             }
         }
         Spacer(Modifier.weight(1f))

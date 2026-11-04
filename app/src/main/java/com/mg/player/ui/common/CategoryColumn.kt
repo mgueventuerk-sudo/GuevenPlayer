@@ -61,6 +61,7 @@ fun CategoryColumn(
     val gate = LocalParentalGate.current
     val container = LocalAppContainer.current
     val toast = LocalToast.current
+    val contextMenu = LocalContextMenu.current
     val scope = rememberCoroutineScope()
     val allCategoryFocus = LocalAllCategoryFocus.current
     // Die gewählte Gruppe (beim Start „Alle …“) muss sichtbar sein, sobald die Gruppen geladen sind – sonst ist ihr
@@ -107,7 +108,23 @@ fun CategoryColumn(
             ListSurface(
                 // Gesperrte Kategorien öffnen sich erst nach PIN-Eingabe.
                 onClick = { gate.runIfAllowed(category) { onClick(category) } },
-                onLongClick = if (category.isVirtual) null else ({ toggleFavoriteGroup(category) }),
+                // Einheitliches Kontextmenü statt Sofort-Aktion: Öffnen und Anheften an einer Stelle.
+                onLongClick = if (category.isVirtual) {
+                    null
+                } else {
+                    {
+                        contextMenu.show(
+                            title = category.name,
+                            actions = listOf(
+                                ContextAction("Öffnen", AppIcons.ChevronRight) { gate.runIfAllowed(category) { onClick(category) } },
+                                ContextAction(
+                                    if (category.pinned) "Nicht mehr oben anheften" else "Oben anheften",
+                                    AppIcons.Star,
+                                ) { toggleFavoriteGroup(category) },
+                            ),
+                        )
+                    }
+                },
                 selected = selected,
                 modifier = Modifier
                     .padding(vertical = 2.dp)

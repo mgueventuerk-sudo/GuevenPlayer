@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -23,6 +24,8 @@ import com.mg.player.domain.model.Category
 import com.mg.player.domain.model.Movie
 import com.mg.player.domain.model.Series
 import com.mg.player.ui.common.CategoryColumn
+import com.mg.player.ui.common.ContextAction
+import com.mg.player.ui.common.LocalContextMenu
 import com.mg.player.ui.common.LocalToast
 import com.mg.player.ui.common.PagingPosterGrid
 import com.mg.player.ui.common.PosterItem
@@ -32,6 +35,7 @@ import com.mg.player.ui.navigation.Screen
 import com.mg.player.ui.theme.AppIcon
 import com.mg.player.ui.theme.AppIcons
 import com.mg.player.ui.theme.Dimens
+import kotlinx.coroutines.launch
 
 /** Filme (VOD): Kategorien links, Netflix-artiges Poster-Grid rechts. */
 @Composable
@@ -80,6 +84,8 @@ private fun <T : Any> LibraryLayout(
     val items = vm.items.collectAsLazyPagingItems()
     val restoreKey = remember { vm.restoreKey.also { vm.restoreKey = null } }
     val toast = LocalToast.current
+    val contextMenu = LocalContextMenu.current
+    val scope = rememberCoroutineScope()
     // Zurück im Poster-Raster: erst zu den Kategorien (wie bei Live-TV), dann zur Navigationsleiste.
     val categoryRequester = remember { FocusRequester() }
     var gridFocused by remember { mutableStateOf(false) }
@@ -113,10 +119,28 @@ private fun <T : Any> LibraryLayout(
                 else -> emptyIcon
             },
             restoreKey = restoreKey,
+            // Einheitliches Kontextmenü: Öffnen und Favorit an einer Stelle.
             onLongClick = { item ->
                 val title = toPoster(item).title
-                vm.toggleFavorite(key(item)) { added ->
-                    toast.show(if (added) "♥ „$title“ ist jetzt ein Favorit" else "„$title“ aus Favoriten entfernt")
+                scope.launch {
+                    val favorite = vm.isFavoriteNow(key(item))
+                    contextMenu.show(
+                        title = title,
+                        actions = listOf(
+                            ContextAction("Öffnen", AppIcons.Play) {
+                                vm.restoreKey = key(item)
+                                onClick(item)
+                            },
+                            ContextAction(
+                                if (favorite) "Aus Favoriten entfernen" else "Zu Favoriten",
+                                if (favorite) AppIcons.HeartFilled else AppIcons.Heart,
+                            ) {
+                                vm.toggleFavorite(key(item)) { added ->
+                                    toast.show(if (added) "♥ „$title“ ist jetzt ein Favorit" else "„$title“ aus Favoriten entfernt")
+                                }
+                            },
+                        ),
+                    )
                 }
             },
             modifier = Modifier

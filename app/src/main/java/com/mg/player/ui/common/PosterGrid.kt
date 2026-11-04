@@ -45,6 +45,7 @@ import coil3.request.crossfade
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcon
 import com.mg.player.ui.theme.AppIcons
+import com.mg.player.ui.theme.CardSize
 import com.mg.player.ui.theme.Dimens
 import com.mg.player.ui.theme.StaticIcon
 
