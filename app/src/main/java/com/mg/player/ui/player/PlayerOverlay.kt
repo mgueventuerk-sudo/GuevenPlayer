@@ -50,6 +50,7 @@ import com.mg.player.core.util.TimeUtils
 import com.mg.player.core.vpn.VpnState
 import com.mg.player.domain.model.MatchedEvent
 import com.mg.player.ui.common.LiveBadge
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.glass
 import com.mg.player.ui.common.isTouch
 import com.mg.player.ui.theme.AppColors
@@ -180,7 +181,7 @@ fun PlayerOverlay(
                         Text(number.toString(), style = MaterialTheme.typography.headlineSmall, color = AppColors.TextMuted)
                         Spacer(Modifier.width(14.dp))
                     }
-                    Text(
+                    MarqueeText(
                         playable.title,
                         style = MaterialTheme.typography.headlineSmall,
                         maxLines = 1,

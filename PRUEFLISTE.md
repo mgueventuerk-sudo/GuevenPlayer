@@ -339,6 +339,13 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P5 Mit gesetzter PIN: Bearbeiten fragt zuerst nach der PIN.
 - [ ] P6 QR-Code im Bearbeiten-Bildschirm: Daten vom Handy landen im Formular (gespeichert wird erst mit „Prüfen & speichern“).
 
+## 16c. Neu in 3.43 – lange Namen
+
+- [ ] L1 Filme/Serien/Live → Gruppenliste: lange Gruppennamen stehen zweizeilig und sind ohne Fokus lesbar.
+- [ ] L2 Sender mit langem Namen fokussieren: nach ca. 1 s läuft der Name durch; Fokus weg → wieder „…“.
+- [ ] L3 Poster mit langem Titel fokussieren: Titel unter dem Poster läuft durch.
+- [ ] L4 Schnell durch eine Liste blättern: nichts läuft unruhig mit (erst nach kurzer Pause).
+
 ## 16b. Neu in 3.42 – Bedienkomfort
 
 - [ ] K1 Live → Favoriten leer: Knopf „Alle Sender zeigen“ wechselt zu „Alle“; Filme/Serien → Favoriten leer: „Alle anzeigen“.

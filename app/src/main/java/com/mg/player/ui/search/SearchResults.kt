@@ -33,6 +33,7 @@ import androidx.tv.material3.Text
 import com.mg.player.domain.model.ContentType
 import com.mg.player.domain.model.SearchHit
 import com.mg.player.ui.common.FocusSurface
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.PosterCard
 import com.mg.player.ui.common.PosterItem
 import com.mg.player.ui.common.QualityBadge
@@ -127,7 +128,7 @@ private fun ChannelHitTile(hit: SearchHit, onClick: () -> Unit, modifier: Modifi
             }
         }
         Column(Modifier.padding(start = 2.dp, end = 2.dp, top = 10.dp)) {
-            Text(
+            MarqueeText(
                 hit.title,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = if (focused) FontWeight.SemiBold else FontWeight.Medium,

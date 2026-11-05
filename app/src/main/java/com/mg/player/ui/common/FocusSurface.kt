@@ -139,7 +139,10 @@ fun FocusSurface(
                         )
                     }
                 },
-            ) { content() }
+            ) {
+                // Texte darin wissen, ob ihre Kachel den Fokus hat (Laufschrift langer Titel, siehe MarqueeText).
+                CompositionLocalProvider(LocalSurfaceFocused provides focused) { content() }
+            }
         }
     }
 }

@@ -41,6 +41,7 @@ import com.mg.player.domain.usecase.ResolveNextEpisodeUseCase
 import com.mg.player.ui.common.ActionButton
 import com.mg.player.ui.common.DetailBackdrop
 import com.mg.player.ui.common.LoadingIndicator
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.MetaLine
 import com.mg.player.ui.common.SpoilerDescription
 import com.mg.player.ui.common.appViewModel
@@ -133,7 +134,7 @@ fun TmdbCatalogTitleScreen(recommendation: TmdbRecommendation) {
                                 .padding(if (touch) 14.dp else 18.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Text(
+                            MarqueeText(
                                 copy.playlistName,
                                 style = MaterialTheme.typography.labelLarge,
                                 color = AppColors.AccentText,

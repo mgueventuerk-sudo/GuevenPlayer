@@ -145,13 +145,14 @@ fun CategoryColumn(
                         Box(Modifier.size(7.dp).background(kind.color, CircleShape))
                         Spacer(Modifier.width(10.dp))
                     }
-                    Text(
+                    MarqueeText(
                         text = category.name,
                         modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                         color = if (selected) RowColors.primary else RowColors.secondary,
-                        maxLines = 1,
+                        // Zwei Zeilen: Anbieter-Gruppen wie „|DE| ✪ NEUE FILME 2025“ sind ohne Fokus lesbar.
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                     if (category.pinned) {

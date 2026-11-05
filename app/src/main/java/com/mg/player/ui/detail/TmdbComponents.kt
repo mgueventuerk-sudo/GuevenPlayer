@@ -40,6 +40,7 @@ import com.mg.player.domain.model.CastMember
 import com.mg.player.domain.model.SearchHit
 import com.mg.player.domain.model.TmdbInfo
 import com.mg.player.ui.common.FocusSurface
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.Pill
 import com.mg.player.ui.common.PosterCard
 import com.mg.player.ui.common.PosterItem
@@ -61,7 +62,7 @@ fun TmdbMeta(info: TmdbInfo, modifier: Modifier = Modifier) {
         }
         info.certification?.let { Pill("FSK $it") }
         if (info.genres.isNotEmpty()) {
-            Text(
+            MarqueeText(
                 info.genres.take(4).joinToString(", "),
                 style = MaterialTheme.typography.labelLarge,
                 color = AppColors.TextSecondary,
@@ -98,7 +99,13 @@ fun CastRow(cast: List<CastMember>, modifier: Modifier = Modifier) {
                         Spacer(Modifier.height(6.dp))
                         Text(member.name, style = MaterialTheme.typography.labelMedium, maxLines = 2, textAlign = TextAlign.Center)
                         member.character?.let {
-                            Text(it, style = MaterialTheme.typography.labelSmall, color = AppColors.TextMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            MarqueeText(
+                                it,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = AppColors.TextMuted,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
                     }
                 }

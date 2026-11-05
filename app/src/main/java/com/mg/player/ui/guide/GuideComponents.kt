@@ -45,6 +45,7 @@ import com.mg.player.domain.model.Channel
 import com.mg.player.domain.model.EpgProgram
 import com.mg.player.domain.model.Recording
 import com.mg.player.ui.common.ListSurface
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.RowColors
 import com.mg.player.ui.common.glass
 import com.mg.player.ui.live.ChannelLogo
@@ -106,7 +107,7 @@ internal fun GuideRow(
         ) {
             Text(number.toString(), modifier = Modifier.width(30.dp), style = MaterialTheme.typography.labelMedium, color = AppColors.TextMuted)
             ChannelLogo(channel.logoUrl, channel.name, Modifier.size(width = 44.dp, height = 30.dp))
-            Text(
+            MarqueeText(
                 channel.name,
                 modifier = Modifier.padding(start = 8.dp),
                 style = MaterialTheme.typography.labelLarge,
@@ -237,7 +238,7 @@ private fun ProgramCell(
                     StaticIcon(AppIcons.Clock, tint = AppColors.AccentText, size = 12.dp, contentDescription = "Erinnerung")
                     Spacer(Modifier.width(5.dp))
                 }
-                Text(
+                MarqueeText(
                     title,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = if (state == CellState.NOW) FontWeight.SemiBold else FontWeight.Normal,
@@ -269,7 +270,7 @@ internal fun GuideFocusInfo(focus: GuideFocus?, nowMs: Long, modifier: Modifier 
         }
         val program = focus.program
         Text(focus.channel.name, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = AppColors.AccentText)
-        Text(program?.title ?: "Keine Programminfo", style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        MarqueeText(program?.title ?: "Keine Programminfo", style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
         if (program != null) {
             val status = when {
                 program.startMs <= nowMs && program.endMs > nowMs -> "Läuft gerade – OK zum Ansehen, gedrückt halten zum Aufnehmen"

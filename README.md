@@ -271,6 +271,15 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.43 (lange Namen lesbar)
+
+- **Gemeldet:** Gruppen- und Titelnamen wie „|DE| ✪ NEUE FILME …“ waren abgeschnitten und nicht lesbar.
+- **Gruppenlisten** (Live, Filme, Serien) zeigen Namen jetzt zweizeilig.
+- **Laufschrift wie bei Apple TV** (`MarqueeText`): Einzeilige Namen enden ohne Fokus mit „…“; hat die Zeile oder
+  Kachel den Fokus, läuft der ganze Text nach kurzer Pause durch. Gilt app-weit (43 Stellen): Sender, Poster- und
+  Kartentitel, „Läuft gerade“, Mosaik, Kontextmenü, TV-Guide, Suche, Aufnahmen, Episoden, Zugänge, Länderauswahl,
+  Sport, Player-Menüs. Kurze Texte bewegen sich nie.
+
 ## Neu in 3.42 (Bedienkomfort)
 
 - **Leere Zustände mit Ausweg:** Leere Favoriten/Sehgewohnheiten (Live) und leere Favoriten/Weiterschauen (Filme,

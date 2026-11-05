@@ -22,6 +22,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.mg.player.player.engine.TrackOption
 import com.mg.player.ui.common.ListSurface
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.RowColors
 import com.mg.player.ui.common.requestFocusWhenReady
 import com.mg.player.ui.theme.AnimatedIcon
@@ -60,7 +61,7 @@ fun OptionPanel(title: String, options: List<TrackOption>, onSelect: (TrackOptio
                         .then(if (index == focusIndex) Modifier.focusRequester(requester) else Modifier),
                 ) {
                     Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(
+                        MarqueeText(
                             option.label,
                             modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.bodyLarge,

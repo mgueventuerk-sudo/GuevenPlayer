@@ -16,11 +16,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -36,6 +38,7 @@ import coil3.request.ImageRequest
 import coil3.request.allowRgb565
 import coil3.request.crossfade
 import com.mg.player.ui.common.FocusSurface
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.isTouch
 import com.mg.player.ui.detail.TmdbAttribution
 import com.mg.player.ui.theme.AppColors
@@ -169,6 +172,7 @@ internal fun MediaCard(entry: HomeEntry, onClick: () -> Unit, touch: Boolean, on
     }
     // Gestaltungssystem: am Fernseher eine Größe je Inhaltsart (Poster 2:3, Sender 16:9).
     val width = if (touch) 142.dp else if (live) CardSize.LandscapeWidth else CardSize.PosterWidth
+    var focused by remember { mutableStateOf(false) }
     val cardRatio = when {
         touch -> 1.42f
         live -> CardSize.LANDSCAPE_RATIO
@@ -178,7 +182,7 @@ internal fun MediaCard(entry: HomeEntry, onClick: () -> Unit, touch: Boolean, on
         FocusSurface(
             onClick = onClick,
             onLongClick = onLongClick,
-            modifier = Modifier.fillMaxWidth().aspectRatio(cardRatio),
+            modifier = Modifier.fillMaxWidth().aspectRatio(cardRatio).onFocusChanged { focused = it.isFocused },
             shape = if (touch) RoundedCornerShape(18.dp) else SmoothShape(CardSize.Radius),
             focusedScale = if (touch) 1.06f else 1.025f,
             sheen = false,
@@ -201,16 +205,18 @@ internal fun MediaCard(entry: HomeEntry, onClick: () -> Unit, touch: Boolean, on
                 }
             }
         }
-        Text(
+        MarqueeText(
             entry.title,
             Modifier.padding(start = 3.dp, top = if (touch) 7.dp else 4.dp),
             style = if (touch) MaterialTheme.typography.labelLarge else MaterialTheme.typography.labelMedium,
             color = AppColors.TextPrimary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            // Titel unter der Karte: Laufschrift, solange die Karte den Fokus hat.
+            active = focused,
         )
         entry.subtitle?.let {
-            Text(
+            MarqueeText(
                 it,
                 Modifier.padding(start = 3.dp),
                 style = MaterialTheme.typography.labelSmall,

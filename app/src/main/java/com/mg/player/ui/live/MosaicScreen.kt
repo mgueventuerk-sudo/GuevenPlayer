@@ -35,6 +35,7 @@ import com.mg.player.domain.model.PlayRequest
 import com.mg.player.ui.common.ActionButton
 import com.mg.player.ui.common.CenteredMessage
 import com.mg.player.ui.common.FocusSurface
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.ScreenTitle
 import com.mg.player.ui.common.appViewModel
 import com.mg.player.ui.navigation.LocalNavigator
@@ -172,7 +173,7 @@ internal fun LiveStillCard(
                         Box(Modifier.size(8.dp).background(AppColors.Live, CircleShape))
                         Spacer(Modifier.width(6.dp))
                     }
-                    Text(
+                    MarqueeText(
                         tile.channel.name,
                         style = AppText.label,
                         color = Color.White,
@@ -185,7 +186,7 @@ internal fun LiveStillCard(
                     else -> tile.channel.nowTitle
                 }
                 subtitle?.let {
-                    Text(
+                    MarqueeText(
                         it,
                         style = AppText.caption,
                         color = Color.White.copy(alpha = 0.72f),

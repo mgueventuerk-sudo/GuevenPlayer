@@ -27,6 +27,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.mg.player.player.engine.TrackOption
 import com.mg.player.ui.common.ListSurface
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.RowColors
 import com.mg.player.ui.common.requestFocusWhenReady
 import com.mg.player.ui.theme.AnimatedIcon
@@ -115,7 +116,7 @@ internal fun MorePanel(
                         Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                             AnimatedIcon(entry.icon, tint = AppColors.TextPrimary, active = false, size = 22.dp)
                             Spacer(Modifier.width(12.dp))
-                            Text(entry.label, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            MarqueeText(entry.label, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 }
@@ -166,7 +167,7 @@ private fun TrackColumn(title: String, options: List<TrackOption>, onSelect: (Tr
                     .then(if (requester != null && index == focusIndex) Modifier.focusRequester(requester) else Modifier),
             ) {
                 Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(
+                    MarqueeText(
                         option.label,
                         modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.bodyLarge,

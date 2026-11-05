@@ -48,6 +48,7 @@ import com.mg.player.ui.common.CenteredMessage
 import com.mg.player.ui.common.IconActionButton
 import com.mg.player.ui.common.ListSurface
 import com.mg.player.ui.common.LocalSurfaceFocused
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.RowColors
 import com.mg.player.ui.common.ScreenTitle
 import com.mg.player.ui.common.appViewModel
@@ -201,14 +202,14 @@ private fun RecordingRow(recording: Recording, bytes: Long, nowMs: Long, onPlay:
                 }
                 Spacer(Modifier.width(16.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(
+                    MarqueeText(
                         recording.title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text(
+                    MarqueeText(
                         listOfNotNull(
                             recording.channelName,
                             TimeUtils.formatDate(recording.startedAtMs),

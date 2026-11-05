@@ -89,7 +89,7 @@ private fun ContextMenuContent(spec: ContextMenuSpec, onDismiss: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(Spacing.Xxs),
         ) {
             Text(spec.title, style = AppText.title, color = AppColors.TextPrimary, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            spec.subtitle?.let { Text(it, style = AppText.caption, color = AppColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+            spec.subtitle?.let { MarqueeText(it, style = AppText.caption, color = AppColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis) }
             Spacer(Modifier.padding(top = Spacing.Xs))
             spec.actions.forEachIndexed { index, action ->
                 ListSurface(
@@ -108,7 +108,7 @@ private fun ContextMenuContent(spec: ContextMenuSpec, onDismiss: () -> Unit) {
                             StaticIcon(it, tint = tint, size = 22.dp)
                             Spacer(Modifier.width(Spacing.S))
                         }
-                        Text(action.label, style = AppText.label, color = tint, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        MarqueeText(action.label, style = AppText.label, color = tint, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }

@@ -41,6 +41,7 @@ import com.mg.player.domain.model.ContentType
 import com.mg.player.domain.model.FavoriteName
 import com.mg.player.ui.common.CenteredMessage
 import com.mg.player.ui.common.ChoiceChip
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.ScreenTitle
 import com.mg.player.ui.common.appViewModel
 import com.mg.player.ui.common.glass
@@ -162,7 +163,7 @@ fun FavoritesOrderScreen() {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text("${index + 1}", style = MaterialTheme.typography.labelLarge, color = AppColors.TextMuted, modifier = Modifier.width(40.dp))
-                    Text(
+                    MarqueeText(
                         favorite.name ?: favorite.id,
                         style = MaterialTheme.typography.titleSmall,
                         color = AppColors.TextPrimary,

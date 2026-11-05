@@ -13,11 +13,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
-import androidx.tv.material3.Text
 import com.mg.player.core.util.TimeUtils
 import com.mg.player.domain.model.Reminder
 import com.mg.player.ui.common.IconActionButton
 import com.mg.player.ui.common.ListSurface
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.RowColors
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
@@ -32,14 +32,14 @@ internal fun ReminderRow(reminder: Reminder, onOpen: () -> Unit, onDelete: () ->
                 StaticIcon(AppIcons.Clock, tint = RowColors.accent, size = 22.dp, contentDescription = "Erinnerung")
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(
+                    MarqueeText(
                         reminder.title,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text(
+                    MarqueeText(
                         "Erinnerung · ${reminder.channelName} · ${TimeUtils.formatDate(reminder.startMs)} Uhr",
                         style = MaterialTheme.typography.bodySmall,
                         color = RowColors.secondary,

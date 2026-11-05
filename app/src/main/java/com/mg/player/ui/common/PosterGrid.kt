@@ -143,13 +143,15 @@ fun PosterCard(item: PosterItem, onClick: () -> Unit, modifier: Modifier = Modif
             }
         }
         Column(Modifier.padding(start = 2.dp, end = 2.dp, top = 10.dp)) {
-            Text(
+            MarqueeText(
                 text = item.title,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = if (focused) FontWeight.SemiBold else FontWeight.Medium,
                 color = if (focused) AppColors.TextPrimary else AppColors.TextSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                // Titel steht unter der Kachel: Laufschrift, solange das Poster den Fokus hat.
+                active = focused,
             )
             if (!item.subtitle.isNullOrBlank()) {
                 Text(

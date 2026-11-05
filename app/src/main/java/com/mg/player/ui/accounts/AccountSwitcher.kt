@@ -36,6 +36,7 @@ import com.mg.player.domain.model.Playlist
 import com.mg.player.ui.common.ListSurface
 import com.mg.player.ui.common.LocalAppContainer
 import com.mg.player.ui.common.LocalSurfaceFocused
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.RowColors
 import com.mg.player.ui.common.glass
 import com.mg.player.ui.theme.AppShapes
@@ -136,14 +137,14 @@ private fun AccountRow(playlist: Playlist, active: Boolean, connection: Connecti
             AccountAvatar(playlist, size = 46.dp)
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                Text(
+                MarqueeText(
                     playlist.name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
+                MarqueeText(
                     playlist.detailLabel(),
                     style = MaterialTheme.typography.bodySmall,
                     color = RowColors.secondary,

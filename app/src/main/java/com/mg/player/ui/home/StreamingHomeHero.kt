@@ -36,6 +36,7 @@ import coil3.request.ImageRequest
 import coil3.request.allowRgb565
 import coil3.request.crossfade
 import com.mg.player.ui.common.FocusSurface
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.isTouch
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
@@ -94,7 +95,13 @@ internal fun HeroBanner(
             when {
                 entry != null -> {
                     entry.subtitle?.let {
-                        Text(it, style = MaterialTheme.typography.labelLarge, color = AppColors.AccentText, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        MarqueeText(
+                            it,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = AppColors.AccentText,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
                     Text(
                         entry.title,

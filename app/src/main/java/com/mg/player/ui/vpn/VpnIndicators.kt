@@ -52,6 +52,7 @@ import androidx.tv.material3.Text
 import com.mg.player.core.vpn.VpnController
 import com.mg.player.core.vpn.VpnDropReason
 import com.mg.player.core.vpn.VpnState
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.glass
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
@@ -193,7 +194,7 @@ private fun FullBand(state: VpnState.Disconnected, modifier: Modifier) {
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
+            MarqueeText(
                 state.reason.text,
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.85f),

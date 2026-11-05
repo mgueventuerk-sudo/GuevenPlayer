@@ -40,6 +40,7 @@ import com.mg.player.data.filter.CountryCount
 import com.mg.player.ui.common.ActionButton
 import com.mg.player.ui.common.CenteredMessage
 import com.mg.player.ui.common.FocusSurface
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.appViewModel
 import com.mg.player.ui.common.isTouch
 import com.mg.player.ui.theme.AnimatedIcon
@@ -187,8 +188,20 @@ private fun ChoiceCard(badge: String, title: String, subtitle: String, selected:
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(subtitle, style = MaterialTheme.typography.labelSmall, color = AppColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                MarqueeText(
+                    title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                MarqueeText(
+                    subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AppColors.TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
             if (selected) AnimatedIcon(AppIcons.CheckCircle, tint = AppColors.AccentText, active = true, size = 24.dp, contentDescription = "ausgewählt")
         }

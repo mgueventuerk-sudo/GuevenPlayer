@@ -31,6 +31,7 @@ import com.mg.player.domain.model.Episode
 import com.mg.player.domain.model.PlaybackProgress
 import com.mg.player.ui.common.ListSurface
 import com.mg.player.ui.common.LocalSurfaceFocused
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.ProgressBar
 import com.mg.player.ui.common.RowColors
 import com.mg.player.ui.common.isTouch
@@ -71,7 +72,7 @@ fun EpisodeRow(episode: Episode, progress: PlaybackProgress?, onClick: () -> Uni
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
                 Text(episode.code, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = RowColors.accent)
-                Text(episode.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                MarqueeText(episode.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (!episode.plot.isNullOrBlank()) {
                     Text(
                         episode.plot,

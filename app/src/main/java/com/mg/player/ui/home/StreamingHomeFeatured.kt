@@ -38,6 +38,7 @@ import coil3.request.ImageRequest
 import coil3.request.allowRgb565
 import coil3.request.crossfade
 import com.mg.player.ui.common.FocusSurface
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.isTouch
 import com.mg.player.ui.detail.TmdbAttribution
 import com.mg.player.ui.theme.AppColors
@@ -97,7 +98,7 @@ internal fun TvFeaturedSection(
                     Modifier.weight(1f).padding(end = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
-                    Text(
+                    MarqueeText(
                         entry.title,
                         style = MaterialTheme.typography.titleLarge.copy(fontSize = 26.sp, lineHeight = 31.sp),
                         color = AppColors.TextPrimary,
@@ -198,7 +199,7 @@ internal fun TvFeaturedCard(
                         Brush.verticalGradient(listOf(Color.Transparent, AppColors.Background.copy(alpha = 0.86f))),
                     ),
                 )
-                Text(
+                MarqueeText(
                     entry.title,
                     Modifier.align(Alignment.BottomStart).padding(horizontal = 12.dp, vertical = 10.dp),
                     color = AppColors.TextPrimary,

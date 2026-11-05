@@ -35,7 +35,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
-import androidx.tv.material3.Text
 import com.mg.player.core.log.FrameStats
 import com.mg.player.data.sync.SyncState
 import com.mg.player.domain.model.AppSettings
@@ -49,6 +48,7 @@ import com.mg.player.ui.common.LocalAppContainer
 import com.mg.player.ui.common.LocalBackdrop
 import com.mg.player.ui.common.LocalGroupFocus
 import com.mg.player.ui.common.LocalToast
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.TopBar
 import com.mg.player.ui.common.TopBarItem
 import com.mg.player.ui.common.appViewModel
@@ -310,7 +310,7 @@ internal fun SyncBanner(state: SyncState, modifier: Modifier = Modifier) {
                 LoadingIndicator(size = 14.dp)
                 Spacer(Modifier.width(8.dp))
             }
-            Text(
+            MarqueeText(
                 syncLine(state),
                 style = MaterialTheme.typography.labelMedium,
                 color = if (state.error != null) AppColors.Danger else AppColors.TextSecondary,

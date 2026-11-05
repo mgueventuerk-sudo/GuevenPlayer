@@ -44,6 +44,7 @@ import com.mg.player.ui.common.ActionButton
 import com.mg.player.ui.common.ListSurface
 import com.mg.player.ui.common.LiveBadge
 import com.mg.player.ui.common.LocalAppContainer
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.RowColors
 import com.mg.player.ui.common.ScreenTitle
 import com.mg.player.ui.common.edgePadding
@@ -277,7 +278,7 @@ private fun UnmatchedRow(event: SportEvent, onOpen: () -> Unit) {
             StaticIcon(AppIcons.Sport, tint = RowColors.muted, size = 24.dp, contentDescription = null)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(event.title, style = MaterialTheme.typography.titleSmall, color = RowColors.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                MarqueeText(event.title, style = MaterialTheme.typography.titleSmall, color = RowColors.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
                     "${event.league} · ${kickoff(event.startMs)} · ${unmatchedHint(event.stations)}",
                     style = MaterialTheme.typography.bodySmall,

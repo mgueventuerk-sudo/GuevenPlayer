@@ -41,6 +41,7 @@ import com.mg.player.ui.common.ChoiceChip
 import com.mg.player.ui.common.ListSurface
 import com.mg.player.ui.common.LocalSurfaceFocused
 import com.mg.player.ui.common.LocalToast
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.ProgressBar
 import com.mg.player.ui.common.RowColors
 import com.mg.player.ui.common.appViewModel
@@ -202,7 +203,7 @@ private fun PhoneGuideRow(
                         StaticIcon(AppIcons.Clock, tint = AppColors.AccentText, size = 12.dp, contentDescription = "Erinnerung")
                         Spacer(Modifier.width(5.dp))
                     }
-                    Text(
+                    MarqueeText(
                         program?.title ?: "Keine Programminfo",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
@@ -221,7 +222,7 @@ private fun PhoneGuideRow(
                         else -> null
                     },
                 ).joinToString("  ·  ")
-                Text(status, style = MaterialTheme.typography.labelMedium, color = RowColors.secondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                MarqueeText(status, style = MaterialTheme.typography.labelMedium, color = RowColors.secondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (program != null && program.startMs <= nowMs && program.endMs > nowMs) {
                     val focused = LocalSurfaceFocused.current
                     ProgressBar(
@@ -232,7 +233,7 @@ private fun PhoneGuideRow(
                     )
                 }
                 if (next != null) {
-                    Text(
+                    MarqueeText(
                         "Danach ${TimeUtils.formatClock(next.startMs)}  ${next.title}",
                         style = MaterialTheme.typography.labelSmall,
                         color = RowColors.muted,

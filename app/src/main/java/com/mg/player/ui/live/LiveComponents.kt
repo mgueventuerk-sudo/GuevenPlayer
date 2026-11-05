@@ -34,6 +34,7 @@ import com.mg.player.domain.model.Channel
 import com.mg.player.domain.model.EpgProgram
 import com.mg.player.ui.common.ListSurface
 import com.mg.player.ui.common.LocalSurfaceFocused
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.ProgressBar
 import com.mg.player.ui.common.QualityBadge
 import com.mg.player.ui.common.RowColors
@@ -92,7 +93,7 @@ fun ChannelRow(
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
+                    MarqueeText(
                         channel.name,
                         modifier = Modifier.weight(1f, fill = false),
                         style = MaterialTheme.typography.titleSmall,
@@ -124,7 +125,7 @@ fun ChannelRow(
                 val start = channel.nowStartMs
                 val end = channel.nowEndMs
                 if (channel.nowTitle != null && start != null && end != null && end > start) {
-                    Text(
+                    MarqueeText(
                         channel.nowTitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = RowColors.secondary,
@@ -205,7 +206,7 @@ fun EpgDetails(channel: Channel?, programs: List<EpgProgram>, nowMs: Long, modif
                         style = MaterialTheme.typography.bodySmall,
                         color = AppColors.TextSecondary,
                     )
-                    Text(program.title, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    MarqueeText(program.title, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }

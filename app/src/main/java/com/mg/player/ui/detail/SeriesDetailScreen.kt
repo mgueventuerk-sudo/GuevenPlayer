@@ -41,6 +41,7 @@ import com.mg.player.ui.common.ChoiceChip
 import com.mg.player.ui.common.DetailBackdrop
 import com.mg.player.ui.common.EnginePicker
 import com.mg.player.ui.common.IconActionButton
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.MetaLine
 import com.mg.player.ui.common.SpoilerDescription
 import com.mg.player.ui.common.appViewModel
@@ -92,7 +93,7 @@ fun SeriesDetailScreen(seriesId: String) {
             ) {
                 item(key = "header", contentType = "header") {
                     Column(Modifier.fillMaxWidth(0.6f)) {
-                        Text(current.name, style = MaterialTheme.typography.headlineLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        MarqueeText(current.name, style = MaterialTheme.typography.headlineLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Spacer(Modifier.height(8.dp))
                         MetaLine(
                             listOfNotNull(

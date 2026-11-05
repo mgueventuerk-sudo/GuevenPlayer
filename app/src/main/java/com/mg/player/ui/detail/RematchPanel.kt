@@ -41,6 +41,7 @@ import com.mg.player.domain.model.TmdbCandidate
 import com.mg.player.ui.common.ActionButton
 import com.mg.player.ui.common.ListSurface
 import com.mg.player.ui.common.LoadingIndicator
+import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.RowColors
 import com.mg.player.ui.common.TvTextField
 import com.mg.player.ui.common.glass
@@ -107,7 +108,7 @@ fun RematchPanel(
                                 }
                             }
                             Column(Modifier.padding(start = 12.dp)) {
-                                Text(
+                                MarqueeText(
                                     candidate.title + (candidate.year?.let { " ($it)" } ?: ""),
                                     style = MaterialTheme.typography.titleSmall,
                                     maxLines = 1,
