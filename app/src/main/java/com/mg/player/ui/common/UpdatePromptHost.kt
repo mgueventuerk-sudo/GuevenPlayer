@@ -20,22 +20,27 @@ import kotlinx.coroutines.launch
 fun UpdatePromptHost(container: AppContainer) {
     val updater = container.appUpdater
     val status by updater.status.collectAsStateWithLifecycle()
-    var dismissed by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         updater.checkIfDue(container.settingsRepository.current().updateToken)
     }
     val update = (status as? UpdateStatus.Available)?.update ?: return
+    // Im Updater gemerkt: Der Hinweis verlässt die Komposition während der Wiedergabe – ein lokaler Zustand ginge verloren.
+    var dismissed by remember { mutableStateOf(updater.dismissedVersion) }
     if (dismissed == update.versionCode) return
     ConfirmDialog(
         title = "Update verfügbar",
         confirmText = "Installieren",
         dismissText = "Später",
         onConfirm = {
+            updater.dismissedVersion = update.versionCode
             dismissed = update.versionCode
             scope.launch { updater.downloadAndInstall(container.settingsRepository.current().updateToken, update) }
         },
-        onDismiss = { dismissed = update.versionCode },
+        onDismiss = {
+            updater.dismissedVersion = update.versionCode
+            dismissed = update.versionCode
+        },
         message = "Version ${update.versionName} ist da. Die App lädt sie herunter und öffnet den Installer – " +
             "dort einmal „Installieren“ bestätigen. Fortschritt unter Einstellungen → System → App-Updates.",
     )

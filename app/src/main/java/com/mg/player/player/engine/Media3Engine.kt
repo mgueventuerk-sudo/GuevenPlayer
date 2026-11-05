@@ -236,7 +236,6 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
         // Alte Verbindung zuerst schließen, dann die neue öffnen: Zugänge mit nur einer Verbindung lehnen den neuen Sender
         // sonst ab, solange der Anbieter den alten Stream noch zählt (Umschalten, Vorschau → anderer Sender).
         p.stop()
-        cushion.reset(p)
         p.setMediaItem(item, positionMs.coerceAtLeast(0))
         p.prepare()
         p.playWhenReady = request?.autoPlay != false

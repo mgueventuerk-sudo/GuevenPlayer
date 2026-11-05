@@ -39,10 +39,16 @@ private fun UpdateActionRow(token: String) {
     ActionRow(
         label,
         {
-            when (val s = status) {
-                is UpdateStatus.Available -> scope.launch { updater.downloadAndInstall(token, s.update) }
-                is UpdateStatus.ReadyToInstall -> scope.launch { updater.downloadAndInstall(token, s.update) }
-                is UpdateStatus.Downloading, UpdateStatus.Checking -> Unit
+            val s = status
+            val update = when (s) {
+                is UpdateStatus.Available -> s.update
+                is UpdateStatus.ReadyToInstall -> s.update
+                is UpdateStatus.Failed -> s.retry
+                else -> null
+            }
+            when {
+                s is UpdateStatus.Downloading || s == UpdateStatus.Checking -> Unit
+                update != null -> scope.launch { updater.downloadAndInstall(token, update) }
                 else -> scope.launch { updater.check(token) }
             }
         },
@@ -62,7 +68,7 @@ internal fun updateTexts(status: UpdateStatus): Pair<String, String> {
         is UpdateStatus.Available -> "Update installieren" to "Version ${status.update.versionName} verfügbar${size(status.update)}"
         is UpdateStatus.Downloading -> "Wird geladen … ${status.percent} %" to "Version ${status.update.versionName}"
         is UpdateStatus.ReadyToInstall -> "Installer erneut öffnen" to "Version ${status.update.versionName} ist geladen"
-        is UpdateStatus.Failed -> "Erneut versuchen" to status.message
+        is UpdateStatus.Failed -> (if (status.retry != null) "Update installieren" else "Erneut versuchen") to status.message
     }
 }
 

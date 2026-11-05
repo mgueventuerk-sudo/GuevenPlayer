@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import okhttp3.Request
 import org.json.JSONObject
@@ -35,7 +36,8 @@ sealed interface UpdateStatus {
     data class Available(val update: AppUpdate) : UpdateStatus
     data class Downloading(val update: AppUpdate, val percent: Int) : UpdateStatus
     data class ReadyToInstall(val update: AppUpdate) : UpdateStatus
-    data class Failed(val message: String) : UpdateStatus
+    /** [retry]: schon geladenes Update, das nur noch installiert werden muss (z. B. nach der Installations-Erlaubnis). */
+    data class Failed(val message: String, val retry: AppUpdate? = null) : UpdateStatus
 }
 
 /**
@@ -57,6 +59,17 @@ class AppUpdater(private val context: Context, http: HttpFetcher, private val cl
 
     @Volatile
     private var lastCheckMs = 0L
+
+    /** „Später“ beim Start-Hinweis: für diese Version nicht erneut fragen (gilt bis zum App-Neustart). */
+    @Volatile
+    var dismissedVersion: Int? = null
+
+    /** Ein Download zur Zeit (Start-Hinweis und Einstellungen könnten sonst dieselbe Datei gleichzeitig schreiben). */
+    private val downloadLock = Mutex()
+
+    /** Schon vollständig geladene APK – erneutes Öffnen des Installers lädt nicht noch einmal 50 MB. */
+    @Volatile
+    private var downloaded: Pair<Int, File>? = null
 
     /** Beim Start: höchstens alle [AUTO_CHECK_MS] nachsehen, nur mit Schlüssel. */
     suspend fun checkIfDue(token: String) {
@@ -80,16 +93,26 @@ class AppUpdater(private val context: Context, http: HttpFetcher, private val cl
 
     /** APK laden (mit Fortschritt) und den Installer öffnen. */
     suspend fun downloadAndInstall(token: String, update: AppUpdate) {
-        val file = withContext(Dispatchers.IO) {
-            runCatchingCancellable { download(token, update) }.getOrElse { e ->
-                AppLog.log("Update", "Download fehlgeschlagen: ${e.javaClass.simpleName}")
-                _status.value = UpdateStatus.Failed("Download fehlgeschlagen (${problem(e)})")
-                null
-            }
-        } ?: return
-        _status.value = UpdateStatus.ReadyToInstall(update)
-        install(file)
+        if (!downloadLock.tryLock()) return
+        try {
+            val file = cachedFile(update) ?: withContext(Dispatchers.IO) {
+                runCatchingCancellable { download(token, update) }.getOrElse { e ->
+                    AppLog.log("Update", "Download fehlgeschlagen: ${e.javaClass.simpleName}")
+                    _status.value = UpdateStatus.Failed("Download fehlgeschlagen (${problem(e)})")
+                    null
+                }
+            } ?: return
+            downloaded = update.versionCode to file
+            _status.value = UpdateStatus.ReadyToInstall(update)
+            install(file, update)
+        } finally {
+            downloadLock.unlock()
+        }
     }
+
+    private fun cachedFile(update: AppUpdate): File? = downloaded
+        ?.takeIf { (code, file) -> code == update.versionCode && file.exists() && (update.sizeBytes <= 0 || file.length() == update.sizeBytes) }
+        ?.second
 
     /** Neuestes Release (ohne Entwürfe/Vorabversionen); null, wenn keins eine passende APK hat. */
     private fun latest(token: String): AppUpdate? {
@@ -136,10 +159,10 @@ class AppUpdater(private val context: Context, http: HttpFetcher, private val cl
         return done
     }
 
-    private fun install(file: File) {
+    private fun install(file: File, update: AppUpdate) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !context.packageManager.canRequestPackageInstalls()) {
             // Einmalig erlauben: „Unbekannte Apps installieren“ für GuevenPlayer.
-            _status.value = UpdateStatus.Failed("Bitte „Unbekannte Apps installieren“ für GuevenPlayer erlauben und erneut tippen")
+            _status.value = UpdateStatus.Failed("Bitte „Unbekannte Apps installieren“ für GuevenPlayer erlauben und erneut tippen", update)
             val settings = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, "package:${context.packageName}".toUri())
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             runCatching { context.startActivity(settings) }
@@ -149,7 +172,7 @@ class AppUpdater(private val context: Context, http: HttpFetcher, private val cl
         val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, APK_TYPE)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
         runCatching { context.startActivity(intent) }.onFailure {
-            _status.value = UpdateStatus.Failed("Installer ließ sich nicht öffnen")
+            _status.value = UpdateStatus.Failed("Installer ließ sich nicht öffnen", update)
         }
     }
 

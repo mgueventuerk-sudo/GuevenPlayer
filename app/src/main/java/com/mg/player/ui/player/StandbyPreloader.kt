@@ -39,7 +39,8 @@ internal class StandbyPreloader(private val vm: PlayerViewModel) {
         when {
             state.status == PlaybackStatus.READY && state.isPlaying -> {
                 // Sender läuft (wieder): Vorrat freigeben – die Verbindung gehört nicht blockiert.
-                if (played && engine != null) release()
+                // Auch ein Vorladen, das noch läuft – sonst stünde die Engine danach ohne Hänger als zweite Verbindung da.
+                if (played && (engine != null || loading?.isActive == true)) release()
                 played = true
             }
 

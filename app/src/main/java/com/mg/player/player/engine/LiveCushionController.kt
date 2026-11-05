@@ -36,8 +36,8 @@ internal class LiveCushionController(private val handler: Handler = Handler(Loop
         handler.postDelayed(loop, CHECK_MS)
     }
 
-    /** Vor jedem neuen Stream: normales Tempo. */
-    fun reset(p: ExoPlayer) {
+    /** Normales Tempo (vor jedem neuen Stream über [start]/[stop]). */
+    private fun reset(p: ExoPlayer) {
         if (slow) p.setPlaybackSpeed(1f)
         slow = false
     }
