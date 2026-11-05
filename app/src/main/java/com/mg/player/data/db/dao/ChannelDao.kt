@@ -22,6 +22,9 @@ private const val NOW_COLUMNS =
 private const val NO_NOW = "NULL AS nowTitle, NULL AS nowStart, NULL AS nowEnd"
 
 /** Ausgeblendete und gesperrte Kategorien tauchen in "Alle", Suche und Zapping nicht auf. */
+/** Alphabetische Reihenfolge für Filme und Serien (Groß/Klein egal), gleiche Namen in Anbieter-Reihenfolge. */
+internal const val ALPHA_ORDER = "c.name COLLATE NOCASE, c.sortIndex"
+
 internal const val EXCLUDE_RESTRICTED =
     "c.categoryId NOT IN (SELECT categoryId FROM category_prefs WHERE hidden = 1 OR locked = 1)"
 

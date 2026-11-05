@@ -1,6 +1,7 @@
 package com.mg.player.data.repository
 
 import com.mg.player.core.log.AppLog
+import com.mg.player.core.util.NameSort
 import com.mg.player.data.db.AppDatabase
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
@@ -22,6 +23,8 @@ class ChannelGroupIndex(
     private val scope: CoroutineScope,
     /** Gleiche Sender eines Zugangs vor dem Gruppieren zusammenfassen (nach einem Import). */
     private val unify: suspend (playlistId: Long) -> Unit = {},
+    /** Sender dieses Zugangs alphabetisch statt in Anbieter-Reihenfolge (Einstellung „Reihenfolge in Gruppen“). */
+    private val alphabetical: suspend (playlistId: Long) -> Boolean = { false },
 ) {
 
     private val mutex = Mutex()
@@ -40,8 +43,17 @@ class ChannelGroupIndex(
     private suspend fun rebuildLocked(playlistId: Long) {
         dirty.remove(playlistId)
         val started = System.currentTimeMillis()
-        db.channelFlagsDao().rebuild(playlistId)
-        AppLog.log("Gruppen", "Sender-Gruppierung neu aufgebaut (${System.currentTimeMillis() - started} ms)")
+        val dao = db.channelFlagsDao()
+        dao.rebuild(playlistId)
+        // Alphabetisch: Reihenfolge in Kotlin bilden (natürliche Sortierung ohne Länder-Vorsätze, siehe NameSort) –
+        // die Listen bleiben so ein reiner Index-Zugriff auf channel_flags.sortIndex, auch beim Umschalten.
+        val alpha = alphabetical(playlistId)
+        if (alpha) {
+            val ordered = dao.names(playlistId).sortedWith(compareBy(NameSort.comparator) { it.name }).map { it.id }
+            dao.reorder(ordered)
+        }
+        val ms = System.currentTimeMillis() - started
+        AppLog.log("Gruppen", "Sender-Gruppierung neu aufgebaut (${if (alpha) "A–Z, " else ""}$ms ms)")
     }
 
     /** Im Hintergrund neu aufbauen (Gruppe ein-/ausgeblendet, Länderauswahl, Kindersicherung). */

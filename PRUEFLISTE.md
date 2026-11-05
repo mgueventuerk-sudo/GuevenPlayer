@@ -339,6 +339,15 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P5 Mit gesetzter PIN: Bearbeiten fragt zuerst nach der PIN.
 - [ ] P6 QR-Code im Bearbeiten-Bildschirm: Daten vom Handy landen im Formular (gespeichert wird erst mit „Prüfen & speichern“).
 
+## 16d. Neu in 3.44 – Ordnung
+
+- [ ] G1 „Alle Zugänge“ → Filme/Serien/Live: alle Gruppen im Format „Land · Rubrik“, keine „|DE| ✪“-Namen mehr (nach dem automatischen Neuaufbau).
+- [ ] G2 Gruppenreihenfolge: eigenes Land oben, darin Neuheiten, Vollprogramm, Unterhaltung, Nachrichten, Sport …, Erwachsene ganz unten.
+- [ ] G3 Keine Farbpunkte mehr vor Gruppennamen.
+- [ ] G4 Einstellungen → Inhalte → „Reihenfolge in Gruppen“: Automatisch → Wie beim Anbieter → A–Z; Senderliste, Filme und Serien ordnen sich sofort bzw. nach wenigen Sekunden neu.
+- [ ] G5 A–Z: „Das Erste“ vor „ProSieben“ vor „ZDF“ trotz „DE:“-Vorsatz; „Sky Sport 2“ vor „Sky Sport 10“; Umschalten im Vollbild folgt der Liste.
+- [ ] G6 Einzelner Zugang mit „Automatisch“: Reihenfolge wie vorher beim Anbieter.
+
 ## 16c. Neu in 3.43 – lange Namen
 
 - [ ] L1 Filme/Serien/Live → Gruppenliste: lange Gruppennamen stehen zweizeilig und sind ohne Fokus lesbar.

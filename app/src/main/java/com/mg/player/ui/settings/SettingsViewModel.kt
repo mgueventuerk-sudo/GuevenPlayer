@@ -11,6 +11,7 @@ import com.mg.player.data.combined.ChannelCatalogUpdate
 import com.mg.player.data.combined.CombinedStats
 import com.mg.player.data.sync.SyncState
 import com.mg.player.domain.model.AppSettings
+import com.mg.player.domain.model.GroupSort
 import com.mg.player.domain.model.Playlist
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -101,6 +102,15 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     /** Letztes Problem beim Abruf der Sport-Events (z. B. ungültiger Sportmonks-Schlüssel). */
     val sportProblem: StateFlow<String?> = container.sport.repository.problem
     val sportSummary: StateFlow<Pair<Int, Int>?> = container.sport.repository.summary
+
+    /** Reihenfolge in Gruppen ändern: Senderlisten aller Zugänge neu ordnen (Filme/Serien laden von selbst neu). */
+    fun setGroupSort(sort: GroupSort) {
+        viewModelScope.launch {
+            container.settingsRepository.update { it.copy(groupSort = sort) }
+            val ids = playlists.value.map { it.id } + Combined.ID
+            ids.forEach(container.channelGroupIndex::rebuildLater)
+        }
+    }
 
     fun followedLeagues(s: AppSettings): Int = container.sport.repository.followed(s).size
 

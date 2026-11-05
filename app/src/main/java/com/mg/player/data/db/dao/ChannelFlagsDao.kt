@@ -46,4 +46,20 @@ abstract class ChannelFlagsDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM channel_flags WHERE playlistId = :playlistId LIMIT 1)")
     abstract suspend fun hasFlags(playlistId: Long): Boolean
+
+    /** Namen aller Sender eines Zugangs – für die alphabetische Reihenfolge (ab 3.44). */
+    @Query("SELECT c.id AS id, c.name AS name FROM channel_flags g INNER JOIN channels c ON c.id = g.channelId WHERE g.playlistId = :playlistId")
+    abstract suspend fun names(playlistId: Long): List<ChannelName>
+
+    @Query("UPDATE channel_flags SET sortIndex = :sortIndex WHERE channelId = :channelId")
+    abstract suspend fun setSortIndex(channelId: String, sortIndex: Int)
+
+    /** Reihenfolge der Sender nach [orderedIds] setzen (eine Transaktion: Listen sehen alt oder neu, nie halb). */
+    @Transaction
+    open suspend fun reorder(orderedIds: List<String>) {
+        orderedIds.forEachIndexed { index, id -> setSortIndex(id, index) }
+    }
 }
+
+/** Sender-ID und Name (alphabetische Reihenfolge). */
+data class ChannelName(val id: String, val name: String)

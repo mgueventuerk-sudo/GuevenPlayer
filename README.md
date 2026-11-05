@@ -271,6 +271,22 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.44 (Ordnung in „Alle Zugänge“ und in den Gruppen)
+
+- **Einheitliche Gruppennamen in „Alle Zugänge“:** immer „Land · Rubrik“ (z. B. „Deutschland · Sport“,
+  „Deutschland · Neuheiten“, „Deutschland · Science-Fiction“). Gruppen ohne erkennbare Rubrik folgen demselben Format:
+  Länderkürzel und Zierzeichen der Anbieter fallen weg, GROSSBUCHSTABEN werden normal geschrieben
+  („|DE| ✪ FILME 2023“ → „Deutschland · Filme 2023“); Abkürzungen bis drei Zeichen (TV, UHD, VIP) bleiben.
+- **Feste Gruppenreihenfolge:** Länder in der Reihenfolge des wichtigsten Zugangs, darin Neuheiten → Vollprogramm →
+  Unterhaltung → Nachrichten → Sport → Kinder → Familie → Doku … → Genres → Streamingdienste → 4K; Gruppen ohne
+  Rubrik danach alphabetisch, Erwachsene immer am Ende. Eigene Reihenfolgen aus „Kategorien verwalten“ gelten weiter.
+- **Farbpunkte vor Gruppennamen entfernt** (3.42) – sie erschienen nur bei manchen Gruppen und wirkten unruhig.
+- **Reihenfolge in Gruppen** (*Einstellungen → Inhalte*): Automatisch (Standard: „Alle Zugänge“ A–Z, einzelne
+  Zugänge wie beim Anbieter) · Wie beim Anbieter · A–Z. Gilt für Sender, Filme und Serien. Sender werden dabei wie
+  erwartet sortiert: „DE:“, „|DE|“, HD/UHD/4K zählen nicht, „Sky Sport 2“ vor „Sky Sport 10“. Umschalten auf/zu
+  Senderzapping folgt derselben Reihenfolge.
+- Nach dem Update baut die App „Alle Zugänge“ einmal neu auf (neue Regelversion), damit die neuen Namen gelten.
+
 ## Neu in 3.43 (lange Namen lesbar)
 
 - **Gemeldet:** Gruppen- und Titelnamen wie „|DE| ✪ NEUE FILME …“ waren abgeschnitten und nicht lesbar.
@@ -284,8 +300,7 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
 
 - **Leere Zustände mit Ausweg:** Leere Favoriten/Sehgewohnheiten (Live) und leere Favoriten/Weiterschauen (Filme,
   Serien) zeigen einen Knopf „Alle Sender zeigen“ bzw. „Alle anzeigen“ statt einer Sackgasse.
-- **Farbige Gruppen-Akzente:** Ein Punkt vor dem Gruppennamen zeigt die Art – Sport grün, Nachrichten blau, Filme rot,
-  Kinder gelb, Doku hellblau, Musik violett. Erkannt am Namen (de, en, tr, fr, es); unbekannte Gruppen ohne Punkt.
+- ~~Farbige Gruppen-Akzente~~ – in 3.44 wieder entfernt.
 - **Zuletzt gesucht:** Bei leerem Suchfeld stehen die letzten 8 Begriffe als Chips (nur auf dem Gerät gespeichert),
   dazu „Verlauf löschen“. Ein Begriff gilt als gesucht, wenn das Tippen 2 s ruht.
 - **TV-Guide lädt mit Gerüst:** Während die Sender laden, steht ein pulsierendes Raster statt „Keine Sender“.

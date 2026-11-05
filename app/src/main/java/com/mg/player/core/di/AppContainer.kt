@@ -22,6 +22,7 @@ import com.mg.player.core.vpn.WireGuardBackend
 import com.mg.player.core.vpn.tunnelUps
 import com.mg.player.data.backup.BackupManager
 import com.mg.player.data.combined.Combined
+import com.mg.player.data.combined.SortPolicy
 import com.mg.player.data.combined.VariantUnifier
 import com.mg.player.data.db.AppDatabase
 import com.mg.player.data.filter.CountryFilter
@@ -149,8 +150,18 @@ class AppContainer(context: Context, settingsOverride: SettingsRepository? = nul
             .distinctUntilChanged().stateIn(appScope, SharingStarted.Eagerly, false)
     }
     val liveRepository: LiveRepository by lazy { LiveRepositoryImpl(database, epgShift, liveWritesGated, channelGroupIndex, channelHabits) }
-    val vodRepository: VodRepository by lazy { VodRepositoryImpl(database, xtreamApi, syncRunning) }
-    val seriesRepository: SeriesRepository by lazy { SeriesRepositoryImpl(database, xtreamApi, syncRunning) { combined.settings.current().rankOf(it) } }
+    val vodRepository: VodRepository by lazy {
+        VodRepositoryImpl(database, xtreamApi, syncRunning) { id -> SortPolicy.alphabetical(settingsRepository.current().groupSort, id) }
+    }
+    val seriesRepository: SeriesRepository by lazy {
+        SeriesRepositoryImpl(
+            database,
+            xtreamApi,
+            syncRunning,
+            accountRank = { combined.settings.current().rankOf(it) },
+            alphabetical = { id -> SortPolicy.alphabetical(settingsRepository.current().groupSort, id) },
+        )
+    }
     val searchIndexer: SearchIndexer by lazy { SearchIndexer(database, appContext.getSharedPreferences("search_index", Context.MODE_PRIVATE)) }
     val searchRepository: SearchRepository by lazy { SearchRepositoryImpl(database, searchIndexer, appScope) }
 
@@ -168,7 +179,12 @@ class AppContainer(context: Context, settingsOverride: SettingsRepository? = nul
 
     /** Vorberechnete Sender-Gruppierung (beste Variante je Sender) für schnelle Senderlisten. */
     val channelGroupIndex: ChannelGroupIndex by lazy {
-        ChannelGroupIndex(database, appScope) { id -> VariantUnifier.unify(database, id, combined.catalog()) }
+        ChannelGroupIndex(
+            db = database,
+            scope = appScope,
+            unify = { id -> VariantUnifier.unify(database, id, combined.catalog()) },
+            alphabetical = { id -> SortPolicy.alphabetical(settingsRepository.current().groupSort, id) },
+        )
     }
 
     private val epgAfterUnhide: DelayedAction<Long> by lazy {

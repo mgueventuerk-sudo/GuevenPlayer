@@ -205,7 +205,7 @@ class CombinedBuilder(
 
     companion object {
         /** Bei jeder Änderung der Zuordnungsregeln erhöhen: erzwingt einen Neuaufbau nach dem Update. */
-        const val MATCHER_VERSION = 339
+        const val MATCHER_VERSION = 344
         const val TAG = "Alle Zugänge"
         private const val DEBOUNCE_MS = 3_000L
         private const val SYNC_POLL_MS = 2_000L
@@ -242,27 +242,62 @@ class CombinedCategories private constructor(
 
     companion object {
         fun build(sources: List<CategorySourceRow>, byAccount: Boolean, rank: Map<Long, Int>, names: Map<Long, String>, generation: Long): CombinedCategories {
-            data class Target(val id: String, val type: String, val name: String, val sort: Int)
             val map = HashMap<Pair<Long, String>, String>()
-            val targets = LinkedHashMap<String, Target>()
+            val targets = LinkedHashMap<String, CombinedGroup>()
             for (c in sources.sortedWith(compareBy({ rank[it.playlistId] ?: 0 }, { it.sortIndex }))) {
                 val r = rank[c.playlistId] ?: 0
                 val sort = r * RANK_STEP + c.sortIndex
-                val (key, label) = if (byAccount) {
-                    "${c.type}|P${c.playlistId}|${c.id}" to "${names[c.playlistId].orEmpty()} · ${c.name}"
+                val group = if (byAccount) {
+                    CombinedGroup("${c.type}|P${c.playlistId}|${c.id}", c.type, "${names[c.playlistId].orEmpty()} · ${c.name}", sort)
                 } else {
-                    CategoryTopics.classify(c.type, c.name).let { it.key to it.label }
+                    CategoryTopics.classify(c.type, c.name).let {
+                        CombinedGroup(it.key, c.type, it.label, sort, it.country, CategoryTopics.displayRank(it.topic))
+                    }
                 }
-                val id = Combined.categoryId(c.type, key)
+                val id = Combined.categoryId(c.type, group.key)
                 map[c.playlistId to c.id] = id
                 val existing = targets[id]
-                if (existing == null || sort < existing.sort) targets[id] = Target(id, c.type, existing?.name ?: label, sort)
+                if (existing == null || sort < existing.sort) targets[id] = group.copy(key = id, name = existing?.name ?: group.name)
             }
-            val entities = targets.values.sortedBy { it.sort }.mapIndexed { i, t -> CategoryEntity(t.id, Combined.ID, t.type, "", t.name, i, generation) }
+            val ordered = if (byAccount) targets.values.sortedBy { it.sort } else CombinedGroup.ordered(targets.values)
+            val entities = ordered.mapIndexed { i, t -> CategoryEntity(t.key, Combined.ID, t.type, "", t.name, i, generation) }
             return CombinedCategories(entities, map, generation)
         }
 
         internal const val RANK_STEP = 1_000_000
+    }
+}
+
+/**
+ * Eine Gruppe von „Alle Zugänge“ vor dem Speichern. [sort] = Position beim wichtigsten Zugang (für die Länder-
+ * Reihenfolge), [topicRank] = Rang der Rubrik ([CategoryTopics.displayRank]).
+ */
+internal data class CombinedGroup(
+    val key: String,
+    val type: String,
+    val name: String,
+    val sort: Int,
+    val country: String? = null,
+    val topicRank: Int = 0,
+) {
+    companion object {
+        /**
+         * Einheitliche Ordnung (ab 3.44): Länder in der Reihenfolge, in der sie beim wichtigsten Zugang zuerst
+         * vorkommen (meist das eigene Land oben), Gruppen ohne Land danach; innerhalb eines Landes nach Rubrik
+         * (Neuheiten, Vollprogramm, Unterhaltung, Nachrichten, Sport …), gleiche Rubrik bzw. ohne Rubrik alphabetisch.
+         */
+        fun ordered(groups: Collection<CombinedGroup>): List<CombinedGroup> {
+            val countryFirst = HashMap<String, Int>()
+            for (g in groups) g.country?.let { c -> countryFirst[c] = minOf(countryFirst[c] ?: Int.MAX_VALUE, g.sort) }
+            return groups.sortedWith(
+                compareBy<CombinedGroup>(
+                    { it.country?.let(countryFirst::get) ?: Int.MAX_VALUE },
+                    { it.country.orEmpty() },
+                    { it.topicRank },
+                    { it.name.lowercase(java.util.Locale.ROOT) },
+                ),
+            )
+        }
     }
 }
 

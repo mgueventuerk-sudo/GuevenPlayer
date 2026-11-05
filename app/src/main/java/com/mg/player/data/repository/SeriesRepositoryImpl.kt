@@ -30,6 +30,8 @@ class SeriesRepositoryImpl(
     private val syncRunning: StateFlow<Boolean>,
     /** Rang eines Zugangs in „Alle Zugänge“ (vordere Zugänge liefern Titel und Bilder der Folgen). */
     private val accountRank: (Long) -> Int = { 0 },
+    /** Serien dieses Zugangs alphabetisch (Einstellung „Reihenfolge in Gruppen“). */
+    private val alphabetical: suspend (Long) -> Boolean = { false },
 ) : SeriesRepository {
 
     override fun categories(playlistId: Long): Flow<List<Category>> = db.categoryDao().observeVisible(playlistId, ContentType.SERIES.name).map { list ->
@@ -43,11 +45,12 @@ class SeriesRepositoryImpl(
     override fun series(playlistId: Long, categoryId: String): Flow<PagingData<Series>> {
         val dao = db.seriesDao()
         return GatedPagingSource.pagingFlow(db, TABLES, IMPORT_TABLES, syncRunning) { limit, offset ->
+            val alpha = alphabetical(playlistId)
             when (categoryId) {
-                Category.ALL -> dao.pageAll(playlistId, limit, offset)
+                Category.ALL -> if (alpha) dao.pageAllAlpha(playlistId, limit, offset) else dao.pageAll(playlistId, limit, offset)
                 Category.FAVORITES -> dao.pageFavorites(playlistId, limit, offset)
                 Category.CONTINUE -> dao.pageContinue(playlistId, limit, offset)
-                else -> dao.pageByCategory(playlistId, categoryId, limit, offset)
+                else -> if (alpha) dao.pageByCategoryAlpha(playlistId, categoryId, limit, offset) else dao.pageByCategory(playlistId, categoryId, limit, offset)
             }
         }.map { paging -> paging.map { it.toDomain() } }
     }

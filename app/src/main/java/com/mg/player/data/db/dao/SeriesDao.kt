@@ -21,6 +21,13 @@ abstract class SeriesDao {
     @Query("$SERIES_SELECT WHERE c.playlistId = :playlistId AND $EXCLUDE_RESTRICTED ORDER BY c.sortIndex LIMIT :limit OFFSET :offset")
     abstract suspend fun pageAll(playlistId: Long, limit: Int, offset: Int): List<SeriesRow>
 
+    // A–Z (Einstellung „Reihenfolge in Gruppen“): eigene Abfragen, damit die Anbieter-Reihenfolge ihren Index behält.
+    @Query("$SERIES_SELECT WHERE c.playlistId = :playlistId AND c.categoryId = :categoryId ORDER BY $ALPHA_ORDER LIMIT :limit OFFSET :offset")
+    abstract suspend fun pageByCategoryAlpha(playlistId: Long, categoryId: String, limit: Int, offset: Int): List<SeriesRow>
+
+    @Query("$SERIES_SELECT WHERE c.playlistId = :playlistId AND $EXCLUDE_RESTRICTED ORDER BY $ALPHA_ORDER LIMIT :limit OFFSET :offset")
+    abstract suspend fun pageAllAlpha(playlistId: Long, limit: Int, offset: Int): List<SeriesRow>
+
     @Query(
         "$SERIES_SELECT LEFT JOIN favorites f ON f.itemId = c.id AND f.type = 'SERIES' " +
             "WHERE $FAVORITE_SERIES $FAVORITE_ORDER LIMIT :limit OFFSET :offset",

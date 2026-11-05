@@ -51,9 +51,11 @@ abstract class LibraryViewModel<T : Any>(private val appContainer: AppContainer)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     }
 
+    /** Neue Reihenfolge in Gruppen (A–Z / Anbieter): Liste neu laden, nicht erst beim nächsten Gruppenwechsel. */
+    private val groupSort = appContainer.settingsRepository.settings.map { it.groupSort }.distinctUntilChanged()
+
     val items: Flow<PagingData<T>> by lazy {
-        combine(playlistId.filterNotNull(), _selectedCategoryId) { id, cat -> id to cat }
-            .distinctUntilChanged()
+        combine(playlistId.filterNotNull(), _selectedCategoryId, groupSort) { id, cat, _ -> id to cat }
             .flatMapLatest { (id, cat) -> itemsFor(id, cat) }
             .cachedIn(viewModelScope)
     }

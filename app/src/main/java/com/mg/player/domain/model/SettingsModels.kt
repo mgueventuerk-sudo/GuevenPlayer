@@ -9,6 +9,14 @@ enum class PlayerEngineType(val label: String) {
     EXTERNAL("Externer Player"),
 }
 
+/** Reihenfolge innerhalb der Gruppen (Sender, Filme, Serien), ab 3.44. */
+enum class GroupSort(val label: String) {
+    /** „Alle Zugänge“ alphabetisch (dort mischen sich mehrere Anbieter), einzelne Zugänge wie beim Anbieter. */
+    AUTO("Automatisch"),
+    PROVIDER("Wie beim Anbieter"),
+    ALPHABETICAL("A–Z"),
+}
+
 enum class IntroSkipMode(val label: String) {
     BUTTON("Button einblenden"),
     AUTO("Vollautomatisch"),
@@ -90,6 +98,8 @@ data class AppSettings(
     val searchPagePlaylistId: Long? = null,
     /** Zuletzt gesuchte Begriffe (neueste zuerst, nur auf dem Gerät), siehe Suche. */
     val recentSearches: List<String> = emptyList(),
+    /** Reihenfolge in den Gruppen, siehe [GroupSort]. */
+    val groupSort: GroupSort = GroupSort.AUTO,
     /** Ligen, denen man in der Sport-Sektion folgt; null = Voreinstellung (deutsche Ligen und Europapokal). */
     val sportLeagues: Set<String>? = null,
     /** Eigener Sportmonks-Schlüssel (verschlüsselt gespeichert); leer = nur ESPN. */

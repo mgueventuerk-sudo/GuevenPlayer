@@ -21,6 +21,13 @@ interface VodDao {
     @Query("$MOVIE_SELECT WHERE c.playlistId = :playlistId AND $EXCLUDE_RESTRICTED ORDER BY c.sortIndex LIMIT :limit OFFSET :offset")
     suspend fun pageAll(playlistId: Long, limit: Int, offset: Int): List<MovieRow>
 
+    // A–Z (Einstellung „Reihenfolge in Gruppen“): eigene Abfragen, damit die Anbieter-Reihenfolge ihren Index behält.
+    @Query("$MOVIE_SELECT WHERE c.playlistId = :playlistId AND c.categoryId = :categoryId ORDER BY $ALPHA_ORDER LIMIT :limit OFFSET :offset")
+    suspend fun pageByCategoryAlpha(playlistId: Long, categoryId: String, limit: Int, offset: Int): List<MovieRow>
+
+    @Query("$MOVIE_SELECT WHERE c.playlistId = :playlistId AND $EXCLUDE_RESTRICTED ORDER BY $ALPHA_ORDER LIMIT :limit OFFSET :offset")
+    suspend fun pageAllAlpha(playlistId: Long, limit: Int, offset: Int): List<MovieRow>
+
     @Query(
         "$MOVIE_SELECT LEFT JOIN favorites f ON f.itemId = c.id AND f.type = 'MOVIE' " +
             "WHERE $FAVORITE_MOVIES $FAVORITE_ORDER LIMIT :limit OFFSET :offset",

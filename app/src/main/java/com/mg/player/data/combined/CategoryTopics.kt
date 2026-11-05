@@ -30,7 +30,7 @@ object CategoryTopics {
         THRILLER("Thriller", "thriller", "gerilim"),
         CRIME("Krimi", "krimi", "crime", "suc", "polizia"),
         ANIMATION("Animation", "animation", "animiert", "animasyon", "anime", "zeichentrick"),
-        SCIFI("Science-Fiction", "scifi", "science fiction", "sciencefiction", "bilim kurgu", "fantasy"),
+        SCIFI("Science-Fiction", "scifi", "sci fi", "science fiction", "sciencefiction", "bilim kurgu", "fantasy"),
         ROMANCE("Romantik", "romantik", "romance", "romantic", "romantik"),
         FAMILY("Familie", "familie", "family", "aile", "famille"),
         WAR("Krieg", "krieg", "war", "savas"),
@@ -43,6 +43,29 @@ object CategoryTopics {
         APPLE("Apple TV+", "apple tv", "appletv"),
         SKY("Sky", "sky"),
         UHD("4K / UHD", "4k", "uhd", "2160p"),
+
+        // Zuletzt geprüft: Nur wenn keine andere Rubrik passt, ist „Neue Filme“ eine Neuheiten-Gruppe.
+        NEW("Neuheiten", "neu", "neue", "neuheiten", "new", "yeni", "nouveau", "nouveautes", "nuevo", "nuevos"),
+    }
+
+    /**
+     * Feste Anzeigereihenfolge innerhalb eines Landes (ab 3.44): erst Neuheiten und Senderarten, dann Genres
+     * alphabetisch, dann Streamingdienste und 4K; Erwachsene immer am Ende. Gruppen ohne Rubrik stehen nach den
+     * Rubriken, alphabetisch.
+     */
+    private val displayOrder: List<Topic> = listOf(
+        Topic.NEW, Topic.GENERAL, Topic.ENTERTAINMENT, Topic.NEWS, Topic.SPORT, Topic.KIDS, Topic.FAMILY, Topic.DOCU,
+        Topic.HISTORY, Topic.MUSIC, Topic.REGIONAL, Topic.RELIGION,
+        Topic.ACTION, Topic.ADVENTURE, Topic.ANIMATION, Topic.CRIME, Topic.DRAMA, Topic.HORROR, Topic.COMEDY, Topic.ROMANCE,
+        Topic.SCIFI, Topic.THRILLER, Topic.WAR, Topic.WESTERN,
+        Topic.NETFLIX, Topic.AMAZON, Topic.DISNEY, Topic.APPLE, Topic.SKY, Topic.UHD,
+    )
+
+    /** Rang für die Anzeige: Rubriken in [displayOrder], dann Gruppen ohne Rubrik, Erwachsene zuletzt. */
+    fun displayRank(topic: Topic?): Int = when (topic) {
+        null -> displayOrder.size
+        Topic.ADULT -> displayOrder.size + 1
+        else -> displayOrder.indexOf(topic)
     }
 
     private const val MIN_PREFIX = 4
@@ -65,7 +88,33 @@ object CategoryTopics {
             // Länderangaben gehören zum Land, nicht zum Namen („DE | Eigene“ = „DE: Eigene“ = „Eigene [DE]“).
             val rest = folded.trim().split(' ').filter { it.isNotBlank() && CountryDetector.codeFor(it) == null }
                 .joinToString("").ifBlank { NameNormalizer.normalize(name) }
-            Classified("$type|${country.orEmpty()}|n:$rest", country, null, name.trim())
+            Classified("$type|${country.orEmpty()}|n:$rest", country, null, labelWithoutTopic(name, country, countryLabel))
+        }
+    }
+
+    /**
+     * Einheitlicher Name für Gruppen ohne Rubrik: „Land · Name“ wie bei den Rubriken. Länderkürzel und Zierzeichen
+     * des Anbieters fallen weg („|DE| ✪ FILME 2025“ → „Deutschland · Filme 2025“), Großbuchstaben-Wörter werden normal
+     * geschrieben, Abkürzungen bis drei Zeichen (TV, UHD, VIP) bleiben.
+     */
+    internal fun labelWithoutTopic(name: String, country: String?, countryLabel: String?): String {
+        val words = name.replace(decoration, " ").split(' ')
+            .map { it.trim('-', '/', '.', '+', '&', '\'') }
+            .filter { it.isNotBlank() && !(country != null && CountryDetector.codeFor(it) == country) }
+        val cleaned = words.joinToString(" ") { titleCase(it) }
+        return listOfNotNull(countryLabel, cleaned.ifBlank { null }).joinToString(" · ").ifBlank { name.trim() }
+    }
+
+    /** Alles außer Buchstaben, Ziffern und den in Namen üblichen Zeichen gilt als Verzierung (✪, |, ▸, ★, •, [ ] …). */
+    private val decoration = Regex("[^\\p{L}\\p{N}\\-&+'./ ]")
+
+    private const val MAX_ABBREVIATION = 3
+
+    private fun titleCase(word: String): String {
+        val letters = word.filter { it.isLetter() }
+        if (letters.length <= MAX_ABBREVIATION || letters != letters.uppercase(Locale.ROOT)) return word
+        return word.split('-').joinToString("-") { part ->
+            part.lowercase(Locale.ROOT).replaceFirstChar { it.titlecase(Locale.ROOT) }
         }
     }
 }

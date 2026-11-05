@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.mg.player.BuildConfig
+import com.mg.player.domain.model.GroupSort
 import com.mg.player.ui.common.TvTextField
 import com.mg.player.ui.common.isTouch
 import com.mg.player.ui.navigation.Screen
@@ -31,6 +32,19 @@ internal fun LazyListScope.contentItems(c: SettingsContext) {
                 { c.gate.runWithPin { c.navigator.push(Screen.ManageCategories) } },
                 "Sortieren, ausblenden, sperren oder anheften",
                 icon = AppIcons.Grid,
+            )
+        }
+        row("group-sort") {
+            ChoiceRow(
+                "Reihenfolge in Gruppen",
+                c.s.groupSort.label,
+                { c.vm.setGroupSort(GroupSort.entries.nextAfter(c.s.groupSort)) },
+                when (c.s.groupSort) {
+                    GroupSort.AUTO -> "„Alle Zugänge“ A–Z, einzelne Zugänge wie beim Anbieter"
+                    GroupSort.PROVIDER -> "Sender, Filme und Serien wie vom Anbieter geliefert"
+                    GroupSort.ALPHABETICAL -> "Sender, Filme und Serien überall von A bis Z"
+                },
+                AppIcons.Reorder,
             )
         }
         row("sort-favorites") {
