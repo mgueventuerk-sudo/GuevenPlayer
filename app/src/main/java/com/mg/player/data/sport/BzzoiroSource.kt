@@ -1,5 +1,6 @@
 package com.mg.player.data.sport
 
+import com.mg.player.core.log.AppLog
 import com.mg.player.core.network.HttpFetcher
 import com.mg.player.core.util.runCatchingCancellable
 import com.mg.player.domain.model.EventStatus
@@ -71,13 +72,32 @@ class BzzoiroSource(private val http: HttpFetcher, private val token: suspend ()
         return result
     }
 
-    /** Sender eines Landes; ohne Senderangaben geht es trotzdem weiter (dann über EPG bzw. von Hand zugeordnet). */
-    private fun broadcastRows(leagueId: Long, country: String, range: String, key: String): List<Broadcast> = runCatching {
-        pages("${SportEndpoints.bzzoiro}/broadcasts/?league_id=$leagueId&country_code=$country&$range&limit=$PAGE_SIZE", key)
-    }.getOrDefault(emptyList()).mapNotNull { b ->
-        val name = b.optString("channel_name").takeIf { it.isNotBlank() && it != "null" } ?: return@mapNotNull null
-        Broadcast(b.optLong("event_id"), name, parseTime(b.optString("event_date")))
+    /**
+     * Sender eines Landes; ohne Senderangaben geht es trotzdem weiter (dann über EPG bzw. von Hand zugeordnet).
+     * Fehler werden nicht mehr still verschluckt, sondern je Liga gemerkt ([stationProblem]).
+     */
+    private fun broadcastRows(leagueId: Long, country: String, range: String, key: String): List<Broadcast> {
+        val rows = try {
+            pages("${SportEndpoints.bzzoiro}/broadcasts/?league_id=$leagueId&country_code=$country&$range&limit=$PAGE_SIZE", key)
+        } catch (e: Exception) {
+            // Blockierender Abruf (kein suspend): hier kommt keine CancellationException an.
+            stationProblems[leagueId] = "Senderliste $country: ${sportProblem(e)}"
+            AppLog.log("Sport", "Bzzoiro-Senderliste $country für Liga $leagueId: ${e.javaClass.simpleName}")
+            return emptyList()
+        }
+        val parsed = rows.mapNotNull(::parseBroadcast)
+        if (rows.isNotEmpty() && parsed.isEmpty()) {
+            // Antwort da, aber kein Sender lesbar: Feldnamen ins Protokoll (für die Fehlersuche).
+            val fields = rows.first().keys().asSequence().toList()
+            AppLog.log("Sport", "Bzzoiro-Senderliste $country: ${rows.size} Einträge ohne lesbaren Sender, Felder $fields")
+        }
+        return parsed
     }
+
+    /** Problem mit der Senderliste der Liga (null = keins), danach vergessen. */
+    fun stationProblem(leagueKey: String): String? = leagueKey.removePrefix(KEY_PREFIX).toLongOrNull()?.let(stationProblems::remove)
+
+    private val stationProblems = ConcurrentHashMap<Long, String>()
 
     internal fun parseEvent(o: JSONObject, leagueId: Long, stations: Map<Long, List<String>>): SportEvent? {
         val id = o.optLong("id").takeIf { it > 0 } ?: return null
@@ -118,10 +138,29 @@ class BzzoiroSource(private val http: HttpFetcher, private val token: suspend ()
     internal data class Broadcast(val eventId: Long, val channel: String, val startMs: Long?)
 
     companion object {
+        /**
+         * Eine Zeile aus /broadcasts/ lesen. Tolerant gegenüber Feldnamen: „channel_name“, „channel“: {„name“} oder „channel“
+         * bzw. „event_id“, „event“: {„id“} oder „event“ – vorher reichte ein abweichender Name, und kein Spiel bekam Sender.
+         */
+        internal fun parseBroadcast(b: JSONObject): Broadcast? {
+            val name = listOfNotNull(
+                b.optString("channel_name"),
+                b.optJSONObject("channel")?.optString("name"),
+                b.optString("channel").takeIf { b.optJSONObject("channel") == null },
+                b.optString("name"),
+            ).firstOrNull { it.isNotBlank() && it != "null" } ?: return null
+            val eventId = b.optLong("event_id").takeIf { it > 0 }
+                ?: b.optJSONObject("event")?.optLong("id")?.takeIf { it > 0 }
+                ?: b.optLong("event").takeIf { it > 0 }
+                ?: return null
+            return Broadcast(eventId, name, parseTime(b.optString("event_date")))
+        }
+
         const val KEY_PREFIX = "bsd:"
         private const val PAGE_SIZE = 200
         private const val MAX_PAGES = 5
-        private const val BROADCAST_TTL_MS = 3 * 3_600_000L
+        // 1 h (vorher 3 h): Bzzoiro trägt Sender oft erst kurz vorher nach.
+        private const val BROADCAST_TTL_MS = 3_600_000L
         private const val PARALLEL = 2
 
         /** Sender aus diesen Ländern (Deutschland, Österreich, Schweiz, Türkei). */
@@ -129,7 +168,8 @@ class BzzoiroSource(private val http: HttpFetcher, private val token: suspend ()
 
         /** Apps und Streaming-Angebote (kein Sender, den ein IPTV-Zugang hat) – stehen bei Bzzoiro bei fast jedem Spiel. */
         private val NOT_TV_EXACT = setOf("sky go", "wow", "rtl+", "joyn", "prime video", "amazon prime video", "magentatv", "dazn app")
-        private val NOT_TV_PARTS = listOf("onefootball", "mediathek", "livestream", "live stream", "news", ".de", ".com", " app")
+        // „beIN Connect Türkei“, „DAZN Connect“ …: Streaming-Apps, kein Sender eines IPTV-Zugangs.
+        private val NOT_TV_PARTS = listOf("onefootball", "mediathek", "livestream", "live stream", "news", ".de", ".com", " app", " connect")
 
         /** Ab so vielen gleichzeitigen Spielen auf einem Sender ist er kein Sender für ein bestimmtes Spiel (Konferenz, „Top Event“, „Mix“). */
         private const val SHARED_LIMIT = 3

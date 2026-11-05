@@ -261,6 +261,8 @@ class SportRepository(
                     failures.remove(league)
                     backoffUntil.remove(league)
                     problems.remove(league)
+                    // Spiele da, aber Senderliste nicht: sichtbar machen statt still ohne Sender (ab 3.48).
+                    (source as? BzzoiroSource)?.stationProblem(league)?.let { problems[league] = it }
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {

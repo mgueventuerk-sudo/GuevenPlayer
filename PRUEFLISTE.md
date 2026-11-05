@@ -339,6 +339,12 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P5 Mit gesetzter PIN: Bearbeiten fragt zuerst nach der PIN.
 - [ ] P6 QR-Code im Bearbeiten-Bildschirm: Daten vom Handy landen im Formular (gespeichert wird erst mit „Prüfen & speichern“).
 
+## 16h. Neu in 3.48 – Bzzoiro-Senderliste
+
+- [ ] Z1 Süper Lig mit Bzzoiro-Schlüssel: Galatasaray-Spiel zeigt „beIN SPORTS 1“ ohne „(vermutlich)“ (wie auf sports.bzzoiro.com).
+- [ ] Z2 Liefert Bzzoiro keine Senderliste: Einstellungen → Sport zeigt den Grund (z. B. „Senderliste TR: …“).
+- [ ] Z3 „beIN Connect Türkei“ erscheint nirgends als Sender.
+
 ## 16g. Neu in 3.47 – echte Sender, Süper Lig einmal
 
 - [ ] T1 Sport → Sender korrigieren: „Süper Lig“ und „Trendyol Super Lig“ stehen nur noch einmal da (nach dem nächsten Abruf).
@@ -349,7 +355,7 @@ schicken (Zeilen beginnen mit „Wächter:“).
 
 - [ ] S1 Sport → Sender korrigieren → Liga mit „BEIN SPORTS 1“: Zwei gleichzeitige Spiele zeigen beIN SPORTS 1 und 2 (nicht zweimal 1).
 - [ ] S2 Spiel um 18:00 und eines um 21:00: beide auf beIN SPORTS 1.
-- [ ] S3 Sender ohne Nummer (z. B. „Sky Sport Bundesliga“): nur das erste gleichzeitige Spiel bekommt ihn, das zweite steht unter „Ohne Sender“.
+- [ ] S3 Sender ohne Nummer (z. B. „Sky Sport Bundesliga“): gilt für alle offenen Spiele der Liga, mit „(vermutlich)“.
 
 ## 16e. Neu in 3.45 – eigenes Gerät nicht „belegt“
 

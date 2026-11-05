@@ -271,6 +271,18 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.48 (Sport: Bzzoiro-Senderliste kommt an)
+
+- **Gemeldet:** Bzzoiro zeigt auf der Webseite je Spiel den Sender (z. B. Galatasaray – Amedspor: „beIN SPORTS 1“),
+  die App übernahm ihn nicht. Die Namen passen (Schlüssel „beinsports1“ auf beiden Seiten) – verloren gingen die
+  Daten beim Abruf: Die App las nur das Feld „channel_name“ und verschluckte jeden Fehler der Senderliste still.
+- **Jetzt:** Die Senderliste wird tolerant gelesen („channel_name“, „channel“ als Objekt oder Text, „event_id“ oder
+  „event“). Fehler der Senderliste erscheinen unter *Einstellungen → Sport* (z. B. „Senderliste TR: Schlüssel ungültig
+  oder Liga nicht im Tarif“); kommt eine Antwort ohne lesbaren Sender, stehen die Feldnamen im Protokoll.
+- Senderliste wird stündlich neu geholt (vorher alle 3 h); „beIN Connect“ u. ä. Apps zählen nicht als Sender.
+- Ersatzsender ohne Nummer im Namen (z. B. „Sky Sport Bundesliga“) gilt wieder für alle offenen Spiele der Liga
+  (gekennzeichnet „vermutlich“); mit Nummer wird weiter auf 1, 2, 3 … verteilt.
+
 ## Neu in 3.47 (Sport: echte Sender je Spiel, Süper Lig nur einmal)
 
 - **Süper Lig zusammengeführt:** „Süper Lig“ (ESPN) und „Trendyol Super Lig (Turkey)“ (Bzzoiro) sind dieselbe Liga.

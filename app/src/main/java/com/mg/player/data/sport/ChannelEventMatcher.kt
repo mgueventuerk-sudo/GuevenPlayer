@@ -77,6 +77,12 @@ class ChannelEventMatcher(private val dao: SportDao, private val finder: SportCh
         for ((league, events) in perEvent.keys.groupBy { leagueOfEvent(it.id) }) {
             val base = manual[league]?.let(bases::get) ?: continue
             val family = family(base)
+            if (ChannelFamily.numberOf(base.name) == null) {
+                // Sender ohne Nummer (z. B. „Sky Sport Bundesliga“): keine Reihe zum Verteilen – gilt für alle offenen
+                // Spiele der Liga, in der Übersicht als „(vermutlich)“ gekennzeichnet.
+                events.filter { e -> perEvent[e].orEmpty().none { it.second > MANUAL_SCORE } }.forEach { picks[it] = base }
+                continue
+            }
             val familyIds = family.mapTo(HashSet()) { it.id }
             val (sure, open) = events.partition { e -> perEvent[e].orEmpty().any { it.second > MANUAL_SCORE } }
             val busy = sure.mapNotNull { e -> bestOf(perEvent[e].orEmpty())?.takeIf { it.id in familyIds }?.let { e.startMs to it } }
