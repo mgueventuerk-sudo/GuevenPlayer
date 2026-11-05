@@ -1,0 +1,402 @@
+PLAN „SPIEL-FINDER“ – Sport-Sender finden und beweisen statt raten
+GuevenPlayer, ab Version 3.6x · Stand 05.11.2026 · noch nichts davon gebaut
+
+Sicherheitsangaben im Text:
+  [sicher]         = belegt (Code, Fakten, eigene Prüfung)
+  [wahrscheinlich] = gut begründet, aber nicht geprüft
+  [geraten]        = Annahme, muss vor dem Einbau geprüft werden
+
+======================================================================
+0. KERNIDEE
+======================================================================
+
+Bisher rät die App aus fremden, oft falschen Listen, auf welchem Sender ein
+Spiel läuft. Beispiel vom 05.11.: „PRIME DE 016 [Alkmaar vs. Juventus]“ war ein
+Platzhalter mit „Kein Event“ – die App hielt ihn trotzdem für den sichersten
+Sender.
+
+Neu: Die App FINDET das Spiel und BEWEIST es am Bild. Vorhersagen vor Anpfiff
+bleiben, aber mit gemessener Trefferquote. Ein falscher Sender wird nie als
+sicher angezeigt – lieber „Sender suchen“ als ein falscher.
+
+======================================================================
+1. WETTBEWERBE, DATENQUELLEN, LÄNDER
+======================================================================
+
+Wettbewerbe (12):
+  Premier League, LaLiga, Bundesliga, Serie A, Ligue 1, Süper Lig,
+  Champions League, Europa League, WM, EM, UFC, Boxen
+
+Spielplan und Live-Spielstand:
+  - Fußball (alle 10): ESPN und Bzzoiro
+  - UFC: ESPN (MMA)
+  - Boxen: keine verlässliche freie Quelle [wahrscheinlich]
+      Quelle 1: öffentliches TV-Programm (epgshare) mit Stichwörtern
+                („Boxen“, „Boxing“, „Boks“, „Fight Night“) und Kämpfernamen
+      Quelle 2: TheSportsDB [wahrscheinlich] – vor dem Einbau prüfen, ob die
+                kostenlose Stufe Boxkämpfe liefert; sonst entfällt sie
+      Beweis über Kämpfernamen im Bild, sonst Logo und Mosaik.
+      Erwartung: Boxen bleibt häufiger bei „Vorhersage“ oder „Sender suchen“
+      als Fußball [wahrscheinlich].
+
+Länder:
+  - Neu unter Einstellungen → Sport → „Länder“: Zur Auswahl stehen alle
+    Länder, die in deinen Senderlisten vorkommen (DE, TR, UK, ES, IT, FR, AT,
+    CH, NL, US …). Es gelten genau die markierten Länder.
+
+Rechte-Tabelle (wer überträgt was):
+  - Je Wettbewerb, Land und Zeitfenster der Rechteinhaber,
+    z. B. „Bundesliga · DE · Fr 20:30 → DAZN“.
+  - Vor dem Einbau an offiziellen Quellen recherchiert, mit Quellenangabe und
+    Saison. Die Angaben aus meinem Gedächtnis sind ungeprüft und werden NICHT
+    ungeprüft übernommen.
+  - Liegt als Datei im privaten Repo und kommt mit den App-Updates.
+  - Land ohne Eintrag: kein Rechte-Filter; die Reihenfolge der Suche ergibt
+    sich aus dem Gelernten (F, G). Dadurch wird nichts falsch, nur die erste
+    Suche dauert länger.
+  - Zur neuen Saison (August) zeigt die Diagnose Abweichungen zwischen Tabelle
+    und Beweisen – so sieht man, welche Einträge veraltet sind.
+
+Vorläufige Einschätzung (wird recherchiert, NICHT so übernommen):
+  Premier League   DE: Sky [geraten]              TR: beIN [wahrscheinlich]
+  LaLiga           DE: DAZN [wahrscheinlich]      TR: beIN / S Sport [geraten]
+  Bundesliga       DE: Sky Sa, DAZN Fr+So [wahrscheinlich]
+  Serie A          DE: DAZN [wahrscheinlich]
+  Ligue 1          DE: DAZN [geraten]
+  Süper Lig        TR: beIN SPORTS 1–4 [wahrscheinlich]
+  Champions League DE: DAZN, Prime (Di. Topspiel) [wahrscheinlich]
+  Europa League    DE: RTL / Nitro / RTL+ [wahrscheinlich]
+  WM 2026          DE: MagentaTV, ARD/ZDF [wahrscheinlich]   TR: TRT [wahrscheinlich]
+  EM 2028          noch offen
+  UFC              DE: DAZN [wahrscheinlich]
+  Boxen            wechselnd (DAZN, Sky, PPV)
+
+======================================================================
+2. BAUSTEINE
+======================================================================
+
+A – Herkunft sichtbar
+  Bei jedem Spiel steht, woher der Sender kommt: „bewiesen“, „laut
+  Rechte-Tabelle“, „laut TV-Programm“, „laut Bzzoiro“, „laut EPG“, „laut
+  Sendername“, „von dir gewählt“. Der Spiel-Dialog zeigt alle Quellen mit
+  ihrer Trefferquote.
+
+B – Rechte-Prüfung
+  Ein Sender, dessen Familie (DAZN, Sky, beIN …) die Rechte für Wettbewerb und
+  Land nicht hat, wird nicht angezeigt. Ausnahme: Ein Bildbeweis schlägt die
+  Tabelle – so fallen Fehler in der Tabelle auf und landen in der Diagnose.
+
+C – Bildbeweis
+  Die App öffnet den Kandidaten kurz und stumm; ab Anpfiff alle 2 Minuten, bis
+  ein Beweis da ist.
+  - Platzhalter: Standbild (3 Aufnahmen in 10 s ohne Änderung) oder Text
+    „No Event“ / „Kein Event“ / „Keine Event“ → ausgeschlossen [sicher].
+  - Fußball: Die Spielstand-Einblendung muss zum Live-Stand passen –
+    Teamkürzel, Stand, Spielminute (höchstens 2 min Abweichung).
+  - UFC/Boxen: Kämpfernamen im Bild, wenn lesbar auch die Runde.
+  - Wiederholung: Stand richtig, Minute falsch → kein Beweis.
+  - Ohne Vorlagen je Sender (es gibt keine Fotos): Die Texterkennung sucht im
+    ganzen Bild das Muster „Kürzel – Stand – Kürzel – Zeit“. Die Kürzel liefert
+    ESPN je Spiel mit (z. B. „JUV“, „AZ“) [wahrscheinlich].
+  - Lernt mit: Nach einer Bestätigung (5 Minuten Zuschauen, Wahl im Mosaik)
+    merkt sich die App, WO bei diesem Sender die Einblendung sitzt (nur die
+    Position, kein Bild). Beim nächsten Mal wird gezielt dort gelesen.
+  - Erwartung: Anfangs werden weniger Spiele bewiesen, nach einigen Spieltagen
+    mehr [geraten – die Diagnose zeigt es].
+  - Texterkennung: Google ML Kit, offline auf dem Gerät. Kein Bild verlässt
+    das Gerät, keins wird gespeichert.
+
+D – Suchen statt raten
+  Von 2 Minuten vor bis 10 Minuten nach Anpfiff durchsucht die App die Sport-
+  und Event-Gruppen, nicht nur den vorhergesagten Sender.
+  Reihenfolge: Rechte-Tabelle → bisher beste Quellen → Rest.
+  Etwa 6 s je Sender; gleichzeitige Spiele teilen sich eine Suche.
+  Findet das Spiel auch auf Sendern, die keine Liste nennt.
+
+E – Senderidentität (Logo)
+  Die App erkennt das Senderlogo in der Bildecke und vergleicht es mit dem
+  Kanalnamen. Heißt ein Kanal „PRIME“, zeigt aber kein Prime-Logo, verliert er
+  das Vertrauen für alle Spiele.
+
+F – Selbstkalibrierung der Quellen
+  Jede Quelle (Event-Sendernamen, TV-Programm, Bzzoiro, EPG, Rechte-Tabelle,
+  Zeitfenster) wird an den Beweisen gemessen, getrennt nach Playlist und
+  Wettbewerb. Die Trefferquote bestimmt ihr Gewicht. Eine Quelle mit 0 von 5
+  Treffern wird automatisch ignoriert (z. B. Event-Sendernamen von MG2).
+
+G – Zeitfenster-Gedächtnis
+  Bewiesene Kombinationen werden zur Vorhersage für nächste Woche, z. B.
+  „Bundesliga · Fr 20:30 · DAZN 1“. Je öfter bewiesen, desto stärker; läuft
+  ein Spiel woanders, wird der Eintrag schwächer.
+
+H – Lernen von dir
+  - Mehr als 5 Minuten Zuschauen während des Spiels = Beweis.
+  - „Falscher Sender“ im Spiel-Dialog: Sender für diesen Wettbewerb gesperrt,
+    zählt als Fehltreffer der Quelle.
+  - Wahl im Mosaik = Beweis.
+
+I – Mosaik „Sender suchen“
+  Ohne Beweis öffnet OK auf dem Spiel ein Live-Mosaik der besten Kandidaten
+  (2×2 / 3×3). Die Texterkennung markiert die Kachel mit passendem Spielstand.
+
+J – Strenge Anzeige
+  „● bewiesen“         Sender im Bild geprüft
+  „Vorhersage 87 %“    Zahl = gemessene Trefferquote der Quelle
+  „Sender suchen“      keine ausreichende Quelle (öffnet das Mosaik)
+  Nie angezeigt: Sender gegen die Rechte-Tabelle (ohne Beweis), Platzhalter,
+  Event-Sender ohne Beweis, Vorhersagen unter 60 % (Grenze einstellbar).
+
+K – Quellen abschaltbar
+  Einstellungen → Sport: jede Quelle einzeln aus/an, mit ihrer Trefferquote.
+
+L – Hinweis beim Anpfiff
+  Mit Beweis: „Spiel gefunden auf DAZN 1 (geprüft)“ + „Jetzt ansehen“.
+  Ohne Beweis: „Sender suchen“ (öffnet das Mosaik).
+
+M – Diagnose (Einstellungen → Sport)
+  Je Quelle × Playlist × Wettbewerb: Trefferquote, Beweise, Fehlzuordnungen,
+  mittlere Zeit bis zum Fund. Dazu die letzten 20 Prüfungen und die
+  Abweichungen zur Rechte-Tabelle. Die Bzzoiro-Diagnose aus 3.49 bleibt.
+
+N – Beweissuche im Hintergrund (auch bei geschlossener App)
+  Den Beweis gibt es erst, wenn das Spiel gesendet wird (Vorbericht/Anpfiff)
+  [sicher]. „Vorab“ heißt: Wenn du die App öffnest, ist der Sender schon
+  geprüft.
+  1. Einmal täglich: Spielplan und Vorhersagen im Hintergrund laden
+     (Android WorkManager).
+  2. Je Spiel Wecker auf −30 und −2 Minuten (exakte Alarme; die Erlaubnis hat
+     die App schon für die Erinnerungen).
+  3. Der Wecker startet einen Hintergrunddienst für höchstens 15 Minuten. Er
+     sucht und prüft wie C/D, ohne Bild auf dem Fernseher, und beendet sich
+     danach selbst.
+  4. −30 min: Vorbericht suchen (Teamnamen in der Einblendung) – nur ein
+     Hinweis, kein Beweis.
+  5. −2 bis +10 min: eigentlicher Beweis.
+  6. Öffnest du die App, steht schon „● bewiesen“; eine gesetzte Erinnerung
+     meldet den Sender.
+  Einstellung: Einstellungen → Sport → „Im Hintergrund prüfen“ (an/aus),
+  darunter die Wettbewerbe (voreingestellt: die gefolgten).
+
+O – Ein Gerät sucht, alle wissen es
+  - Nur ein Prüfgerät sucht: Einstellungen → Sport → „Dieses Gerät prüft im
+    Hintergrund“ – nur auf dem Fire TV Cube einschalten. Fällt er aus,
+    übernimmt der Stick, wenn er dafür freigegeben ist.
+  - Der Cube stellt seine Beweise im Heimnetz bereit (den kleinen Webserver
+    gibt es schon für „Vom Handy einrichten“). Stick und Handy fragen beim
+    Start und alle paar Minuten ab und zeigen ebenfalls „● bewiesen“.
+  - Abfragen nur aus dem eigenen Netz (gleiches Subnetz, einmal gekoppeltes
+    Geräte-Token). Übertragen werden nur Spiel, Sender und Ergebnis – keine
+    Zugangsdaten.
+  - Unterwegs (Cube nicht erreichbar): Das Handy zeigt die Vorhersagen und
+    sucht auf Wunsch selbst, sobald du das Spiel antippst (Mosaik).
+
+======================================================================
+3. REGEL „FREIE PLAYLIST“ (jede Playlist = genau 1 Verbindung)
+======================================================================
+
+Zuschauen hat immer Vorrang. Gesucht wird nur über Playlists, die gerade
+niemand nutzt.
+
+1. Frei ist eine Playlist, wenn der Anbieter keine laufende Verbindung meldet
+   UND keines deiner Geräte sie in den letzten 3 Minuten benutzt hat
+   (Kennzeichnung seit 3.45).
+2. Gesucht wird nur über freie Playlists. Schaust du über MG1 → Suche über MG2
+   und „Alternative“. Sind alle belegt → keine Suche.
+3. Ein Beweis gilt für alle Playlists: „DAZN 1“ bewiesen bei MG2 → auch
+   „DAZN 1“ bei MG1 und „Alternative“ (Erkennung über den Namen ohne
+   Länderkürzel und Qualität) [wahrscheinlich – Anbieter übertragen dasselbe
+   Senderbild].
+   Ausnahme: Event-Kanäle („PRIME DE 016“) gibt es nur bei einem Anbieter –
+   ihr Beweis gilt nur dort.
+4. Vorfahrt beim Losschauen: Startest du einen Sender über eine Playlist, die
+   der Cube gerade für die Suche nutzt, meldet dein Gerät dem Cube im
+   Heimnetz sofort „Ich brauche MG2“. Der Cube gibt die Verbindung in etwa 1 s
+   frei. Muss der Anbieter erst freigeben, greift der vorhandene
+   „Zugang belegt“-Neuversuch.
+5. Unterwegs (Cube nicht erreichbar): Der Cube fragt vor JEDEM Sender beim
+   Anbieter nach, ob die Playlist noch frei ist, und hört bei Belegung sofort
+   auf. Restrisiko: Startest du genau in den etwa 6 s einer Prüfung, kann dein
+   Start einmal „Zugang belegt“ melden; der automatische Neuversuch klappt
+   nach höchstens etwa 6 s [sicher – kürzer geht es mit 1 Verbindung je
+   Playlist nicht].
+6. Läuft ein Spiel nur auf der Playlist, die du gerade nutzt, wird dort nicht
+   gesucht: Die App zeigt die Vorhersage und holt den Beweis nach, sobald die
+   Playlist frei ist – oder sofort, wenn du das Spiel einschaltest.
+
+Beispiel: Du schaust über MG1 die Bundesliga. Um 20:58 sucht der Cube für die
+Europa League über MG2 und „Alternative“ und findet das Spiel auf
+„Alternative · RTL“ → auch „RTL“ bei MG1 gilt als bewiesen. Schaltest du um
+21:05 auf dem Stick zu MG2, stoppt der Cube dort sofort und sucht nur noch
+über „Alternative“ weiter.
+
+======================================================================
+4. ABLAUF JE SPIEL
+======================================================================
+
+  24 h vorher   Vorhersage aus Rechte-Tabelle, Zeitfenster-Gedächtnis und
+                Quellen, mit Trefferquote
+  −30 min       Hintergrund: Vorbericht suchen (Hinweis)
+  −15 min       Event-Gruppen neu abfragen (gibt es schon); Event-Sender nur
+                als Kandidaten, zählen erst nach Beweis
+  −2…+10 min    Suche + Bildbeweis (Vordergrund oder Hintergrund)
+  ab Beweis     „● bewiesen“, Hinweis, Bewertung der Quellen, Weitergabe an
+                Stick/Handy
+  bis Ende      alle 10 min kurze Nachprüfung (z. B. Konferenz-Wechsel), nur
+                über eine freie Playlist
+
+======================================================================
+5. GERÄTE
+======================================================================
+
+  Fire TV Cube (3. Gen.)  Prüfgerät. 2 GB RAM, starker Prozessor
+                          [wahrscheinlich]; bleibt im Standby für Alexa meist
+                          im Netz [wahrscheinlich]. LAN-Kabel empfohlen.
+  Fire TV Stick 4K Max    Ersatz-Prüfgerät. Genug Leistung; im Tiefschlaf
+                          schaltet er eventuell das WLAN ab [geraten – testen].
+  OnePlus 13              Sucht nicht im Hintergrund (OxygenOS beendet
+                          Hintergrund-Apps, mobile Daten). Übernimmt die
+                          Ergebnisse vom Cube. Braucht einmalig:
+                          Benachrichtigungen erlauben, „Akku: Nicht
+                          optimieren“ (die App führt dorthin). Sucht nie im
+                          Hintergrund über mobile Daten.
+
+  Fire OS kennt keine einstellbare Ausnahme von der Energieverwaltung. Fällt
+  ein Wecker aus, sucht die App beim nächsten Öffnen sofort weiter.
+
+======================================================================
+6. GRENZEN (EHRLICH)
+======================================================================
+
+  - Jede Playlist hat nur 1 Verbindung: Gesucht werden kann nur über
+    Playlists, die gerade niemand nutzt [sicher].
+  - Vor Anpfiff gibt es keinen 100-%-Beweis, nur Vorhersagen [sicher].
+  - Übertragungen ohne Spielstand-Einblendung lassen sich nur über Logo und
+    Mosaik prüfen.
+  - Gerät ausgesteckt → keine Hintergrundsuche. Tiefschlaf ohne WLAN → Suche
+    fällt aus, wird beim Öffnen nachgeholt.
+  - Android verlangt beim Hintergrunddienst eine Benachrichtigung (am
+    Fernseher meist unsichtbar, am Handy kurz sichtbar).
+  - Mehrere gleichzeitige Spiele (Konferenz-Samstag): die letzten sind erst
+    nach einigen Minuten bewiesen.
+  - Texterkennung: APK etwa 5 MB größer; schwache Geräte nur Standbildprüfung
+    bzw. geringere Auflösung.
+  - Die Rechte-Tabelle muss zur neuen Saison gepflegt werden.
+
+======================================================================
+7. LIEFERUNGEN
+======================================================================
+
+  L1   Herkunft sichtbar (A), strenge Anzeige (J), Quellen abschaltbar (K),
+       Diagnose (M); Event-Sender nur noch Kandidaten, „Kein Event“-Sender
+       ausgeschlossen; Länderauswahl; neue Wettbewerbe (PL, LaLiga, Serie A,
+       Ligue 1, CL, EL, WM, EM, UFC, Boxen)
+       → Die drei „PRIME“-Platzhalter vom 05.11. wären nicht mehr angezeigt
+         worden.
+  L2   Rechte-Tabelle (B) für die markierten Länder, vorher recherchiert,
+       mit Quellen
+  L3   Bildbeweis (C) und Lernen von dir (H)
+  L4   Suche (D), Mosaik (I), Hinweis beim Anpfiff (L)
+  L4b  Hintergrundsuche (N) + Ein Prüfgerät (O) + Regel „Freie Playlist“
+  L5   Selbstkalibrierung (F), Zeitfenster-Gedächtnis (G)
+  L6   Logo-Prüfung (E)
+
+  Jede Lieferung ist für sich nutzbar. L1 und L2 helfen sofort, ab L3 kommt
+  der eigentliche Sprung.
+
+======================================================================
+8. ABNAHMEKRITERIEN
+======================================================================
+
+  1. Kein als „bewiesen“ markierter Sender ist falsch (Stichprobe:
+     2 Spieltage, alle Wettbewerbe).
+  2. Kein Platzhalter-Sender („Kein Event“, Standbild) wird je angezeigt.
+  3. Ab +10 min sind mindestens 80 % der laufenden Spiele bewiesen
+     [geraten – hängt an freien Playlists und Spielstand-Einblendungen].
+  4. Angezeigte Vorhersagen haben nach 2 Spieltagen eine Trefferquote über
+     90 %.
+  5. Die Suche verursacht zu Hause nie „Zugang belegt“, unterwegs höchstens
+     einen automatischen Neuversuch von bis zu 6 s.
+  6. Die Wiedergabe beim Zuschauen wird durch die Suche nicht gestört (keine
+     zusätzlichen Hänger).
+  7. Im Standby (mit Strom und Netz) ist bei +10 min für mindestens 80 % der
+     gewählten Spiele ein Beweis gespeichert [geraten].
+  8. Ein Beweis des Cube erscheint auf Stick und Handy im selben WLAN innerhalb
+     von 1 Minute.
+  9. Mit Hintergrundsuche auf dem Cube sucht kein anderes Gerät zusätzlich.
+
+======================================================================
+9. TESTS (28, davon 12 Negativtests)
+======================================================================
+
+Beweis und Erkennung
+   1. Spielstand 0:1, Minute 23 im Bild = Live-Stand 0:1, Minute 24
+      → bewiesen.
+   2. Teamkürzel „JUV“, „AZ“, „FCB“, „GS“ werden den Vereinen richtig
+      zugeordnet.
+   3. UFC: Kämpfernamen im Bild passen → bewiesen.
+   4. Position der Einblendung wird nach einer Bestätigung gemerkt und
+      genutzt.
+   5. Logo „DAZN“ auf Kanal „DAZN 1“ bestätigt die Identität.
+Suche und Lernen
+   6. Reihenfolge der Suche folgt der Rechte-Tabelle (DAZN vor Sky für
+      Bundesliga am Freitag).
+   7. Quelle mit 0 von 5 Treffern wird ignoriert, mit 5 von 5 bevorzugt.
+   8. Zeitfenster-Gedächtnis sagt nach zwei Beweisen richtig voraus.
+   9. Wahl im Mosaik wird gespeichert und zählt als Beweis.
+  10. 5 Minuten Zuschauen zählen als Beweis, 1 Minute nicht.
+Hintergrund und Geräte
+  11. Wecker −2 min startet den Dienst; er endet nach höchstens 15 min.
+  12. Bei geschlossener App gefundener Beweis wird beim Öffnen angezeigt.
+  13. Wurde die App beendet, holt der nächste Start die Suche nach.
+  14. Cube aus → Stick übernimmt, wenn freigegeben.
+Freie Playlist
+  15. Schauen über MG1 → Suche nur über MG2 und „Alternative“.
+  16. Beweis bei MG2 „DAZN 1“ → MG1 „DE: DAZN 1 HD“ zeigt ebenfalls
+      „● bewiesen“.
+Negativtests
+  17. Standbild „Keine Event“ mit Musik → nie angezeigt, auch wenn der Name
+      passt.
+  18. Wiederholung mit richtigem Spielstand, falscher Minute → kein Beweis.
+  19. Sender gegen die Rechte-Tabelle ohne Beweis → nicht angezeigt.
+  20. Ohne Internet → keine Bewertung der Quellen, keine Suche.
+  21. Alle drei Playlists belegt → keine Suche, keine Verbindung geöffnet.
+  22. Start über die Playlist, auf der gesucht wird → Suche gibt in unter 1 s
+      frei, der Sender startet ohne Fehlermeldung.
+  23. Beweis eines Event-Kanals → wird nicht auf andere Playlists übertragen.
+  24. Anderes Gerät nutzt die Playlist → dort keine Suche.
+  25. Kein Netz nach dem Aufwachen → keine Suche, keine Bewertung, neuer
+      Versuch nach 1 min.
+  26. „Im Hintergrund prüfen“ aus → weder Wecker noch Dienst.
+  27. Fremdes Gerät im WLAN ohne Token → bekommt keine Daten.
+  28. Handy im Mobilnetz → sucht nie im Hintergrund.
+
+======================================================================
+10. MESSPLAN
+======================================================================
+
+  - Vorher/Nachher: 2 Spieltage mit der jetzigen Version, 2 mit der neuen.
+    Gemessen: Anteil falscher Sender, Anteil „Sender suchen“, Zeit bis zum
+    Fund.
+  - In der App: Die Diagnose (M) zeigt die Werte laufend; das Protokoll
+    enthält jede Prüfung (Sender, Playlist, Ergebnis, Dauer).
+  - Unabhängige Kontrolle: Du prüfst stichprobenartig 10 als „bewiesen“
+    markierte Spiele am Fernseher – Ziel 10 von 10.
+  - Rückfall-Schutz: Alle Tests aus Teil 9 laufen bei jedem Build.
+
+======================================================================
+11. GEKLÄRT / OFFEN
+======================================================================
+
+Geklärt:
+  - Fotos der Spielstand-Einblendung: keine → Erkennung ohne Vorlagen, lernt
+    mit (C).
+  - Verbindungen: jede Playlist genau 1 → Regel „Freie Playlist“ (Teil 3).
+  - Länder: alle, die du unter Sport markierst (Teil 1).
+  - Boxen: keine eigene Quelle → TV-Programm, ggf. TheSportsDB, Mosaik.
+  - Geräte: Fire TV Cube (Prüfgerät), Fire TV Stick 4K Max, OnePlus 13.
+
+Vor dem Einbau zu prüfen:
+  - Rechte-Tabelle für die markierten Länder recherchieren (mit Quellen).
+  - TheSportsDB: Liefert die kostenlose Stufe Boxkämpfe?
+  - Fire TV Stick 4K Max: Bleibt das WLAN im Tiefschlaf an?
+  - Reicht die Geräte-Kopplung aus „Vom Handy einrichten“ für Baustein O?
