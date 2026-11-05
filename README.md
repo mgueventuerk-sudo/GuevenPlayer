@@ -287,6 +287,9 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Fängt sich der Sender, wird sie sofort freigegeben. Nicht auf schwachen Geräten (Speicher) und nie ohne freien Platz
   (sonst „Zugang belegt“).
 - Gedächtnis des Wächters wird beim App-Start im Hintergrund geladen (nicht mehr beim ersten Öffnen des Players).
+- **Obere Leiste passt sich an:** Keine festen Breiten mehr. VPN, Uhr und Zugang bekommen immer ihren Platz – auch bei
+  großer Schrift/Anzeigegröße des Fernsehers (vorher brach die Uhr um und das Zugangs-Symbol verschwand). Die Bereiche
+  bleiben mittig, solange Platz ist, sonst rücken sie zwischen Logo und rechte Ecke.
 
 ## Neu in 3.50 (Wächter merkt sich schlechte Quellen)
 
