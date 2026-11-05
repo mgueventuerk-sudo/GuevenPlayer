@@ -344,6 +344,8 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] D1 Mit Bzzoiro-Schlüssel: Einstellungen → Sport zeigt „Sender von Bzzoiro“ mit „… Spiele mit Sender, … zugeordnet“.
 - [ ] D2 Fehlt ein Sender in der Senderliste: Er steht unter „Nicht gefunden: ‚…‘“ so geschrieben wie bei Bzzoiro.
 - [ ] D3 Ohne Bzzoiro-Liga: Zeile fehlt. Bei Fehler: Grund mit HTTP-Code.
+- [ ] D4 Zugang mit „|AR| BEIN SPORTS 1“ und „|TR| BEIN SPORTS 1“: Süper-Lig-Spiel landet auf dem türkischen.
+- [ ] D5 Ersatzsender „|TR| BEIN SPORTS 1“: gleichzeitige Spiele auf „|TR| … 2“, „3“ – nie auf einem Sender eines anderen Landes.
 
 ## 16h. Neu in 3.48 – Bzzoiro-Senderliste
 

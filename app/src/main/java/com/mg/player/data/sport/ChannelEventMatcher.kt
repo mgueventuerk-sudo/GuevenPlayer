@@ -5,6 +5,7 @@ import com.mg.player.data.db.dao.EpgCandidateRow
 import com.mg.player.data.db.dao.SportDao
 import com.mg.player.data.db.entity.SportEventChannelEntity
 import com.mg.player.data.search.SearchText
+import com.mg.player.data.sport.guide.GuideCatalog
 import com.mg.player.data.sport.guide.SportChannelFinder
 import com.mg.player.domain.model.ChannelKeyRow
 import com.mg.player.domain.model.SportEvent
@@ -108,7 +109,9 @@ class ChannelEventMatcher(private val dao: SportDao, private val finder: SportCh
         val names = ChannelFamily.siblingNames(base.name)
         if (names.isEmpty()) return listOf(base)
         val wanted = names.associate { (n, name) -> NameNormalizer.normalize(name) to n }
-        val rows = dao.channelsByNormalizedName(wanted.keys.toList()).filter { it.playlistId == base.playlistId }
+        // Nur Geschwister aus demselben Land: „|TR| BEIN SPORTS 1“ → „|TR| … 2“, nie „|AR| BEIN SPORTS 2“.
+        val rows = dao.channelsByNormalizedName(wanted.keys.toList())
+            .filter { it.playlistId == base.playlistId && GuideCatalog.countryOfName(it.name) == GuideCatalog.countryOfName(base.name) }
         // Je Nummer der beste Kanal (Liste nach Qualität sortiert); der gewählte Sender selbst gewinnt seine Nummer.
         val byNumber = rows.groupBy { wanted[NameNormalizer.normalize(it.name)] }.mapNotNull { (n, list) -> n?.let { it to list.first() } }.toMap()
             .toMutableMap()
@@ -150,17 +153,23 @@ class ChannelEventMatcher(private val dao: SportDao, private val finder: SportCh
         }
     }
 
-    /** Kanäle zu einem Sendernamen der Online-Quelle: erst exakt, dann ohne Länderzusatz („beIN SPORTS 2 Türkiye“). */
-    private fun stationRows(stations: Map<String, List<ChannelKeyRow>>, station: String): List<ChannelKeyRow>? =
-        stations[NameNormalizer.normalize(station)] ?: stations[StationNames.withoutCountry(station)]
+    /**
+     * Kanäle zu einem Sendernamen der Online-Quelle: erst exakt, dann ohne Länderzusatz („beIN SPORTS 2 Türkiye“).
+     * Nennt die Quelle ein Land („TR| beIN SPORTS 1“), zählen nur Kanäle dieses Landes oder ohne Länderangabe.
+     */
+    private fun stationRows(stations: Map<String, List<ChannelKeyRow>>, station: String): List<ChannelKeyRow>? {
+        val rows = stations[NameNormalizer.normalize(station)] ?: stations[StationNames.withoutCountry(station)] ?: return null
+        return rows.filter { StationNames.sameCountry(station, it.name) }.ifEmpty { null }
+    }
 
     private suspend fun stationChannels(events: List<SportEvent>): Map<String, List<ChannelKeyRow>> {
         val names = events.flatMap { it.stations }.flatMap { listOf(NameNormalizer.normalize(it), StationNames.withoutCountry(it)) }
             .filter { it.length >= 2 }.distinct()
         if (names.isEmpty()) return emptyMap()
         val rows = names.chunked(MAX_SQL_ARGS).flatMap { dao.channelsByNormalizedName(it) }
-        // Je Name und Zugang nur der beste Kanal (Liste ist nach Qualität sortiert).
-        return rows.groupBy { NameNormalizer.normalize(it.name) }.mapValues { (_, list) -> list.distinctBy { it.playlistId } }
+        // Alle Länder behalten (je Land und Zugang der beste Kanal) – welches Land passt, entscheidet [stationRows].
+        return rows.groupBy { NameNormalizer.normalize(it.name) }
+            .mapValues { (_, list) -> list.distinctBy { it.playlistId to GuideCatalog.countryOfName(it.name) } }
     }
 
     private suspend fun epgMatches(event: SportEvent, rows: List<EpgCandidateRow>): List<Pair<ChannelKeyRow, Int>> {

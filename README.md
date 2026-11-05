@@ -278,6 +278,10 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   – die Namen genau so, wie Bzzoiro sie liefert und wie sie in der eigenen Senderliste fehlen. OK öffnet „Sender korrigieren“.
 - Fehler nennen den HTTP-Code („Bzzoiro-Senderliste TR nicht abrufbar: Schlüssel ungültig oder Liga nicht im Tarif (HTTP 403)“);
   eine Antwort ohne lesbaren Sender steht mit Feldnamen ebenfalls dort, nicht nur im Protokoll.
+- **Land zählt:** „beIN SPORTS 1“ gibt es in der Türkei, in Frankreich, in Nahost … Bzzoiro-Sender tragen jetzt das
+  abgefragte Land („TR| beIN SPORTS 1“, angezeigt als „beIN SPORTS 1 (TR)“). Zugeordnet wird nur ein Kanal desselben
+  Landes oder einer ohne Länderangabe – nie „|AR| BEIN SPORTS 1“ oder „|FR| …“. Hat der Zugang nur fremde Länder,
+  bleibt das Spiel lieber ohne Sender. Auch die Senderfamilie (1, 2, 3 …) bleibt im Land des gewählten Ersatzsenders.
 - Verglichen wird weiterhin über einen internen Schlüssel (klein, ohne Leer- und Sonderzeichen, ohne Länder-Vorsatz und
   FHD/HD/UHD/4K: „|TR| BEIN SPORTS 1 FHD“ = „beIN SPORTS 1“ = `beinsports1`) – angezeigt wird er nie.
 

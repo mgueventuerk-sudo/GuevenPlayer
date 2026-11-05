@@ -17,7 +17,7 @@ data class StationReport(val events: Int, val matched: Int, val missing: List<St
         append("Bzzoiro-Senderliste: $events ${if (events == 1) "Spiel" else "Spiele"} mit Sender, $matched zugeordnet")
         if (missing.isNotEmpty()) {
             append("\nNicht gefunden: ")
-            append(missing.take(MAX_NAMES).joinToString(", ") { "‚$it‘" })
+            append(missing.take(MAX_NAMES).joinToString(", ") { "‚${stationLabel(it)}‘" })
             if (missing.size > MAX_NAMES) append(" und ${missing.size - MAX_NAMES} weitere")
         }
     }
@@ -30,3 +30,8 @@ data class StationReport(val events: Int, val matched: Int, val missing: List<St
             names.map(String::trim).filter(String::isNotEmpty).distinctBy { it.lowercase(Locale.ROOT) }
     }
 }
+
+private val countryTag = Regex("^([A-Z]{2})\\| (.+)$")
+
+/** Anzeige eines Sendernamens mit Land: „TR| beIN SPORTS 1“ → „beIN SPORTS 1 (TR)“; andere Namen unverändert. */
+fun stationLabel(name: String): String = countryTag.matchEntire(name)?.destructured?.let { (country, rest) -> "$rest ($country)" } ?: name

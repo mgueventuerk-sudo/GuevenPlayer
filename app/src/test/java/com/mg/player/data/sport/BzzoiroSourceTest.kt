@@ -70,7 +70,7 @@ class BzzoiroSourceTest {
         assertEquals("Bayern München – Borussia Dortmund", match.title)
         assertEquals("Bundesliga", match.league)
         assertEquals(EventStatus.PRE, match.status)
-        assertEquals(listOf("Sky Sport Bundesliga 1", "DAZN 1"), match.stations)
+        assertEquals(listOf("DE| Sky Sport Bundesliga 1", "DE| DAZN 1"), match.stations)
         assertEquals(EventStatus.POST, events.first { it.id == "bsd:8#1002" }.status) // verschoben
         // Fremde „next“-Adresse wird nicht aufgerufen (der Schlüssel bliebe sonst nicht beim Dienst).
         assertTrue(requests.none { it.path.orEmpty().contains("evil") })

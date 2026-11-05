@@ -37,6 +37,7 @@ import com.mg.player.domain.model.MatchedEvent
 import com.mg.player.domain.model.SportEvent
 import com.mg.player.domain.model.SportGroups
 import com.mg.player.domain.model.playlistIdOf
+import com.mg.player.domain.model.stationLabel
 import com.mg.player.domain.sport.EventCountdownTicker
 import com.mg.player.domain.sport.SportBoard
 import com.mg.player.domain.sport.SportEventFilter
@@ -319,7 +320,7 @@ private fun EventState(startMs: Long, live: Boolean, ticker: EventCountdownTicke
 /** Hinweis für ein Spiel ohne Sender im Zugang. */
 internal fun unmatchedHint(stations: List<String>): String = when {
     stations.isEmpty() -> "Sender unbekannt"
-    else -> "läuft auf ${stations.take(2).joinToString(", ")} – nicht in deinem Zugang"
+    else -> "läuft auf ${stations.take(2).joinToString(", ", transform = ::stationLabel)} – nicht in deinem Zugang"
 }
 
 /** „Sa 31.10. 18:30“ (Ortszeit). */

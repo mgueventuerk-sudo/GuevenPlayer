@@ -85,7 +85,7 @@ class BzzoiroSource(private val http: HttpFetcher, private val token: suspend ()
             AppLog.log("Sport", "Bzzoiro-Senderliste $country für Liga $leagueId: ${e.javaClass.simpleName}")
             return emptyList()
         }
-        val parsed = rows.mapNotNull(::parseBroadcast)
+        val parsed = rows.mapNotNull(::parseBroadcast).map { it.copy(country = country) }
         if (rows.isNotEmpty() && parsed.isEmpty()) {
             // Antwort da, aber kein Sender lesbar: Feldnamen ins Protokoll (für die Fehlersuche).
             val fields = rows.first().keys().asSequence().toList()
@@ -135,8 +135,8 @@ class BzzoiroSource(private val http: HttpFetcher, private val token: suspend ()
         return result
     }
 
-    /** Eine Zeile aus /broadcasts/: Sender eines Spiels in einem Land. */
-    internal data class Broadcast(val eventId: Long, val channel: String, val startMs: Long?)
+    /** Eine Zeile aus /broadcasts/: Sender eines Spiels in einem Land ([country] wie abgefragt, „TR“; leer = unbekannt). */
+    internal data class Broadcast(val eventId: Long, val channel: String, val startMs: Long?, val country: String = "")
 
     companion object {
         /**
@@ -187,15 +187,22 @@ class BzzoiroSource(private val http: HttpFetcher, private val token: suspend ()
                 val n = b.channel.trim().lowercase(Locale.ROOT)
                 n !in NOT_TV_EXACT && NOT_TV_PARTS.none { it in n }
             }
-            val byName = tv.groupBy { it.channel.trim().lowercase(Locale.ROOT) }
+            val byName = tv.groupBy(::stationName)
             return tv.filter { b ->
                 val start = b.startMs ?: return@filter true
-                val sameTime = byName[b.channel.trim().lowercase(Locale.ROOT)].orEmpty()
+                val sameTime = byName[stationName(b)].orEmpty()
                     .filter { o -> o.startMs != null && kotlin.math.abs(o.startMs - start) <= SAME_TIME_MS }
                     .map { it.eventId }.distinct().size
                 sameTime < SHARED_LIMIT
-            }.groupBy { it.eventId }.mapValues { (_, list) -> list.map { it.channel.trim() }.distinctBy { it.lowercase(Locale.ROOT) } }
+            }.groupBy { it.eventId }.mapValues { (_, list) -> list.map(::stationName).distinctBy { it.lowercase(Locale.ROOT) } }
         }
+
+        /**
+         * Sendername mit Land wie bei den Anbietern („TR| beIN SPORTS 1“): „beIN SPORTS 1“ gibt es in vielen Ländern
+         * (Türkei, Frankreich, Nahost …). Mit dem Land wählt die Zuordnung nur den Sender dieses Landes (oder einen ohne
+         * Länderangabe), nie „AR| BEIN SPORTS 1“ für ein Spiel, das Bzzoiro in der Türkei auf beIN SPORTS 1 meldet.
+         */
+        private fun stationName(b: Broadcast): String = if (b.country.isBlank()) b.channel.trim() else "${b.country}| ${b.channel.trim()}"
 
         /** „2:1 · 67'“ – nur, wenn das Spiel läuft oder vorbei ist (vorher sind die Tore leer bzw. 0). */
         internal fun scoreOf(o: JSONObject): String? {
