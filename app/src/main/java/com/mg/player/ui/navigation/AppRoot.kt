@@ -57,6 +57,7 @@ import com.mg.player.ui.common.ReminderHost
 import com.mg.player.ui.common.ToastHost
 import com.mg.player.ui.common.ToastState
 import com.mg.player.ui.common.TouchWindowMode
+import com.mg.player.ui.common.UpdatePromptHost
 import com.mg.player.ui.common.isTouch
 import com.mg.player.ui.detail.MovieDetailScreen
 import com.mg.player.ui.detail.SeriesDetailScreen
@@ -222,6 +223,8 @@ fun AppRoot(container: AppContainer) {
             ParentalGateHost(gate)
             // Nach einem Absturz beim nächsten Start: Bericht anbieten.
             CrashReportHost(onOpenLog = { navigator.push(Screen.Share(ShareMode.LOG)) })
+            // App-Update verfügbar: einmal nachfragen – nicht mitten in der Wiedergabe.
+            if (!video) UpdatePromptHost(container)
             // App-Sperre deckt alles ab, bis die PIN stimmt (als Letztes: liegt über allen anderen Fenstern).
             AppLockGate(container, info.appLock)
         }

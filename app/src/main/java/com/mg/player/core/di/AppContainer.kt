@@ -61,6 +61,7 @@ import com.mg.player.data.sync.AutoRefresher
 import com.mg.player.data.sync.SyncManager
 import com.mg.player.data.tmdb.TmdbApi
 import com.mg.player.data.tmdb.TmdbRepositoryImpl
+import com.mg.player.data.update.AppUpdater
 import com.mg.player.domain.repository.CategoryRepository
 import com.mg.player.domain.repository.EpgRepository
 import com.mg.player.domain.repository.LiveRepository
@@ -117,6 +118,9 @@ class AppContainer(context: Context, settingsOverride: SettingsRepository? = nul
     private val dohSetting by lazy { settingsRepository.settings.map { it.dohFallback }.stateIn(appScope, SharingStarted.Eagerly, true) }
     private fun wantsEncryptedDns(): Boolean = dohSetting.value && vpn.state.value !is VpnState.Connected
     internal val xtreamApi: XtreamApi by lazy { XtreamApi(httpFetcher) }
+
+    /** App-Updates aus dem privaten GitHub-Repo (Schlüssel in den Einstellungen). */
+    val appUpdater: AppUpdater by lazy { AppUpdater(appContext, httpFetcher) }
 
     val settingsRepository: SettingsRepository by lazy { settingsOverride ?: SettingsRepositoryImpl(appContext) }
 

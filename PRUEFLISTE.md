@@ -339,6 +339,13 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P5 Mit gesetzter PIN: Bearbeiten fragt zuerst nach der PIN.
 - [ ] P6 QR-Code im Bearbeiten-Bildschirm: Daten vom Handy landen im Formular (gespeichert wird erst mit „Prüfen & speichern“).
 
+## 16l. Neu in 3.52 – App-Updates
+
+- [ ] U1 Einstellungen → System → App-Updates: Schlüssel eintragen, „Nach Update suchen“ → „Aktuell“ oder „Update installieren“.
+- [ ] U2 Falscher Schlüssel: „Schlüssel ungültig oder abgelaufen (HTTP 401)“.
+- [ ] U3 Neuerer Build vorhanden: beim Start Hinweis „Update verfügbar“; „Installieren“ lädt mit Fortschritt und öffnet den Installer.
+- [ ] U4 Erstes Mal: Android fragt nach „Unbekannte Apps installieren“ – erlauben, dann erneut „Update installieren“.
+
 ## 16k. Neu in 3.51 – Hänger unsichtbar, kurz, nahtlos
 
 - [ ] H1 Einstellungen → Wiedergabe → „Live-Puffer“ zeigt 4 Sekunden; Umschalten auf Aus / 8 Sekunden wirkt beim nächsten Sender.

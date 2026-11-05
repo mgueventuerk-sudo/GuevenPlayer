@@ -18,6 +18,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # Schreibrecht nur für die Releases der App-Updates (Schritt „Release für App-Updates anlegen“).
+    permissions:
+      contents: write
     steps:
       - name: Code auschecken
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -75,6 +78,26 @@ jobs:
           mkdir -p out
           if [ "$HAS_RELEASE_KEY" = "true" ]; then cp app/build/outputs/apk/release/*.apk "out/Player-${{ github.run_number }}.apk"; fi
           cp app/build/outputs/apk/debug/*.apk "out/Player-${{ github.run_number }}-debug.apk"
+
+      # App-Updates (Weg 2): Jede signierte Release-APK wird Release „build-<versionCode>“ in diesem privaten Repo.
+      # Die App fragt mit dem Zugriffsschlüssel aus den Einstellungen nach dem neuesten Release. Nur die letzten 5 bleiben.
+      - name: Release für App-Updates anlegen
+        if: env.HAS_RELEASE_KEY == 'true'
+        # Scheitert das Release, gibt es die APK trotzdem als Artefakt.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK="out/Player-${{ github.run_number }}.apk"
+          AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)
+          BADGING=$("$AAPT" dump badging "$APK")
+          CODE=$(echo "$BADGING" | sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p" | head -1)
+          NAME=$(echo "$BADGING" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p" | head -1)
+          test -n "$CODE"
+          gh release create "build-$CODE" "$APK" --title "Player $NAME" --target "$GITHUB_SHA" --latest \
+            --notes "Build ${{ github.run_number }} · ${{ github.ref_name }} · $GITHUB_SHA"
+          gh release list --limit 100 --json tagName --jq '.[].tagName' | grep '^build-' | sort -t- -k2 -n -r | tail -n +6 \
+            | while read -r tag; do gh release delete "$tag" --yes --cleanup-tag; done
 
       - name: APKs hochladen
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

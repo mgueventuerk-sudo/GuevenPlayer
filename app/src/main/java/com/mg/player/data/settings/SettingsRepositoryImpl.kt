@@ -77,6 +77,7 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         val LAST_CHANNEL_CATEGORY = stringPreferencesKey("last_channel_category")
         val PIN_HASH = stringPreferencesKey("parental_pin_hash")
         val TMDB_KEY = stringPreferencesKey("tmdb_api_key")
+        val UPDATE_TOKEN = stringPreferencesKey("update_token")
         val TMDB_ENABLED = booleanPreferencesKey("tmdb_enabled")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val ACCENT = stringPreferencesKey("accent")
@@ -138,6 +139,7 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
             lastChannelId = this[Keys.LAST_CHANNEL],
             lastChannelCategoryId = this[Keys.LAST_CHANNEL_CATEGORY],
             parentalPinHash = this[Keys.PIN_HASH],
+            updateToken = this[Keys.UPDATE_TOKEN]?.let(SecretCipher::decrypt).orEmpty(),
             tmdbApiKey = this[Keys.TMDB_KEY]?.let(SecretCipher::decrypt).orEmpty().ifBlank { defaults.tmdbApiKey },
             tmdbEnabled = this[Keys.TMDB_ENABLED] ?: defaults.tmdbEnabled,
             themeMode = enumOr(this[Keys.THEME_MODE], defaults.themeMode),
@@ -207,6 +209,7 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         putSecret(Keys.SPORTMONKS_TOKEN, s.sportmonksToken)
         putSecret(Keys.BZZOIRO_TOKEN, s.bzzoiroToken)
         putSecret(Keys.TMDB_KEY, s.tmdbApiKey)
+        putSecret(Keys.UPDATE_TOKEN, s.updateToken)
     }
 
     private fun MutablePreferences.putSecret(key: Preferences.Key<String>, value: String) {

@@ -94,6 +94,8 @@ data class AppSettings(
     val lastChannelCategoryId: String? = null,
     val parentalPinHash: String? = null,
     val tmdbApiKey: String = "",
+    /** GitHub-Zugriffsschlüssel (nur Lesen, nur das Player-Repo) für App-Updates; verschlüsselt, nie im Backup. */
+    val updateToken: String = "",
     val tmdbEnabled: Boolean = true,
     val themeMode: ThemeMode = ThemeMode.AUTO,
     val accent: AccentColor = AccentColor.BLUE,

@@ -203,6 +203,7 @@ private fun LazyListScope.systemItems(c: SettingsContext) {
             )
         }
     }
+    updateItems(c)
     settingsGroup("help", "Hilfe") {
         row("log") {
             ActionRow("Fehlerprotokoll anzeigen", { c.navigator.push(Screen.Share(ShareMode.LOG)) }, "Lässt sich aufs Handy holen", icon = AppIcons.Document)

@@ -116,7 +116,7 @@ internal fun LazyListScope.sportItems(c: SettingsContext) {
 
 /** Eingabe für einen geheimen Schlüssel: gespeichert nur verschlüsselt, angezeigt verdeckt. */
 @Composable
-private fun SecretKeyField(token: String, label: String, onSave: (String) -> Unit) {
+internal fun SecretKeyField(token: String, label: String, onSave: (String) -> Unit) {
     var draft by remember(token) { mutableStateOf(token) }
     TvTextField(
         value = draft,

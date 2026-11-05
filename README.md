@@ -271,6 +271,17 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.52 (App-Updates aus dem privaten Repo)
+
+- Jeder Build mit Release-Schlüssel legt die APK als Release „build-<versionCode>“ im privaten Repo ab (die letzten 5
+  bleiben). Der Code bleibt privat.
+- *Einstellungen → System → App-Updates*: GitHub-Zugriffsschlüssel eintragen (Fine-grained token, nur Repo „Player“,
+  „Contents: Read-only“). Verschlüsselt gespeichert, nie im Backup, geht nur an api.github.com.
+- Beim Start (höchstens alle 6 h) fragt die App bei einer neueren Version einmal nach; „Installieren“ lädt die APK und
+  öffnet den Android-Installer. Einmal bestätigen musst du immer (Android-Regel). Beim ersten Mal fragt Android, ob
+  GuevenPlayer Apps installieren darf.
+- Android nimmt das Update nur an, wenn es mit demselben Schlüssel signiert ist – eine fremde APK wird abgelehnt.
+
 ## Neu in 3.51 (Hänger: unsichtbar, kurz, nahtlos)
 
 - **Live-Puffer** (*Einstellungen → Wiedergabe → Player*, Aus / 4 s / 8 s, Standard 4 s): Der Player baut nach dem Start
