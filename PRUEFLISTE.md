@@ -339,6 +339,15 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P5 Mit gesetzter PIN: Bearbeiten fragt zuerst nach der PIN.
 - [ ] P6 QR-Code im Bearbeiten-Bildschirm: Daten vom Handy landen im Formular (gespeichert wird erst mit „Prüfen & speichern“).
 
+## 16n. Neu in 3.54 – Rechte und Bildbeweis
+
+- [ ] B1 Europa-League-Spiel auf „PRIME …“: steht als „widerspricht den Senderechten“ (falls überhaupt).
+- [ ] B2 Laufendes Spiel, eine Playlist frei: Nach wenigen Minuten „● bewiesen“ beim richtigen Sender; „Letzte Prüfungen“ zeigt den Blick.
+- [ ] B3 Platzhalter-Sender („Kein Event“): erscheint in „Letzte Prüfungen“ als „Platzhalter/Standbild“ und nie beim Spiel.
+- [ ] B4 Während du über eine Playlist schaust: keine Prüfung über dieselbe Playlist, kein „Zugang belegt“.
+- [ ] B5 5 Minuten auf dem Sender eines laufenden Spiels → „● bewiesen“.
+- [ ] B6 „Falscher Sender“ → Sender verschwindet für diesen Wettbewerb.
+
 ## 16m. Neu in 3.53 – Spiel-Finder L1
 
 - [ ] F1 Sport: Kein Spiel zeigt einen Event-Sender wie „PRIME DE 016 [… vs. …]“.

@@ -3,7 +3,10 @@ package com.mg.player.ui.settings
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mg.player.core.util.TimeUtils
+import com.mg.player.data.sport.proof.ProofEvaluator
 import com.mg.player.domain.model.MatchSource
 import com.mg.player.domain.sport.SportBoard
 import com.mg.player.ui.common.LocalAppContainer
@@ -33,6 +36,7 @@ internal fun LazyListScope.sportSourceItems(c: SettingsContext) {
             }
         }
         row("sport-source-counts") { SourceSummaryRow() }
+        row("sport-proofs") { ProofHistoryRow() }
     }
     settingsGroup("sport-countries", "Länder", footer = "Senderlisten dieser Länder werden geladen; mindestens ein Land bleibt gewählt.") {
         SPORT_COUNTRIES.forEach { (code, label) ->
@@ -63,6 +67,27 @@ private fun SourceSummaryRow() {
         ?.ifBlank { null } ?: "Noch keine Spiele mit Sender"
     ActionRow("Angezeigte Spiele je Quelle", {}, text, icon = AppIcons.Document, chevron = false)
 }
+
+/** Plan „Spiel-Finder“ M: die letzten Prüfungen (Bild, Zuschauen, „Falscher Sender“) mit Ergebnis. */
+@Composable
+private fun ProofHistoryRow() {
+    val proofs = LocalAppContainer.current.sport.proofs
+    val text = remember {
+        proofs.recent().take(MAX_HISTORY_SHOWN).joinToString("\n") { r ->
+            "${TimeUtils.formatClock(r.atMs)} · ${r.channel}: ${verdictLabel(r.verdict)} (${r.by})"
+        }.ifBlank { "Noch keine Prüfung – sie läuft bei Spielen, die gerade laufen, über freie Playlists." }
+    }
+    ActionRow("Letzte Prüfungen", {}, text, icon = AppIcons.Shield, chevron = false)
+}
+
+private fun verdictLabel(verdict: ProofEvaluator.Verdict): String = when (verdict) {
+    ProofEvaluator.Verdict.PROVEN -> "bewiesen"
+    ProofEvaluator.Verdict.PLACEHOLDER -> "Platzhalter/Standbild"
+    ProofEvaluator.Verdict.OTHER -> "anderes Programm"
+    ProofEvaluator.Verdict.UNKNOWN -> "nicht lesbar"
+}
+
+private const val MAX_HISTORY_SHOWN = 8
 
 /** Wie viele angezeigte Spiele (live und kommend) aus welcher Quelle stammen. */
 internal fun sourceCounts(board: SportBoard): Map<MatchSource, Int> =

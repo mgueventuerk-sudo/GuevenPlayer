@@ -7,6 +7,8 @@ import com.mg.player.data.db.dao.SportDao
 import com.mg.player.data.db.entity.SportEventChannelEntity
 import com.mg.player.data.sport.guide.GuideSeries
 import com.mg.player.data.sport.guide.KickoffCheck
+import com.mg.player.data.sport.proof.ProofHunter
+import com.mg.player.data.sport.proof.ProofStore
 import com.mg.player.domain.model.AppSettings
 import com.mg.player.domain.model.ChannelKeyRow
 import com.mg.player.domain.model.MatchSource
@@ -63,6 +65,9 @@ class SportRepository(
     private val contentUpdated: Flow<Long> = flowOf(0L),
     /** Kontrolle kurz vor Anstoß beim Anbieter (läuft neben der Aktualisierung). */
     private val kickoff: KickoffCheck? = null,
+    /** Beweise (Bild, Zuschauen, „Falscher Sender“) und die Suche danach (Plan „Spiel-Finder“ C/H). */
+    val proofs: ProofStore? = null,
+    private val hunter: ProofHunter? = null,
 ) {
     private val _scores = MutableStateFlow<Map<String, String>>(emptyMap())
 
@@ -234,6 +239,7 @@ class SportRepository(
                 // Solange aktualisiert wird, auch die Übersicht aktuell halten (der Takt richtet sich nach laufenden Spielen).
                 launch { board.collect { } }
                 kickoff?.let { launch { it.loop(::rematch) } }
+                hunter?.let { launch { it.loop(::rematch) } }
                 refreshLoop(force)
             }
         }

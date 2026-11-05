@@ -43,7 +43,7 @@ android {
         minSdk = 24
         targetSdk = 37
         versionCode = buildMinutes
-        versionName = "3.53.$buildStamp"
+        versionName = "3.54.$buildStamp"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Labor (Plan A1): mit -PlabStrict=true beendet StrictMode die Debug-App bei jedem Plattenzugriff auf dem Hauptthread.
         buildConfigField("boolean", "LAB_STRICT", (providers.gradleProperty("labStrict").orNull == "true").toString())
@@ -248,6 +248,7 @@ dependencies {
     implementation(libs.coil.network.okhttp)
 
     implementation(libs.media3.exoplayer)
+    implementation(libs.mlkit.text.recognition)
     implementation(libs.media3.exoplayer.hls)
     implementation(libs.media3.ffmpeg.decoder)
     implementation(libs.media3.exoplayer.dash)

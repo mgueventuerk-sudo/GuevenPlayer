@@ -8,6 +8,8 @@ import com.mg.player.data.search.SearchText
 import com.mg.player.data.sport.guide.GuideCatalog
 import com.mg.player.data.sport.guide.KickoffCheck
 import com.mg.player.data.sport.guide.SportChannelFinder
+import com.mg.player.data.sport.proof.ProofEvaluator
+import com.mg.player.data.sport.proof.ProofStore
 import com.mg.player.data.sport.rights.SportRights
 import com.mg.player.domain.model.ChannelKeyRow
 import com.mg.player.domain.model.MatchSource
@@ -26,7 +28,12 @@ import com.mg.player.domain.model.StationReport
  *   gleichzeitige Spiele verteilt auf dessen Familie („beIN SPORTS 1“, „2“, „3“ …), siehe [ChannelFamily]
  * EPG nur innerhalb seiner Reichweite. Im Zweifel keine Zuordnung – ein falscher Sender ist schlimmer als keiner.
  */
-class ChannelEventMatcher(private val dao: SportDao, private val finder: SportChannelFinder? = null) {
+class ChannelEventMatcher(
+    private val dao: SportDao,
+    private val finder: SportChannelFinder? = null,
+    /** Beweise aus Bild, Zuschauen und „Falscher Sender“ (Plan „Spiel-Finder“ C/H). */
+    private val proofs: ProofStore? = null,
+) {
 
     /** Sender laut Sport-Programm aus dem letzten Abgleich (für den Hinweis „läuft auf … – nicht in deinem Zugang“). */
     @Volatile private var lastAnalysis: SportChannelFinder.Analysis? = null
@@ -48,6 +55,7 @@ class ChannelEventMatcher(private val dao: SportDao, private val finder: SportCh
         val perEvent = LinkedHashMap<SportEvent, MutableList<Pair<ChannelKeyRow, Int>>>()
         for (event in events) {
             val found = candidates(event, stations, analysis, horizon, windows)
+            provenOutside(event, found)?.let { found += it }
             if (disabled.isNotEmpty()) found.removeAll { MatchSource.of(it.second) in disabled }
             perEvent[event] = found
         }
@@ -58,10 +66,29 @@ class ChannelEventMatcher(private val dao: SportDao, private val finder: SportCh
             found.groupBy { it.first.id }.values.forEach { list ->
                 val (channel, score) = list.maxBy { it.second }
                 val bonus = if (channel.playlistId == preferredPlaylistId) 1 else 0
-                result += SportEventChannelEntity(event.id, channel.id, channel.playlistId, rightsChecked(event, channel, score) + bonus)
+                result += SportEventChannelEntity(event.id, channel.id, channel.playlistId, adjusted(event, channel, score) + bonus)
             }
         }
         return result
+    }
+
+    /** Beweise zuerst: bewiesen → ganz oben, widerlegt bzw. „Falscher Sender“ → nie angezeigt; sonst Rechte-Tabelle. */
+    private fun adjusted(event: SportEvent, channel: ChannelKeyRow, score: Int): Int {
+        val store = proofs ?: return rightsChecked(event, channel, score)
+        val keys = listOf(channel.id, GuideCatalog.nameKey(channel.name))
+        val proof = store.verdictFor(event.id, keys)
+        return when {
+            proof == ProofEvaluator.Verdict.PROVEN -> MatchSource.PROVEN_SCORE
+            proof != null || store.isBlocked(leagueOfEvent(event.id), keys) -> MatchSource.DISPROVEN_SCORE
+            else -> rightsChecked(event, channel, score)
+        }
+    }
+
+    /** Bewiesene Sender, die keine Quelle genannt hat (gefunden bei der Suche, Plan D) – als Kandidaten dazu. */
+    private suspend fun provenOutside(event: SportEvent, found: List<Pair<ChannelKeyRow, Int>>): List<Pair<ChannelKeyRow, Int>>? {
+        val ids = proofs?.provenChannelIds(event.id)?.filter { id -> found.none { it.first.id == id } }.orEmpty()
+        if (ids.isEmpty()) return null
+        return dao.channelsByIds(ids).map { it to MatchSource.PROVEN_SCORE }
     }
 
     /**

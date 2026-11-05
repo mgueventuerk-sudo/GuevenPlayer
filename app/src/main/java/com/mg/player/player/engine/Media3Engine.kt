@@ -175,6 +175,11 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
         player?.volume = if (muted) 0f else 1f
     }
 
+    /** Bild unsichtbar in [surface] (z. B. ImageReader) statt in eine Fläche – für den Bildbeweis im Hintergrund. */
+    fun setOffscreenSurface(surface: android.view.Surface?) {
+        player?.setVideoSurface(surface)
+    }
+
     override fun attachSurface(container: FrameLayout) {
         val view = Media3Build.view(container.context, player)
         container.removeAllViews()

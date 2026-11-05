@@ -154,6 +154,7 @@ private suspend fun PlayerViewModel.tick() {
     if (!live.zapPending && uiState.value.engineType != PlayerEngineType.EXTERNAL) {
         guard?.onTick(engine)
         sourceHealth.onTick()
+        watchProof.onTick(playable.activeVariant.takeIf { playable.isLive }, engine.state.value.isPlaying)
     }
     if (playable.isLive || uiState.value.engineType == PlayerEngineType.EXTERNAL) return
     val pos = engine.positionMs

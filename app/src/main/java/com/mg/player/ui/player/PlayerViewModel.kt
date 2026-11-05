@@ -4,6 +4,7 @@ import android.os.SystemClock
 import androidx.lifecycle.ViewModel
 import com.mg.player.core.di.AppContainer
 import com.mg.player.core.log.AppLog
+import com.mg.player.data.sport.proof.ProofHunter
 import com.mg.player.domain.binge.BingeState
 import com.mg.player.domain.model.AppSettings
 import com.mg.player.domain.model.HwDecoding
@@ -56,6 +57,12 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
     internal val sourceHealth = SourceHealthTracker(
         container.playback.sourceHealth,
         online = { container.networkMonitor.status.value.online },
+        clock = SystemClock::elapsedRealtime,
+    )
+
+    /** 5 Minuten auf einem Live-Sender = Beweis für laufende Spiele (Plan „Spiel-Finder“ H). */
+    internal val watchProof = WatchProof(
+        onConfirmed = { channel -> scope.launch { container.sport.proofActions.confirm(channel.id, channel.name, ProofHunter.BY_WATCHING) } },
         clock = SystemClock::elapsedRealtime,
     )
 

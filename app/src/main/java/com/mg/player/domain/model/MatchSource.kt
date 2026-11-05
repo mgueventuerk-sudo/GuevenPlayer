@@ -5,6 +5,7 @@ package com.mg.player.domain.model
  * Zuordnung (+1 Bonus für den aktiven Zugang ist berücksichtigt). [switchable]: lässt sich in den Einstellungen abschalten.
  */
 enum class MatchSource(val label: String, val detail: String, val guessed: Boolean = false, val switchable: Boolean = false) {
+    PROVEN("● bewiesen", "Im Bild des Senders geprüft: Spielstand-Einblendung passt zum Live-Stand – oder du hast hier zugeschaut."),
     CONFIRMED("vom Anbieter bestätigt", "Das Programm des Anbieters nennt das Spiel kurz vor Anstoß."),
     GUIDE("laut TV-Programm", "Das öffentliche TV-Programm des Senders nennt beide Mannschaften.", switchable = true),
     STATION("laut Sendeliste", "Bzzoiro bzw. ESPN nennen diesen Sender für das Spiel.", switchable = true),
@@ -26,15 +27,32 @@ enum class MatchSource(val label: String, val detail: String, val guessed: Boole
         /** Score eines Senders, der der Rechte-Tabelle widerspricht (sichtbar, aber gekennzeichnet). */
         const val RIGHTS_CONFLICT = 46
 
+        /** Score eines im Bild bewiesenen Senders (über allem anderen). */
+        const val PROVEN_SCORE = 120
+
+        /** Score eines widerlegten Senders (Platzhalter, anderes Programm, „Falscher Sender“) – nie angezeigt. */
+        const val DISPROVEN_SCORE = 20
+
         fun of(score: Int): MatchSource = when {
-            score >= 105 -> CONFIRMED
-            score >= 90 -> GUIDE
-            score >= 85 -> STATION
-            score >= 80 -> EPG
-            score >= 70 -> GUIDE_WEAK
-            score >= 55 -> KEYWORD
-            score >= 50 -> MANUAL
+            score >= MIN_PROVEN -> PROVEN
+            score >= MIN_CONFIRMED -> CONFIRMED
+            score >= MIN_GUIDE -> GUIDE
+            score >= MIN_STATION -> STATION
+            score >= MIN_EPG -> EPG
+            score >= MIN_GUIDE_WEAK -> GUIDE_WEAK
+            score >= MIN_KEYWORD -> KEYWORD
+            score >= MIN_MANUAL -> MANUAL
             else -> CONFLICT
         }
+
+        // Untergrenzen der Bänder (Scores der Quellen, +1 Bonus für den aktiven Zugang eingerechnet).
+        private const val MIN_PROVEN = 115
+        private const val MIN_CONFIRMED = 105
+        private const val MIN_GUIDE = 90
+        private const val MIN_STATION = 85
+        private const val MIN_EPG = 80
+        private const val MIN_GUIDE_WEAK = 70
+        private const val MIN_KEYWORD = 55
+        private const val MIN_MANUAL = 50
     }
 }

@@ -17,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -44,6 +45,7 @@ import com.mg.player.ui.theme.AppShapes
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
 import com.mg.player.ui.theme.Dimens
+import kotlinx.coroutines.launch
 
 /**
  * Kommendes Spiel: Countdown, Sender und was dort gerade läuft. Der Fokus liegt auf „Erinnerung setzen“ –
@@ -53,6 +55,7 @@ import com.mg.player.ui.theme.Dimens
 fun SportEventDialog(item: MatchedEvent, onDismiss: () -> Unit) {
     val container = LocalAppContainer.current
     val toast = LocalToast.current
+    val scope = rememberCoroutineScope()
     val askPermission = rememberNotificationPermission()
     val reminders by container.reminders.items.collectAsStateWithLifecycle()
     val reminderSet = reminders.any { it.channelId == item.channelId && it.startMs == item.event.startMs }
@@ -113,6 +116,17 @@ fun SportEventDialog(item: MatchedEvent, onDismiss: () -> Unit) {
                             LaunchRequest.play(item.channelId)
                         },
                         icon = AppIcons.Play,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    // Plan „Spiel-Finder“ H: Der Sender fällt für diesen Wettbewerb weg und zählt als Fehltreffer seiner Quelle.
+                    ActionButton(
+                        "Falscher Sender",
+                        onClick = {
+                            onDismiss()
+                            scope.launch { container.sport.proofActions.markWrong(item.event, item.channelId, item.channelName) }
+                            toast.show("${item.channelName} wird für ${item.event.league} nicht mehr vorgeschlagen")
+                        },
+                        icon = AppIcons.Close,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     ActionButton("Abbrechen", onClick = onDismiss, icon = AppIcons.Close, modifier = Modifier.fillMaxWidth())

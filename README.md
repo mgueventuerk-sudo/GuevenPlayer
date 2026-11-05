@@ -271,6 +271,19 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.54 (Spiel-Finder L2 + L3: Senderechte und Bildbeweis)
+
+- **Rechte-Tabelle 2026/27** (DE, AT, TR; Quellen im Code): Sender, deren Familie den Wettbewerb laut Tabelle nicht
+  überträgt, stehen als „widerspricht den Senderechten“ da (kein harter Filter – Rechte sind oft geteilt).
+- **Bildbeweis:** Bei laufenden Spielen sieht die App über **freie Playlists** (laut Anbieter frei, nicht von diesem
+  Gerät genutzt, kurz davor nochmals gefragt) bis zu 3 Kandidaten je Minute stumm und unsichtbar an. Texterkennung auf dem
+  Gerät (ML Kit): Spielstand-Einblendung passt zum Live-Stand → „● bewiesen“; Standbild oder „Kein Event“ → nie
+  angezeigt; andere Partie oder falsche Spielminute (Wiederholung) → verworfen. Event-Kanäle werden so geprüft.
+- **Beweis gilt für alle Playlists** mit demselben Sender (außer Event-Kanälen).
+- **Lernen von dir:** 5 Minuten Zuschauen auf einem Kandidaten = bewiesen; „Falscher Sender“ im Spiel-Dialog sperrt den
+  Sender für den Wettbewerb.
+- Einstellungen → Sport → Quellen: „Letzte Prüfungen“ mit Ergebnis.
+
 ## Neu in 3.53 (Spiel-Finder L1: ehrliche Sender-Anzeige)
 
 - **Event-Sender nur noch Kandidaten:** „PRIME DE 016 [Alkmaar vs. Juventus]“ zeigte am 05.11. nur „Kein Event“. Event-

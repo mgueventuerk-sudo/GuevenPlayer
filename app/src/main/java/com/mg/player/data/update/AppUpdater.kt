@@ -205,12 +205,12 @@ class AppUpdater(private val context: Context, http: HttpFetcher, private val cl
             return AppUpdate(code, name, url, apk.optLong("size"))
         }
 
-        internal fun problem(e: Throwable): String = when ((e as? HttpStatusException)?.code) {
+        internal fun problem(e: Throwable): String = when (val code = (e as? HttpStatusException)?.code) {
             401 -> "Schlüssel ungültig oder abgelaufen (HTTP 401)"
             403 -> "Schlüssel ohne Leserecht für das Repo (HTTP 403)"
             404 -> "Kein Release gefunden oder Schlüssel ohne Zugriff aufs Repo (HTTP 404)"
             null -> "keine Verbindung"
-            else -> "GitHub antwortet mit HTTP ${(e as HttpStatusException).code}"
+            else -> "GitHub antwortet mit HTTP $code"
         }
     }
 }

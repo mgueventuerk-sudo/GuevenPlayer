@@ -127,10 +127,10 @@ class KickoffCheck(
                 val text = listOfNotNull(p.title, p.description).joinToString(" ")
                 val words = SearchText.words(text)
                 // Platzhalter („No Event“, „Kein Event“): eindeutig nicht das Spiel.
-                if (NO_EVENT.containsMatchIn(text)) return Verdict.OTHER_MATCH
-                if ((scorer(words) ?: 0) >= GuideMatching.SERIES_ONLY && !GuideMatching.isNotLive(words)) return Verdict.CONFIRMED
+                val placeholder = NO_EVENT.containsMatchIn(text)
+                if (!placeholder && (scorer(words) ?: 0) >= GuideMatching.SERIES_ONLY && !GuideMatching.isNotLive(words)) return Verdict.CONFIRMED
                 // Nur eine deutlich andere Paarung zählt als Gegenbeweis („Live Event“ o. Ä. sagt nichts).
-                if (PAIRING.containsMatchIn(p.title)) other = true
+                if (placeholder || PAIRING.containsMatchIn(p.title)) other = true
             }
             return if (other) Verdict.OTHER_MATCH else Verdict.UNKNOWN
         }
