@@ -17,7 +17,8 @@ import com.mg.player.domain.model.SportEvent
  * - Sendername aus der Online-Quelle bzw. dem Programm                                    → Score 85
  * - EPG des Anbieters: Sendung ±45 min um den Start nennt BEIDE Teams                     → Score 80
  * - ohne Teams (Formel 1, UFC): EPG-Sendung mit dem Stichwort der Serie                  → Score 60
- * - von Hand für die Liga zugeordneter Sender (nur noch Korrektur, wenn sonst nichts passt) → Score 50
+ * - von Hand für die Liga zugeordneter Sender (nur noch Korrektur, wenn sonst nichts passt) → Score 50;
+ *   gleichzeitige Spiele verteilt auf dessen Familie („beIN SPORTS 1“, „2“, „3“ …), siehe [ChannelFamily]
  * EPG nur innerhalb seiner Reichweite. Im Zweifel keine Zuordnung – ein falscher Sender ist schlimmer als keiner.
  */
 class ChannelEventMatcher(private val dao: SportDao, private val finder: SportChannelFinder? = null) {
@@ -36,19 +37,23 @@ class ChannelEventMatcher(private val dao: SportDao, private val finder: SportCh
         if (events.isEmpty()) return emptyList()
         val horizon = dao.epgHorizonMs() ?: 0L
         val stations = if (analysis == null) stationChannels(events) else emptyMap()
-        val manualRows = if (manual.isEmpty()) emptyMap() else dao.channelsByIds(manual.values.distinct()).associateBy { it.id }
         // Viele Spiele beginnen gleichzeitig (Samstag 15:30): je Anstoßzeit nur eine EPG-Abfrage.
         val windows = HashMap<Long, List<EpgCandidateRow>>()
-        val result = ArrayList<SportEventChannelEntity>()
+        val perEvent = LinkedHashMap<SportEvent, MutableList<Pair<ChannelKeyRow, Int>>>()
         for (event in events) {
             val found = ArrayList<Pair<ChannelKeyRow, Int>>()
             event.stations.forEach { station -> stations[NameNormalizer.normalize(station)]?.forEach { found += it to SportChannelFinder.STATION } }
             analysis?.let { found += it.matches(event) }
-            manual[leagueOfEvent(event.id)]?.let(manualRows::get)?.let { found += it to MANUAL_SCORE }
             if (event.startMs <= horizon) {
                 val rows = windows.getOrPut(event.startMs) { dao.epgStartingBetween(event.startMs - WINDOW_MS, event.startMs + WINDOW_MS) }
                 found += epgMatches(event, rows)
             }
+            perEvent[event] = found
+        }
+        // Ersatzsender von Hand zuletzt: erst jetzt ist klar, welche Spiele schon sicher einen Sender haben.
+        manualPicks(perEvent, manual).forEach { (event, channel) -> perEvent[event]?.add(channel to MANUAL_SCORE) }
+        val result = ArrayList<SportEventChannelEntity>()
+        for ((event, found) in perEvent) {
             found.groupBy { it.first.id }.values.forEach { list ->
                 val (channel, score) = list.maxBy { it.second }
                 val bonus = if (channel.playlistId == preferredPlaylistId) 1 else 0
@@ -56,6 +61,49 @@ class ChannelEventMatcher(private val dao: SportDao, private val finder: SportCh
             }
         }
         return result
+    }
+
+    /**
+     * Ersatzsender je Liga für die Spiele ohne sichere Zuordnung: gleichzeitige Spiele auf die Senderfamilie verteilt
+     * (beIN SPORTS 1, 2, 3 …). Sender, die schon sicher für ein Spiel der Liga feststehen, sind in dessen Zeit belegt.
+     */
+    private suspend fun manualPicks(
+        perEvent: Map<SportEvent, List<Pair<ChannelKeyRow, Int>>>,
+        manual: Map<String, String>,
+    ): Map<SportEvent, ChannelKeyRow> {
+        if (manual.isEmpty()) return emptyMap()
+        val bases = dao.channelsByIds(manual.values.distinct()).associateBy { it.id }
+        val picks = HashMap<SportEvent, ChannelKeyRow>()
+        for ((league, events) in perEvent.keys.groupBy { leagueOfEvent(it.id) }) {
+            val base = manual[league]?.let(bases::get) ?: continue
+            val family = family(base)
+            val familyIds = family.mapTo(HashSet()) { it.id }
+            val (sure, open) = events.partition { e -> perEvent[e].orEmpty().any { it.second > MANUAL_SCORE } }
+            val busy = sure.mapNotNull { e -> bestOf(perEvent[e].orEmpty())?.takeIf { it.id in familyIds }?.let { e.startMs to it } }
+            val byId = open.associateBy { it.id }
+            ChannelFamily.allocate(open.map { it.id to it.startMs }, family, busy).forEach { (id, channel) -> byId[id]?.let { picks[it] = channel } }
+        }
+        return picks
+    }
+
+    private fun bestOf(found: List<Pair<ChannelKeyRow, Int>>): ChannelKeyRow? = found.maxByOrNull { it.second }?.first
+
+    /**
+     * [base] und seine Geschwister im selben Zugang: ab der gewählten Nummer aufwärts, danach die kleineren
+     * (gewählt „beIN SPORTS 1“ → 1, 2, 3 …). Ohne Nummer im Namen nur [base].
+     */
+    private suspend fun family(base: ChannelKeyRow): List<ChannelKeyRow> {
+        val names = ChannelFamily.siblingNames(base.name)
+        if (names.isEmpty()) return listOf(base)
+        val wanted = names.associate { (n, name) -> NameNormalizer.normalize(name) to n }
+        val rows = dao.channelsByNormalizedName(wanted.keys.toList()).filter { it.playlistId == base.playlistId }
+        // Je Nummer der beste Kanal (Liste nach Qualität sortiert); der gewählte Sender selbst gewinnt seine Nummer.
+        val byNumber = rows.groupBy { wanted[NameNormalizer.normalize(it.name)] }.mapNotNull { (n, list) -> n?.let { it to list.first() } }.toMap()
+            .toMutableMap()
+        val own = ChannelFamily.numberOf(base.name) ?: return listOf(base)
+        byNumber[own] = base
+        val (from, below) = byNumber.toSortedMap().entries.partition { it.key >= own }
+        return (from + below).map { it.value }
     }
 
     /** Zugänge wurden aktualisiert: Senderliste beim nächsten Abgleich neu lesen. */

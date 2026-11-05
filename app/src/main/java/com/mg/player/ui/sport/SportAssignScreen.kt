@@ -46,7 +46,7 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** Sport: Ligen, deren Spiele kein Sender zugeordnet ist, bekommen von Hand einen Sender (gilt für alle Spiele der Liga). */
+/** Sport: Ligen ohne Sender bekommen von Hand einen Ersatz; gleichzeitige Spiele gehen auf dessen Reihe (1, 2, 3 …). */
 class SportAssignViewModel(private val container: AppContainer) : ViewModel() {
     data class LeagueRow(val key: String, val name: String, val unmatched: List<SportEvent>, val channelId: String?, val channelName: String?)
 
@@ -103,7 +103,8 @@ fun SportAssignScreen(leagueKey: String? = null) {
         Text(
             if (league == null) {
                 "Normalerweise findet die App die Sender selbst. Nur wenn sie für eine Liga keinen findet, kannst du hier einen " +
-                    "Ersatz festlegen – er gilt für alle Spiele der Liga, für die sonst nichts gefunden wird."
+                    "Ersatz festlegen. Laufen Spiele gleichzeitig, verteilt die App sie auf die Sender derselben Reihe " +
+                    "(z. B. beIN SPORTS 1, 2, 3 …)."
             } else {
                 "Namen eingeben (z. B. „Sky Sport“, „DAZN“) und den Sender wählen."
             },

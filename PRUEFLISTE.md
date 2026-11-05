@@ -339,6 +339,12 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P5 Mit gesetzter PIN: Bearbeiten fragt zuerst nach der PIN.
 - [ ] P6 QR-Code im Bearbeiten-Bildschirm: Daten vom Handy landen im Formular (gespeichert wird erst mit „Prüfen & speichern“).
 
+## 16f. Neu in 3.46 – Sport-Ersatzsender als Reihe
+
+- [ ] S1 Sport → Sender korrigieren → Liga mit „BEIN SPORTS 1“: Zwei gleichzeitige Spiele zeigen beIN SPORTS 1 und 2 (nicht zweimal 1).
+- [ ] S2 Spiel um 18:00 und eines um 21:00: beide auf beIN SPORTS 1.
+- [ ] S3 Sender ohne Nummer (z. B. „Sky Sport Bundesliga“): nur das erste gleichzeitige Spiel bekommt ihn, das zweite steht unter „Ohne Sender“.
+
 ## 16e. Neu in 3.45 – eigenes Gerät nicht „belegt“
 
 - [ ] B1 Zugang mit 1 Verbindung: Senderliste, Vorschau läuft auf Sender A → Sender B öffnen: kein „Zugang belegt“.

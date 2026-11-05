@@ -271,6 +271,16 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.46 (Sport: gleichzeitige Spiele auf mehreren Sendern)
+
+- **Gemeldet:** Mit einem von Hand gewählten Ersatzsender (z. B. „|TR| BEIN SPORTS 1 FHD“ für die Süper Lig) bekamen
+  alle Spiele der Liga denselben Sender – auch gleichzeitige, die in Wirklichkeit auf beIN SPORTS 2, 3 … laufen.
+- **Jetzt:** Der Ersatzsender steht für seine ganze Senderreihe im selben Zugang (gleicher Name, andere Nummer: 1–10).
+  Spiele ohne sichere Zuordnung bekommen der Reihe nach den ersten Sender, der zu ihrer Anstoßzeit frei ist
+  (Belegung 2 h 15 min); Sender, die über Online-Sendeliste, Programm oder EPG schon sicher für ein anderes Spiel
+  feststehen, gelten in dessen Zeit als belegt. Reicht die Reihe nicht, bekommt ein Spiel lieber keinen Sender als
+  einen falschen. Echte Daten (Bzzoiro-Sendeliste, Sport-Programm, EPG des Senders) haben weiterhin Vorrang.
+
 ## Neu in 3.45 („Zugang belegt“ durch das eigene Gerät)
 
 - **Gemeldet:** „Zugang belegt – über ‚Alternative‘ schaut gerade jemand (1/1)“, obwohl nur dieses Gerät lief.
