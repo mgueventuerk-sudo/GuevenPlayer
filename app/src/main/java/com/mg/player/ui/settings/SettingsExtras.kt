@@ -38,7 +38,7 @@ internal fun LazyListScope.contentItems(c: SettingsContext) {
             ChoiceRow(
                 "Reihenfolge in Gruppen",
                 c.s.groupSort.label,
-                { c.vm.setGroupSort(GroupSort.entries.nextAfter(c.s.groupSort)) },
+                { c.vm.update { it.copy(groupSort = GroupSort.entries.nextAfter(it.groupSort)) } },
                 when (c.s.groupSort) {
                     GroupSort.AUTO -> "„Alle Zugänge“ A–Z, einzelne Zugänge wie beim Anbieter"
                     GroupSort.PROVIDER -> "Sender, Filme und Serien wie vom Anbieter geliefert"

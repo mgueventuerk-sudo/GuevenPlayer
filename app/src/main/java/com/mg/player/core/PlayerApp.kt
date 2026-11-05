@@ -76,6 +76,7 @@ open class PlayerApp :
         }
         container.startEpgWatch()
         container.watchTunnel()
+        container.watchGroupSort()
         // „Ohne Verlauf“ schaltet auch das Aktivitätsprotokoll leise.
         container.appScope.launch {
             container.settingsRepository.settings.map { it.noHistory }.distinctUntilChanged().collect { AppLog.quiet = it }

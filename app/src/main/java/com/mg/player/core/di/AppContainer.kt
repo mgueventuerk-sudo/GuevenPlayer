@@ -83,6 +83,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -320,6 +321,19 @@ class AppContainer(context: Context, settingsOverride: SettingsRepository? = nul
                 } catch (e: Exception) {
                     AppLog.error("EPG", "Hintergrundprüfung fehlgeschlagen", e)
                 }
+            }
+        }
+    }
+
+    /**
+     * „Reihenfolge in Gruppen“ geändert: Senderlisten aller Zugänge neu ordnen (Filme/Serien laden ihre Listen selbst
+     * neu). Reagiert auf die Einstellung selbst – egal, wo sie geändert wird (Einstellungen, Wiederherstellung).
+     */
+    fun watchGroupSort() {
+        appScope.launch {
+            settingsRepository.settings.map { it.groupSort }.distinctUntilChanged().drop(1).collect {
+                val ids = playlistRepository.observePlaylists().first().map { p -> p.id } + Combined.ID
+                ids.forEach(channelGroupIndex::rebuildLater)
             }
         }
     }
