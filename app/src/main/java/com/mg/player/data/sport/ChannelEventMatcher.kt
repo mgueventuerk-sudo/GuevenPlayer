@@ -77,20 +77,25 @@ class ChannelEventMatcher(private val dao: SportDao, private val finder: SportCh
         val picks = HashMap<SportEvent, ChannelKeyRow>()
         for ((league, events) in perEvent.keys.groupBy { leagueOfEvent(it.id) }) {
             val base = manual[league]?.let(bases::get) ?: continue
-            val family = family(base)
-            if (ChannelFamily.numberOf(base.name) == null) {
-                // Sender ohne Nummer (z. B. „Sky Sport Bundesliga“): keine Reihe zum Verteilen – gilt für alle offenen
-                // Spiele der Liga, in der Übersicht als „(vermutlich)“ gekennzeichnet.
-                events.filter { e -> perEvent[e].orEmpty().none { it.second > MANUAL_SCORE } }.forEach { picks[it] = base }
-                continue
-            }
-            val familyIds = family.mapTo(HashSet()) { it.id }
-            val (sure, open) = events.partition { e -> perEvent[e].orEmpty().any { it.second > MANUAL_SCORE } }
-            val busy = sure.mapNotNull { e -> bestOf(perEvent[e].orEmpty())?.takeIf { it.id in familyIds }?.let { e.startMs to it } }
-            val byId = open.associateBy { it.id }
-            ChannelFamily.allocate(open.map { it.id to it.startMs }, family, busy).forEach { (id, channel) -> byId[id]?.let { picks[it] = channel } }
+            picks += leaguePicks(events, base, perEvent)
         }
         return picks
+    }
+
+    private suspend fun leaguePicks(
+        events: List<SportEvent>,
+        base: ChannelKeyRow,
+        perEvent: Map<SportEvent, List<Pair<ChannelKeyRow, Int>>>,
+    ): Map<SportEvent, ChannelKeyRow> {
+        val (sure, open) = events.partition { e -> perEvent[e].orEmpty().any { it.second > MANUAL_SCORE } }
+        // Sender ohne Nummer (z. B. „Sky Sport Bundesliga“): keine Reihe zum Verteilen – gilt für alle offenen
+        // Spiele der Liga, in der Übersicht als „(vermutlich)“ gekennzeichnet.
+        if (ChannelFamily.numberOf(base.name) == null) return open.associateWith { base }
+        val family = family(base)
+        val familyIds = family.mapTo(HashSet()) { it.id }
+        val busy = sure.mapNotNull { e -> bestOf(perEvent[e].orEmpty())?.takeIf { it.id in familyIds }?.let { e.startMs to it } }
+        val byId = open.associateBy { it.id }
+        return ChannelFamily.allocate(open.map { it.id to it.startMs }, family, busy).mapNotNull { (id, channel) -> byId[id]?.let { it to channel } }.toMap()
     }
 
     private fun bestOf(found: List<Pair<ChannelKeyRow, Int>>): ChannelKeyRow? = found.maxByOrNull { it.second }?.first
