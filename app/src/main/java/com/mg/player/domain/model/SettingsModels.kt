@@ -36,9 +36,12 @@ enum class BufferProfile(val label: String, val startBufferMs: Int) {
  */
 enum class LiveCushion(val label: String, val ms: Long) {
     OFF("Aus", 0),
-    S4("4 Sekunden", 4_000),
-    S8("8 Sekunden", 8_000),
+    S4("4 Sekunden", CUSHION_SHORT_MS),
+    S8("8 Sekunden", CUSHION_LONG_MS),
 }
+
+private const val CUSHION_SHORT_MS = 4_000L
+private const val CUSHION_LONG_MS = 8_000L
 
 enum class HwDecoding(val label: String) {
     AUTO("Automatisch"),

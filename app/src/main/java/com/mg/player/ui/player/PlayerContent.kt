@@ -59,12 +59,7 @@ internal fun PlayerViewModel.startPlayer() {
         var ownUseMarkedAt = 0L
         while (true) {
             ownUseMarkedAt = refreshOwnUse(ownUseMarkedAt)
-            val state = engineHolder.value?.state?.value
-            val stablePlayback = state?.let { it.status == PlaybackStatus.READY && it.isPlaying } == true &&
-                !uiState.value.reconnecting && !uiState.value.waitingForNetwork
-            // Live mit Ersatz-Variante: immer im 500-ms-Takt – sonst käme ein Hänger bis zu 1 s zu spät an (3-s-Grenze).
-            val quickWatch = uiState.value.playable?.let { it.isLive && it.canSwitchSource } == true
-            delay(if (stablePlayback && !quickWatch) STEADY_TICK_MS else ACTIVE_TICK_MS)
+            delay(tickDelayMs())
             tick()
         }
     }
@@ -138,6 +133,18 @@ internal suspend fun PlayerViewModel.onEnded() {
     }
     progress.markWatched(playable, durationMs())
     eventSink.emit(PlayerEvent.Close)
+}
+
+/**
+ * Takt des Players: 1 s bei ruhiger Wiedergabe, sonst 500 ms. Live mit Ersatz-Variante immer 500 ms – sonst käme ein
+ * Hänger bis zu 1 s zu spät beim Wächter an (3-s-Grenze, ab 3.51).
+ */
+private fun PlayerViewModel.tickDelayMs(): Long {
+    val state = engineHolder.value?.state?.value
+    val stablePlayback = state?.let { it.status == PlaybackStatus.READY && it.isPlaying } == true &&
+        !uiState.value.reconnecting && !uiState.value.waitingForNetwork
+    val quickWatch = uiState.value.playable?.let { it.isLive && it.canSwitchSource } == true
+    return if (stablePlayback && !quickWatch) STEADY_TICK_MS else ACTIVE_TICK_MS
 }
 
 private suspend fun PlayerViewModel.tick() {
