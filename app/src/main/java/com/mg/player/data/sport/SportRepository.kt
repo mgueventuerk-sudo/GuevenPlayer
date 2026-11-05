@@ -1,6 +1,7 @@
 package com.mg.player.data.sport
 
 import com.mg.player.core.log.AppLog
+import com.mg.player.core.util.runCatchingCancellable
 import com.mg.player.core.network.HttpStatusException
 import com.mg.player.data.db.dao.SportDao
 import com.mg.player.data.db.entity.SportEventChannelEntity
@@ -104,10 +105,30 @@ class SportRepository(
         }
         if (catalog.isEmpty()) return@withContext "Bzzoiro: keine Ligen erhalten – Schlüssel prüfen"
         val adopted = BzzoiroAdoption.adopt(catalog, followed(settings.current()))
-        settings.update { it.copy(sportLeagues = adopted.chosen) }
+        settings.update { s ->
+            // Von Hand gewählte Ersatzsender der ersetzten ESPN-Ligen mitnehmen.
+            val manual = s.sportManualChannels.toMutableMap()
+            adopted.moved.forEach { (from, to) -> manual.remove(from)?.let { manual.putIfAbsent(to, it) } }
+            s.copy(sportLeagues = adopted.chosen, sportManualChannels = manual)
+        }
         adopted.message
     }
 
+
+    /**
+     * Dieselbe Liga von ESPN und Bzzoiro gefolgt (vor 3.47 bei der Süper Lig möglich): auf Bzzoiro zusammenführen.
+     * Fragt die Bzzoiro-Ligenliste nur ab, wenn es überhaupt eine ESPN- und eine Bzzoiro-Liga gibt.
+     */
+    private suspend fun mergeDuplicateLeagues() {
+        val current = settings.current()
+        val followed = followed(current)
+        val source = sources.filterIsInstance<BzzoiroSource>().firstOrNull() ?: return
+        if (followed.none { source.handles(it) } || followed.none { it in BzzoiroSource.DEFAULTS }) return
+        val catalog = runCatchingCancellable { source.leagues() }.getOrNull().orEmpty()
+        val (leagues, manual) = BzzoiroAdoption.mergeDuplicates(catalog, followed, current.sportManualChannels) ?: return
+        AppLog.log("Sport", "Doppelte Ligen zusammengeführt: ${followed - leagues}")
+        settings.update { it.copy(sportLeagues = leagues, sportManualChannels = manual) }
+    }
 
     /** Kommende Spiele ohne gefundenen Sender (zum Zuordnen von Hand). */
     val unmatched: Flow<List<SportEvent>> = tick(HOUR)
@@ -225,6 +246,7 @@ class SportRepository(
             // „Online-Zusatzinfos aus“: keine einzige Anfrage an Sportdienste.
             if (!hasPlaylists() || !settings.current().onlineExtras) return@withLock
             if (onlyLeagues == null && !force && now - lastFullMs < MIN_INTERVAL_MS) return@withLock
+            if (onlyLeagues == null) mergeDuplicateLeagues()
             val current = settings.current()
             val followed = followed(current)
             val wanted = onlyLeagues?.intersect(followed) ?: followed

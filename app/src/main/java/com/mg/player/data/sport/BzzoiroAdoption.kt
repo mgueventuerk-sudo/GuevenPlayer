@@ -8,10 +8,12 @@ import org.json.JSONException
 /** Neuer Bzzoiro-Schlüssel: ESPN-Ligen, die Bzzoiro auch hat, dorthin umstellen und die Süper Lig dazunehmen (reine Logik). */
 internal object BzzoiroAdoption {
 
-    data class Result(val chosen: Set<String>, val message: String)
+    /** [moved]: ESPN-Liga → Bzzoiro-Liga (für die Übernahme von Hand gewählter Ersatzsender). */
+    data class Result(val chosen: Set<String>, val message: String, val moved: Map<String, String> = emptyMap())
 
     fun adopt(catalog: List<SportLeague>, followed: Set<String>): Result {
         val chosen = followed.toMutableSet()
+        val moved = HashMap<String, String>()
         var switched = 0
         var extra: String? = null
         BzzoiroSource.DEFAULTS.forEach { (espnKey, candidates) ->
@@ -23,13 +25,32 @@ internal object BzzoiroAdoption {
                 espnKey in chosen -> {
                     chosen -= espnKey
                     chosen += match.key
+                    moved[espnKey] = match.key
                     switched++
                 }
             }
         }
         val message = listOfNotNull("Bzzoiro verbunden – $switched Ligen umgestellt", extra?.let { "$it dazu" }).joinToString(", ") +
             ". Spiele kommen jetzt mit TV-Sendern."
-        return Result(chosen, message)
+        return Result(chosen, message, moved)
+    }
+
+    /**
+     * Schon verbunden, aber dieselbe Liga doppelt (ESPN und Bzzoiro, z. B. „Süper Lig“ und „Trendyol Super Lig“): die
+     * ESPN-Liga entfernen – Bzzoiro liefert die Sender je Spiel. Ein von Hand gewählter Ersatzsender wandert mit.
+     * null = nichts doppelt.
+     */
+    fun mergeDuplicates(catalog: List<SportLeague>, followed: Set<String>, manual: Map<String, String>): Pair<Set<String>, Map<String, String>>? {
+        val chosen = followed.toMutableSet()
+        val channels = manual.toMutableMap()
+        BzzoiroSource.DEFAULTS.forEach { (espnKey, candidates) ->
+            if (espnKey == null || espnKey !in chosen) return@forEach
+            val match = catalog.firstOrNull { league -> candidates.any { (label, country) -> sameLeague(league.name, label, country) } }
+            if (match == null || match.key !in chosen) return@forEach
+            chosen -= espnKey
+            channels.remove(espnKey)?.let { channels.putIfAbsent(match.key, it) }
+        }
+        return if (chosen == followed) null else chosen to channels
     }
 
     /** „Bundesliga (Germany)“ passt zu label „bundesliga“, Land „germany“ (leeres Land = egal); Akzente und Satzzeichen egal. */

@@ -339,6 +339,12 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P5 Mit gesetzter PIN: Bearbeiten fragt zuerst nach der PIN.
 - [ ] P6 QR-Code im Bearbeiten-Bildschirm: Daten vom Handy landen im Formular (gespeichert wird erst mit „Prüfen & speichern“).
 
+## 16g. Neu in 3.47 – echte Sender, Süper Lig einmal
+
+- [ ] T1 Sport → Sender korrigieren: „Süper Lig“ und „Trendyol Super Lig“ stehen nur noch einmal da (nach dem nächsten Abruf).
+- [ ] T2 Süper-Lig-Spiele mit Bzzoiro: Sender ohne „(vermutlich)“ = laut Sendeliste; mit „(vermutlich)“ = Ersatzsender.
+- [ ] T3 Gleichzeitige Spiele: verschiedene beIN-Sender laut Sendeliste, sonst vermutlich 1, 2, 3 …
+
 ## 16f. Neu in 3.46 – Sport-Ersatzsender als Reihe
 
 - [ ] S1 Sport → Sender korrigieren → Liga mit „BEIN SPORTS 1“: Zwei gleichzeitige Spiele zeigen beIN SPORTS 1 und 2 (nicht zweimal 1).

@@ -194,6 +194,8 @@ class BzzoiroSource(private val http: HttpFetcher, private val token: suspend ()
          * Gegenstücke zu den ESPN-Voreinstellungen (Name und Land wie bei Bzzoiro) plus die Süper Lig. Mit Schlüssel
          * ersetzt Bzzoiro diese ESPN-Ligen – sonst stünde jedes Spiel doppelt da.
          */
+        private val TURKISH_LEAGUE = listOf("super lig" to "turkey", "trendyol super lig" to "turkey")
+
         internal val DEFAULTS: Map<String?, List<Pair<String, String>>> = mapOf(
             "espn:soccer/ger.1" to listOf("bundesliga" to "germany"),
             "espn:soccer/ger.2" to listOf("2. bundesliga" to "germany", "2.bundesliga" to "germany"),
@@ -209,8 +211,10 @@ class BzzoiroSource(private val http: HttpFetcher, private val token: suspend ()
             "espn:soccer/fra.1" to listOf("ligue 1" to "france"),
             "espn:soccer/ned.1" to listOf("eredivisie" to "netherlands"),
             "espn:soccer/aut.1" to listOf("austrian bundesliga" to "austria", "bundesliga" to "austria"),
-            // Bei Bzzoiro „Trendyol Super Lig“ (ohne ü) – verglichen wird ohne Akzente.
-            null to listOf("super lig" to "turkey", "trendyol super lig" to "turkey"),
+            // Bei Bzzoiro „Trendyol Super Lig“ (ohne ü) – verglichen wird ohne Akzente. Ersetzt die ESPN-Süper-Lig (sonst
+            // stand die Liga doppelt da); wer sie nicht verfolgt, bekommt sie dazu.
+            "espn:soccer/tur.1" to TURKISH_LEAGUE,
+            null to TURKISH_LEAGUE,
         )
     }
 }

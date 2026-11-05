@@ -271,6 +271,17 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.47 (Sport: echte Sender je Spiel, Süper Lig nur einmal)
+
+- **Süper Lig zusammengeführt:** „Süper Lig“ (ESPN) und „Trendyol Super Lig (Turkey)“ (Bzzoiro) sind dieselbe Liga.
+  Mit Bzzoiro-Schlüssel ersetzt Bzzoiro jetzt auch die ESPN-Süper-Lig (wie Bundesliga & Co.); wer beide schon folgte,
+  wird beim nächsten Abruf automatisch zusammengeführt – ein von Hand gewählter Ersatzsender wandert mit.
+- **Echte Sender je Spiel:** Bzzoiro liefert für jedes Spiel die TV-Sender (DE, AT, CH, TR). Diese Namen treffen jetzt
+  auch die Kanäle des Anbieters, wenn ein Länderzusatz abweicht („beIN SPORTS 2 Türkiye“ = „|TR| BEIN SPORTS 2 FHD“);
+  die Sendernummer muss stimmen. Reihenfolge der Quellen unverändert: Sendeliste/Programm/EPG vor Ersatzsender.
+- **Ehrlich gekennzeichnet:** Kommt der Sender nur vom Ersatzsender der Liga (bzw. dessen Reihe 1, 2, 3 …), steht
+  „(vermutlich)“ dahinter, im Spiel-Dialog mit Erklärung.
+
 ## Neu in 3.46 (Sport: gleichzeitige Spiele auf mehreren Sendern)
 
 - **Gemeldet:** Mit einem von Hand gewählten Ersatzsender (z. B. „|TR| BEIN SPORTS 1 FHD“ für die Süper Lig) bekamen

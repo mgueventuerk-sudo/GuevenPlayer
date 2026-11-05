@@ -31,7 +31,14 @@ fun sportScore(home: String?, away: String?, detail: String?): String? {
 
 /** Event mit dem besten passenden Kanal aus den Zugängen. */
 @Immutable
-data class MatchedEvent(val event: SportEvent, val channelId: String, val channelName: String, val categoryId: String)
+data class MatchedEvent(
+    val event: SportEvent,
+    val channelId: String,
+    val channelName: String,
+    val categoryId: String,
+    /** Sender nur vermutet (Ersatzsender der Liga bzw. dessen Reihe), nicht aus Sendeliste, Programm oder EPG belegt. */
+    val guessed: Boolean = false,
+)
 
 /** Eine Liga, der man folgen kann. [key] z. B. „espn:soccer/ger.1“ oder „sm:271“. */
 @Immutable

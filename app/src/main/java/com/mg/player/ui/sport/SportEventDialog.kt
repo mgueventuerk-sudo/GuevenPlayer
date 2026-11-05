@@ -65,6 +65,8 @@ fun SportEventDialog(item: MatchedEvent, onDismiss: () -> Unit) {
         buildString {
             append("${item.event.league} · ${kickoff(item.event.startMs)} Uhr\n")
             append("Beginnt ${formatCountdown(item.event.startMs, System.currentTimeMillis())} auf ${item.channelName}.")
+            // Ehrlich bleiben: Ein von Hand gewählter Ersatzsender (oder seine Reihe) ist nicht belegt.
+            if (item.guessed) append(" Sender vermutet – keine Sendeliste und kein Programm nennen das Spiel.")
             nowOnChannel?.let { append(" Dort läuft gerade „$it“.") }
         }
     }

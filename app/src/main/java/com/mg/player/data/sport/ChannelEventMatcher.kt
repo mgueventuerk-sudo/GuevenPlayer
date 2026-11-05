@@ -42,7 +42,7 @@ class ChannelEventMatcher(private val dao: SportDao, private val finder: SportCh
         val perEvent = LinkedHashMap<SportEvent, MutableList<Pair<ChannelKeyRow, Int>>>()
         for (event in events) {
             val found = ArrayList<Pair<ChannelKeyRow, Int>>()
-            event.stations.forEach { station -> stations[NameNormalizer.normalize(station)]?.forEach { found += it to SportChannelFinder.STATION } }
+            event.stations.forEach { station -> stationRows(stations, station)?.forEach { found += it to SportChannelFinder.STATION } }
             analysis?.let { found += it.matches(event) }
             if (event.startMs <= horizon) {
                 val rows = windows.getOrPut(event.startMs) { dao.epgStartingBetween(event.startMs - WINDOW_MS, event.startMs + WINDOW_MS) }
@@ -120,8 +120,13 @@ class ChannelEventMatcher(private val dao: SportDao, private val finder: SportCh
         }
     }
 
+    /** Kanäle zu einem Sendernamen der Online-Quelle: erst exakt, dann ohne Länderzusatz („beIN SPORTS 2 Türkiye“). */
+    private fun stationRows(stations: Map<String, List<ChannelKeyRow>>, station: String): List<ChannelKeyRow>? =
+        stations[NameNormalizer.normalize(station)] ?: stations[StationNames.withoutCountry(station)]
+
     private suspend fun stationChannels(events: List<SportEvent>): Map<String, List<ChannelKeyRow>> {
-        val names = events.flatMap { it.stations }.map(NameNormalizer::normalize).filter { it.length >= 2 }.distinct()
+        val names = events.flatMap { it.stations }.flatMap { listOf(NameNormalizer.normalize(it), StationNames.withoutCountry(it)) }
+            .filter { it.length >= 2 }.distinct()
         if (names.isEmpty()) return emptyMap()
         val rows = names.chunked(MAX_SQL_ARGS).flatMap { dao.channelsByNormalizedName(it) }
         // Je Name und Zugang nur der beste Kanal (Liste ist nach Qualität sortiert).

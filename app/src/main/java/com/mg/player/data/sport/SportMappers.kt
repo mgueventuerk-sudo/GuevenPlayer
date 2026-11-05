@@ -19,6 +19,7 @@ internal fun MatchedEventRow.toDomain() = MatchedEvent(
     channelId = channelId,
     channelName = channelName,
     categoryId = categoryId,
+    guessed = score <= ChannelEventMatcher.MANUAL_SCORE + 1,
 )
 
 internal fun SportEventEntity.toDomain() = SportEvent(

@@ -246,7 +246,7 @@ private fun EventRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    "${event.league} · ${kickoff(event.startMs)} · ${item.channelName}" +
+                    "${event.league} · ${kickoff(event.startMs)} · ${item.channelName}" + (if (item.guessed) " (vermutlich)" else "") +
                         (playlistIdOf(item.channelId)?.let(otherAccounts::get)?.let { " (Zugang $it)" } ?: ""),
                     style = MaterialTheme.typography.bodySmall,
                     color = RowColors.secondary,
