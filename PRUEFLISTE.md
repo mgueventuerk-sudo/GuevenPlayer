@@ -339,6 +339,13 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P5 Mit gesetzter PIN: Bearbeiten fragt zuerst nach der PIN.
 - [ ] P6 QR-Code im Bearbeiten-Bildschirm: Daten vom Handy landen im Formular (gespeichert wird erst mit „Prüfen & speichern“).
 
+## 16e. Neu in 3.45 – eigenes Gerät nicht „belegt“
+
+- [ ] B1 Zugang mit 1 Verbindung: Senderliste, Vorschau läuft auf Sender A → Sender B öffnen: kein „Zugang belegt“.
+- [ ] B2 Startseite „Läuft gerade“ läuft → Sender öffnen: kein „Zugang belegt“.
+- [ ] B3 Im Vollbild mehrfach schnell umschalten: kein „anderes Gerät“-Hinweis; schlimmstenfalls „vorige Verbindung noch nicht freigegeben“.
+- [ ] B4 Zweites Gerät schaut über denselben Zugang, dieses Gerät war > 3 min aus: Nachfrage „Zugang belegt“ erscheint weiterhin.
+
 ## 16d. Neu in 3.44 – Ordnung
 
 - [ ] G1 „Alle Zugänge“ → Filme/Serien/Live: alle Gruppen im Format „Land · Rubrik“, keine „|DE| ✪“-Namen mehr (nach dem automatischen Neuaufbau).

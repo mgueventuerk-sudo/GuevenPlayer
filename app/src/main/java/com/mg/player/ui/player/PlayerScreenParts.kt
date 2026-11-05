@@ -152,9 +152,10 @@ internal suspend fun startRecording(recordings: RecordingManager, channel: Chann
 @Composable
 private fun refinedFailure(ui: PlayerUiState, failure: String): String {
     if (!failure.startsWith("Zugriff verweigert")) return failure
-    val playlistId = ui.playable?.id?.let(::playlistIdOf) ?: return failure
+    // „Alle Zugänge“: der Zugang der laufenden Quelle, nicht die Kombination.
+    val playlistId = ui.playable?.let { it.activePlaylistId ?: playlistIdOf(it.id) } ?: return failure
     val monitor = LocalAppContainer.current.connectionMonitor
     LaunchedEffect(playlistId) { monitor.refresh(force = true) }
     val status = rememberConnections()[playlistId] ?: return failure
-    return status.accessDeniedReason(System.currentTimeMillis()) ?: failure
+    return status.accessDeniedReason(System.currentTimeMillis(), usedHere = monitor.recentlyUsedHere(playlistId)) ?: failure
 }

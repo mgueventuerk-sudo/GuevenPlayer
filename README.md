@@ -271,6 +271,20 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.45 („Zugang belegt“ durch das eigene Gerät)
+
+- **Gemeldet:** „Zugang belegt – über ‚Alternative‘ schaut gerade jemand (1/1)“, obwohl nur dieses Gerät lief.
+  Ursache: Die Live-Vorschau (ebenso Mosaik und „Läuft gerade“) belegte die eine Verbindung des Zugangs, meldete sie
+  aber nicht als eigene Nutzung – nur der Vollbild-Player tat das. Die Prüfung vor dem Start hielt die eigene
+  Vorschau deshalb für ein fremdes Gerät.
+- **Jetzt:** Vorschau, Mosaik, „Läuft gerade“ und Player vermerken ihre Verbindung als eigene Nutzung – beim Start,
+  laufend (Player alle 30 s, Vorschau jede Sekunde) und beim Beenden. Die Schonfrist danach beträgt 3 min statt 90 s
+  (Anbieter zählen beendete Verbindungen noch eine Weile mit).
+- **Umschalten:** ExoPlayer schließt die alte Verbindung, bevor er den neuen Sender anfordert.
+- **Ehrliche Meldung:** Lehnt der Anbieter trotzdem ab und war es dieses Gerät, heißt es „Der Anbieter hat deine
+  vorige Verbindung noch nicht freigegeben …“ statt „auf einem anderen Gerät beenden“.
+- Grenze: Schaut innerhalb der Schonfrist tatsächlich ein anderes Gerät über den Zugang, fragt die App nicht nach.
+
 ## Neu in 3.44 (Ordnung in „Alle Zugänge“ und in den Gruppen)
 
 - **Einheitliche Gruppennamen in „Alle Zugänge“:** immer „Land · Rubrik“ (z. B. „Deutschland · Sport“,

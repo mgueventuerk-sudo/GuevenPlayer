@@ -14,6 +14,7 @@ import com.mg.player.domain.model.ContentType
 import com.mg.player.domain.model.EpgProgram
 import com.mg.player.domain.model.PlayerEngineType
 import com.mg.player.domain.model.forAutomaticOptimization
+import com.mg.player.domain.model.playlistIdOf
 import com.mg.player.player.engine.StreamRequest
 import com.mg.player.player.engine.VideoPlayerEngine
 import com.mg.player.ui.player.EngineFallback
@@ -110,6 +111,9 @@ class LiveViewModel(private val container: AppContainer) : ViewModel() {
     private var previewChannel: Channel? = null
     private var previewUrl: String? = null
     private var previewType: PlayerEngineType? = null
+
+    /** Zugang, über den die Vorschau gerade streamt (für „eigene Nutzung“). */
+    private var previewAccount: Long? = null
     private var previewStatsJob: Job? = null
     private var categoryJob: Job? = null
 
@@ -167,6 +171,9 @@ class LiveViewModel(private val container: AppContainer) : ViewModel() {
         // URL-Prüfung der Engine-Übergabe nicht und der Player verbindet sich erneut.
         val playable = playableResolver.channel(channel.id) ?: return
         val url = playable.url
+        // Die Vorschau belegt eine Verbindung des Zugangs – das ist dieses Gerät, kein fremdes.
+        previewAccount = playable.activePlaylistId ?: playlistIdOf(playable.id)
+        previewAccount?.let(container.connectionMonitor::markOwnUse)
         currentCoroutineContext().ensureActive()
         if (!previewActive.value) return
         val type = EngineFallback.engineFor(settings.liveEngine, playable, preview = true)
@@ -209,6 +216,8 @@ class LiveViewModel(private val container: AppContainer) : ViewModel() {
         previewStatsJob = viewModelScope.launch {
             while (previewActive.value && previewChannel?.id == channel.id && _previewEngine.value === engine) {
                 val stats = runCatching { engine.stats() }.getOrNull()
+                // Läuft die Vorschau lange, bleibt die eigene Nutzung frisch (Schonfrist zählt ab jetzt).
+                previewAccount?.let(container.connectionMonitor::markOwnUse)
                 _previewResolution.value = measuredPreviewResolution(channel.id, stats?.width, stats?.height)
                 delay(1_000)
             }
@@ -216,6 +225,8 @@ class LiveViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     private fun releasePreview() {
+        // Ende der Vorschau: Der Anbieter zählt die Verbindung noch kurz mit – als eigene Nutzung vermerken.
+        previewAccount?.let(container.connectionMonitor::markOwnUse)
         previewStatsJob?.cancel()
         previewStatsJob = null
         _previewResolution.value = null

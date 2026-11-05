@@ -13,6 +13,7 @@ import com.mg.player.domain.model.BufferProfile
 import com.mg.player.domain.model.Channel
 import com.mg.player.domain.model.PlayerEngineType
 import com.mg.player.domain.model.forAutomaticOptimization
+import com.mg.player.domain.model.playlistIdOf
 import com.mg.player.player.engine.PlaybackStatus
 import com.mg.player.player.engine.StreamRequest
 import com.mg.player.player.engine.VideoPlayerEngine
@@ -64,6 +65,9 @@ class LiveStillScanner(private val container: AppContainer, private val scope: C
 
     /** Fläche der abgetasteten Kachel; nur gesetzt, solange sie angezeigt wird (kein Festhalten der View). */
     private var surface: FrameLayout? = null
+
+    /** Zugang des zuletzt abgetasteten Senders (eigene Nutzung beim Freigeben vermerken). */
+    private var account: Long? = null
     private var job: Job? = null
 
     fun onSurface(view: FrameLayout, attached: Boolean) {
@@ -150,6 +154,9 @@ class LiveStillScanner(private val container: AppContainer, private val scope: C
     private suspend fun startStream(channel: Channel): Boolean {
         val settings = container.settingsRepository.settings.first().forAutomaticOptimization(DeviceTier.of(container.appContext))
         val playable = resolver.channel(channel.id) ?: return false
+        // Eigene Verbindung (Mosaik/„Läuft gerade“) – sonst hielte die App sie beim nächsten Start für ein fremdes Gerät.
+        account = playable.activePlaylistId ?: playlistIdOf(playable.id)
+        account?.let(container.connectionMonitor::markOwnUse)
         val engine = engineFor(EngineFallback.engineFor(settings.liveEngine, playable, preview = true))
         engine.setMuted(true)
         // Erst die Fläche, dann der Stream: Das Bild wird von genau dieser Fläche gelesen.
@@ -194,6 +201,7 @@ class LiveStillScanner(private val container: AppContainer, private val scope: C
     }
 
     private fun releaseEngine() {
+        if (_engine.value != null) account?.let(container.connectionMonitor::markOwnUse)
         _engine.value?.release()
         _engine.value = null
         engineType = null

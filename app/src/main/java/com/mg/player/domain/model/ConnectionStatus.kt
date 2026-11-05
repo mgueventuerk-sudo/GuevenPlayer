@@ -47,12 +47,17 @@ fun ConnectionStatus.subscriptionNotice(nowMs: Long): AccountNotice? {
 
 /**
  * Genauere Meldung bei „Zugriff verweigert“ (HTTP 401/403): Der Grund steht meist schon in den Kontodaten.
- * null = keine bessere Erklärung bekannt (dann bleibt die allgemeine Meldung).
+ * [usedHere] = dieses Gerät hat den Zugang gerade selbst genutzt. null = keine bessere Erklärung bekannt.
  */
-fun ConnectionStatus.accessDeniedReason(nowMs: Long): String? {
+fun ConnectionStatus.accessDeniedReason(nowMs: Long, usedHere: Boolean = false): String? {
     val end = expiresAtMs
     return when {
         end != null && end <= nowMs -> "Zugriff verweigert – das Abo ist am ${formatDate(end)} abgelaufen."
+
+        // Belegt durch dieses Gerät (Vorschau oder gerade gewechselter Sender): nicht auf ein fremdes Gerät verweisen.
+        full && usedHere ->
+            "Der Anbieter hat deine vorige Verbindung noch nicht freigegeben. " +
+                "Bitte ein paar Sekunden warten und erneut versuchen."
 
         full ->
             "Zugriff verweigert – alle $max Verbindungen dieses Zugangs sind belegt. " +

@@ -3,6 +3,7 @@ package com.mg.player.integration
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mg.player.core.PlayerApp
+import com.mg.player.data.remote.ConnectionMonitor
 import com.mg.player.data.repository.PlaybackRepositoryImpl
 import com.mg.player.domain.model.ContentType
 import com.mg.player.domain.model.PlaybackProgress
@@ -184,6 +185,8 @@ class AllPlaylistsTest {
         assertEquals(AccountChoice.Continue, gate.beforeStart("$a:L:101"))
         // Freier Zugang: keine Nachfrage.
         assertEquals(AccountChoice.Continue, gate.beforeStart("$b:L:101"))
+        // 3.45: Die eigene Nutzung gilt 3 min (Anbieter zählen beendete Verbindungen noch eine Weile mit).
+        assertEquals(180_000L, ConnectionMonitor.OWN_USE_GRACE_MS)
     }
 
     @Test

@@ -231,6 +231,9 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
         _state.update {
             it.copy(status = PlaybackStatus.BUFFERING, errorMessage = null, formatUnsupported = false, errorKind = ErrorKind.NONE, httpCode = null)
         }
+        // Alte Verbindung zuerst schließen, dann die neue öffnen: Zugänge mit nur einer Verbindung lehnen den neuen Sender
+        // sonst ab, solange der Anbieter den alten Stream noch zählt (Umschalten, Vorschau → anderer Sender).
+        p.stop()
         p.setMediaItem(item, positionMs.coerceAtLeast(0))
         p.prepare()
         p.playWhenReady = true

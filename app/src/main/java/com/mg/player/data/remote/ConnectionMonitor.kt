@@ -75,7 +75,11 @@ class ConnectionMonitor(
     /** Wann dieses Gerät zuletzt über einen Zugang abgespielt hat (eigene Verbindung, keine fremde). */
     private val lastOwnUse = ConcurrentHashMap<Long, Long>()
 
-    /** Beim Start und Ende einer Wiedergabe aufrufen. */
+    /**
+     * Dieses Gerät nutzt den Zugang gerade selbst: beim Start, regelmäßig während der Wiedergabe und am Ende aufrufen –
+     * vom Vollbild-Player ebenso wie von Vorschau, Mosaik und „Läuft gerade“ (ab 3.45; vorher nur der Player, deshalb
+     * hielt die App die eigene Vorschau für ein fremdes Gerät und fragte „Zugang belegt“).
+     */
     fun markOwnUse(playlistId: Long) {
         lastOwnUse[playlistId] = clock()
     }
@@ -146,7 +150,8 @@ class ConnectionMonitor(
         }
 
         const val POLL_MS = 30_000L
-        const val OWN_USE_GRACE_MS = 90_000L
+        // 3 min (vorher 90 s): Viele Anbieter zählen eine beendete Verbindung noch ein, zwei Minuten mit.
+        const val OWN_USE_GRACE_MS = 180_000L
 
         /** "http://host:8080/get.php?username=a&password=b&type=m3u_plus" -> Zugangsdaten für player_api.php. */
         fun credentialsFromM3u(url: String): XtreamApi.Credentials? {
