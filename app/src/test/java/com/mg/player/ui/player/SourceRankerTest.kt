@@ -12,6 +12,19 @@ class SourceRankerTest {
     private fun c(id: String, pid: Long, quality: String?, lang: String? = null) =
         SourceRanker.Candidate(id, id, pid, quality, CombinedPlayables.qualityRank(quality), lang)
 
+    /** Ab 3.50: Quelle mit Hängern hinter einer schlechteren Qualität ohne Probleme. */
+    @Test
+    fun healthBeatsQuality() {
+        val ranked = SourceRanker.rank(
+            listOf(c("fhd", 1, "FHD"), c("hd", 2, "HD"), c("sd", 3, "SD")),
+            rememberedId = "fhd",
+            supports4K = true,
+            statuses = emptyMap(),
+            health = { if (it == "fhd") 1 else 0 },
+        )
+        assertEquals(listOf("hd", "sd", "fhd"), ranked)
+    }
+
     @Test
     fun deviceThenFreeThenQualityThenFreestThenOrder() {
         val ranked = SourceRanker.rank(

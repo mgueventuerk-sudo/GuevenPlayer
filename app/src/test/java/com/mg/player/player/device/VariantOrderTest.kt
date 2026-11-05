@@ -33,4 +33,12 @@ class VariantOrderTest {
     fun unknownRememberedIdIsIgnored() {
         assertEquals(listOf("b", "c", "d", "a"), order("weg", supports4K = false))
     }
+
+    /** Ab 3.50: Hängt eine Variante, rutscht sie nach unten – auch vor die bewährte und vor jede Qualität. */
+    @Test
+    fun healthyVariantsComeFirstQualityIsSecondary() {
+        val health = mapOf("a" to 2, "b" to 1)
+        val ordered = VariantOrder.order(variants, { it.id }, { it.quality }, "a", supports4K = true) { health[it] ?: 0 }.map { it.id }
+        assertEquals(listOf("c", "d", "b", "a"), ordered)
+    }
 }

@@ -271,6 +271,19 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.50 (Wächter merkt sich schlechte Quellen)
+
+- **Sofort gemerkt:** Jeder Hänger einer Sender-Variante bzw. Quelle – schon ab 1 Sekunde –, jeder langsame Start
+  (über 4 s), jeder gescheiterte Start und jeder Fehler gibt Strafpunkte. Gespeichert sofort und über Neustarts hinweg.
+- **Gute zuerst:** Beim nächsten Aufruf des Senders startet die Variante mit den wenigsten Problemen; die Qualität
+  entscheidet erst danach (eine störungsfreie HD-Variante vor einer hängenden FHD-Variante). Gilt auch für Filme und
+  Folgen aus „Alle Zugänge“.
+- **Erholt sich:** Punkte verfallen (Halbwertszeit 12 h) und halbieren sich nach 2 Minuten störungsfreier Wiedergabe.
+- **Nicht gezählt:** ohne Internet, „Zugang belegt“/Drosselung (liegt am Zugang), Spulen bei Filmen, Wechsel von Hand
+  bei laufendem Bild, Zappen während des Starts.
+- **Schneller wechseln:** Hängt ein Live-Sender mit Ersatzquelle und kommen keine Daten mehr, wechselt der Wächter
+  nach 2 s (vorher 6 s). Kommen noch Daten, wartet er weiter (sonst würde er Quellen wechseln, die sich selbst fangen).
+
 ## Neu in 3.49 (Sport: Sender-Diagnose)
 
 - *Einstellungen → Sport → Sender von Bzzoiro* zeigt nach jedem Abruf, was ankommt, z. B.

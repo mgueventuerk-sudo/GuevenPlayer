@@ -2,6 +2,7 @@ package com.mg.player.core.di
 
 import android.content.Context
 import com.mg.player.core.util.PrefsStreamStore
+import com.mg.player.core.util.SourceHealth
 import com.mg.player.core.util.StreamMemory
 import com.mg.player.data.playback.PrefsRecoveryMemory
 import com.mg.player.player.TrackMemory
@@ -24,6 +25,9 @@ class PlaybackModule(private val container: AppContainer) {
 
     /** Sender-Gruppe -> Stream-Variante, die zuletzt funktioniert hat (Auto-Failover), über Neustarts hinweg. */
     val streamMemory: StreamMemory by lazy { StreamMemory(PrefsStreamStore(appContext)) }
+
+    /** Hänger und Fehler je Stream-Quelle (gute Quellen zuerst), über Neustarts hinweg. */
+    val sourceHealth: SourceHealth by lazy { SourceHealth(PrefsStreamStore(appContext, "source_health")) }
 
     /** Wiedergabe-Wächter: was je Sender/Film zuletzt geholfen hat (gilt app-weit). */
     val recoveryMemory: RecoveryMemory by lazy {

@@ -36,6 +36,7 @@ internal object CombinedPlayables {
             statuses = container.connectionMonitor.status.value,
             unreliable = { breaker.isOpen(it.toString(), now) },
             accountRank = config::rankOf,
+            health = container.playback.sourceHealth::rank,
         )
     }
 
@@ -71,6 +72,7 @@ internal object CombinedPlayables {
                 preferredLanguage = preferredLanguage(),
                 unreliable = { breaker.isOpen(it.toString(), now) },
                 accountRank = container.combined.settings.current()::rankOf,
+                health = container.playback.sourceHealth::rank,
             )
         }
 

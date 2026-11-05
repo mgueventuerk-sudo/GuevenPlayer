@@ -52,6 +52,13 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
     internal val infoSampler = StreamInfoSampler(scope, container.networkMonitor, { engineHolder.value }) { uiState.value.engineType.label }
     val streamInfo: StateFlow<StreamInfo?> = infoSampler.info
 
+    /** Merkt sich Hänger und Fehler je Quelle (gute Quellen zuerst beim nächsten Aufruf). */
+    internal val sourceHealth = SourceHealthTracker(
+        container.playback.sourceHealth,
+        online = { container.networkMonitor.status.value.online },
+        clock = SystemClock::elapsedRealtime,
+    )
+
     /** Entscheidet bei Störungen; bis die Einstellungen geladen sind, passiert noch nichts (siehe [startPlayer]). */
     internal var guard: PlaybackGuard? = null
 
@@ -134,6 +141,7 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
     internal fun prepare(playable: Playable, positionMs: Long) {
         if (stoppedByLifecycle) return
         preparedAt = SystemClock.elapsedRealtime()
+        sourceHealth.onPrepared(playable)
         guard?.onEnginePrepared()
         if (skipNextPrepare) {
             skipNextPrepare = false
@@ -166,6 +174,7 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
             val now = engineHolder.value?.positionMs?.takeIf { it > 0 } ?: lastKnownPosition
             CombinedPlayables.mapPosition(now, playable.activeVodSource?.durationSec, playable.vodSources.getOrNull(index)?.durationSec)
         }
+        sourceHealth.onLeaving()
         val next = resolver.variant(playable, index) ?: return
         if (!isCurrent(playable) || live.zapPending) return
         uiState.update { it.copy(playable = next) }

@@ -339,6 +339,14 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P5 Mit gesetzter PIN: Bearbeiten fragt zuerst nach der PIN.
 - [ ] P6 QR-Code im Bearbeiten-Bildschirm: Daten vom Handy landen im Formular (gespeichert wird erst mit „Prüfen & speichern“).
 
+## 16j. Neu in 3.50 – Gedächtnis je Quelle
+
+- [ ] W1 Sender mit mehreren Varianten, die erste hängt kurz (1–2 s): beim nächsten Aufruf startet eine andere Variante.
+- [ ] W2 Hängt die laufende Variante ohne Datennachschub: Wechsel nach etwa 2 s.
+- [ ] W3 Ohne Internet hängen lassen: danach bleibt die Reihenfolge wie vorher.
+- [ ] W4 Von Hand eine andere Variante wählen, während alles läuft: die alte rutscht nicht nach unten.
+- [ ] W5 App neu starten: die gemerkte Reihenfolge bleibt.
+
 ## 16i. Neu in 3.49 – Sender-Diagnose
 
 - [ ] D1 Mit Bzzoiro-Schlüssel: Einstellungen → Sport zeigt „Sender von Bzzoiro“ mit „… Spiele mit Sender, … zugeordnet“.

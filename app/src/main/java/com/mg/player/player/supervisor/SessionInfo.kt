@@ -24,7 +24,8 @@ data class SupervisorConfig(
     val startNoDataVod: Long = 20_000,
     val startNoPictureWithAlternative: Long = 3_000,
     val startNoPicture: Long = 8_000,
-    val stallWithAlternative: Long = 6_000,
+    /** Live mit Ersatzquelle: 2 s ohne neue Daten reichen (vorher 6 s – zu lang); kommen Daten nach, gilt [stallLive]. */
+    val stallWithAlternative: Long = 2_000,
     val stallLive: Long = 20_000,
     val stallVod: Long = 30_000,
     val frozenPicture: Long = 8_000,

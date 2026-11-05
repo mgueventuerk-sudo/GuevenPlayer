@@ -125,6 +125,7 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
             container.playlistRepository.deletePlaylist(id)
             container.combined.onSourceChanged(id, "Zugang gelöscht")
             container.playback.streamMemory.forget(id)
+            container.playback.sourceHealth.forget(id)
             val remaining = playlists.value.filter { it.id != id }
             container.settingsRepository.update { s ->
                 // Auch „Alle Zugänge“ endet, wenn nur noch ein Zugang übrig ist.

@@ -32,7 +32,8 @@ data class VodSource(
 /**
  * Rangfolge der Quellen eines Inhalts über alle Zugänge (Plan „Alle Zugänge“, Entscheidungen 03.11.2026):
  * 1. auf dem Gerät abspielbar (kein 4K auf 1080p-Geräten), 2. Zugang nicht voll belegt, 3. eigene Sprache,
- * 4. die zuletzt bewährte Quelle, 5. Qualität, 6. Zuverlässigkeit (kürzlich ausgefallene Zugänge nach hinten),
+ * 3a. die wenigsten Hänger und Fehler (Gedächtnis des Wächters, ab 3.50), 4. die zuletzt bewährte Quelle,
+ * 5. Qualität, 6. Zuverlässigkeit (kürzlich ausgefallene Zugänge nach hinten),
  * 7. bei Gleichstand der freieste Zugang, 8. dann die eigene Rangfolge der Zugänge.
  */
 object SourceRanker {
@@ -56,10 +57,12 @@ object SourceRanker {
         preferredLanguage: String? = null,
         unreliable: (Long) -> Boolean = { false },
         accountRank: (Long) -> Int = { 0 },
+        health: (String) -> Int = { 0 },
     ): List<T> = candidates.withIndex().sortedWith(
         compareBy<IndexedValue<Candidate<T>>> { if (!supports4K && it.value.quality in beyondFullHd) 1 else 0 }
             .thenBy { if (statuses[it.value.playlistId]?.full == true) 1 else 0 }
             .thenBy { languagePenalty(it.value.language, preferredLanguage) }
+            .thenBy { health(it.value.id) }
             .thenBy { if (it.value.id == rememberedId) 0 else 1 }
             .thenBy { it.value.qualityRank }
             .thenBy { if (unreliable(it.value.playlistId)) 1 else 0 }

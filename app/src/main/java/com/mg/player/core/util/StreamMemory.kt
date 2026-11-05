@@ -74,8 +74,8 @@ class StreamMemory(private val store: Store? = null, private val clock: () -> Lo
 }
 
 /** [StreamMemory.Store] in eigenen SharedPreferences (klein: ein Eintrag je Sender mit mehreren Qualitäten). */
-class PrefsStreamStore(context: android.content.Context) : StreamMemory.Store {
-    private val prefs = context.getSharedPreferences("stream_memory", android.content.Context.MODE_PRIVATE)
+class PrefsStreamStore(context: android.content.Context, name: String = "stream_memory") : StreamMemory.Store {
+    private val prefs = context.getSharedPreferences(name, android.content.Context.MODE_PRIVATE)
 
     override fun all(): Map<String, String> = prefs.all.mapNotNull { (k, v) -> (v as? String)?.let { k to it } }.toMap()
 

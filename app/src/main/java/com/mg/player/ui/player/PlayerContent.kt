@@ -135,7 +135,10 @@ private suspend fun PlayerViewModel.tick() {
     val engine = engineHolder.value ?: return
     val playable = uiState.value.playable ?: return
     if (stoppedByLifecycle) return
-    if (!live.zapPending && uiState.value.engineType != PlayerEngineType.EXTERNAL) guard?.onTick(engine)
+    if (!live.zapPending && uiState.value.engineType != PlayerEngineType.EXTERNAL) {
+        guard?.onTick(engine)
+        sourceHealth.onTick()
+    }
     if (playable.isLive || uiState.value.engineType == PlayerEngineType.EXTERNAL) return
     val pos = engine.positionMs
     val dur = engine.durationMs

@@ -156,7 +156,7 @@ class PlayableResolver(private val container: AppContainer) {
         val ordered = if (combined) {
             CombinedPlayables.rankLive(container, all, remembered, supports4K)
         } else {
-            VariantOrder.order(all, { it.id }, { it.quality }, remembered, supports4K)
+            VariantOrder.order(all, { it.id }, { it.quality }, remembered, supports4K, container.playback.sourceHealth::rank)
         }
         val first = ordered.firstOrNull() ?: channel
         return Playable(

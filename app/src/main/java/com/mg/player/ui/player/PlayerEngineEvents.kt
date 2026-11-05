@@ -48,6 +48,7 @@ private suspend fun PlayerViewModel.onExternalState(state: EngineState) {
 
 /** Eingebaute Engines: Filme/Folgen-Ende selbst, alles zu Störungen entscheidet der Guard. */
 private suspend fun PlayerViewModel.onBuiltInState(engine: VideoPlayerEngine, state: EngineState, playable: Playable?) {
+    sourceHealth.onState(state)
     if (state.status == PlaybackStatus.ERROR) {
         AppLog.log("Player", "${uiState.value.engineType.label}: ${state.errorMessage ?: "Fehler"} · ${playable?.title}")
     }
