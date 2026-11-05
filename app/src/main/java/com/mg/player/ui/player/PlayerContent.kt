@@ -62,7 +62,9 @@ internal fun PlayerViewModel.startPlayer() {
             val state = engineHolder.value?.state?.value
             val stablePlayback = state?.let { it.status == PlaybackStatus.READY && it.isPlaying } == true &&
                 !uiState.value.reconnecting && !uiState.value.waitingForNetwork
-            delay(if (stablePlayback) STEADY_TICK_MS else ACTIVE_TICK_MS)
+            // Live mit Ersatz-Variante: immer im 500-ms-Takt – sonst käme ein Hänger bis zu 1 s zu spät an (3-s-Grenze).
+            val quickWatch = uiState.value.playable?.let { it.isLive && it.canSwitchSource } == true
+            delay(if (stablePlayback && !quickWatch) STEADY_TICK_MS else ACTIVE_TICK_MS)
             tick()
         }
     }

@@ -271,6 +271,23 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.51 (Hänger: unsichtbar, kurz, nahtlos)
+
+- **Live-Puffer** (*Einstellungen → Wiedergabe → Player*, Aus / 4 s / 8 s, Standard 4 s): Der Player baut nach dem Start
+  einen Vorrat vor dem Live-Rand auf, indem er kaum hörbar 5 % langsamer spielt (Tonhöhe bleibt), bis der Vorrat steht
+  – bei 4 s etwa 80 s lang. Kurze Aussetzer des Anbieters zehren nur am Vorrat und werden nicht sichtbar. Preis: Das
+  Bild läuft so viele Sekunden hinter Live. HLS-Live hielt schon vorher Abstand; dort gilt der Wert als Mindestabstand.
+- **Hänger höchstens 3 s:** Live-Sender mit Ersatz-Variante wechseln ohne Datennachschub nach 2 s, sonst spätestens nach
+  2,5 s – auch wenn noch Daten kommen, bei LibVLC/System-Player und bei stehender Position. Geprüft wird bei solchen
+  Sendern immer im 500-ms-Takt (vorher bei ruhiger Wiedergabe 1 s), damit die 3 s auch eingehalten werden. Nach einem
+  Wechsel wartet der Wächter 3 s statt 10 s, bevor er erneut eingreift. Filme/Serien und Sender ohne Ersatz unverändert.
+- **Kein Schwarzbild beim Wechsel:** Das letzte Bild bleibt stehen, bis die neue Variante läuft.
+- **Ersatz auf Vorrat:** Beginnt ein Hänger und hat der Zugang der nächsten Variante nachweislich einen freien Platz,
+  lädt eine zweite Engine diese Variante still vor (ohne Ton, ohne Abspielen). Der Wechsel übernimmt sie samt Puffer.
+  Fängt sich der Sender, wird sie sofort freigegeben. Nicht auf schwachen Geräten (Speicher) und nie ohne freien Platz
+  (sonst „Zugang belegt“).
+- Gedächtnis des Wächters wird beim App-Start im Hintergrund geladen (nicht mehr beim ersten Öffnen des Players).
+
 ## Neu in 3.50 (Wächter merkt sich schlechte Quellen)
 
 - **Sofort gemerkt:** Jeder Hänger einer Sender-Variante bzw. Quelle – schon ab 1 Sekunde –, jeder langsame Start

@@ -29,6 +29,17 @@ enum class BufferProfile(val label: String, val startBufferMs: Int) {
     STABLE("Stabil (3 s)", 3_000),
 }
 
+/**
+ * Live-Puffer (ab 3.51): Abstand zum Live-Rand, den der Player nach dem Start langsam aufbaut (kaum hörbar 5 %
+ * langsamer, bis er erreicht ist). Kurze Aussetzer des Anbieters fängt er ab, bevor sie als Hänger sichtbar werden.
+ * Preis: Das Bild läuft so viele Sekunden hinter dem Live-Signal.
+ */
+enum class LiveCushion(val label: String, val ms: Long) {
+    OFF("Aus", 0),
+    S4("4 Sekunden", 4_000),
+    S8("8 Sekunden", 8_000),
+}
+
 enum class HwDecoding(val label: String) {
     AUTO("Automatisch"),
     ON("An"),
@@ -65,6 +76,7 @@ data class AppSettings(
     val autoPlayNext: Boolean = true,
     val nextEpisodeTriggerSeconds: Int = 30,
     val bufferProfile: BufferProfile = BufferProfile.STANDARD,
+    val liveCushion: LiveCushion = LiveCushion.S4,
     val hwDecoding: HwDecoding = HwDecoding.AUTO,
     val autoFrameRate: Boolean = true,
     val startWithLastChannel: Boolean = false,

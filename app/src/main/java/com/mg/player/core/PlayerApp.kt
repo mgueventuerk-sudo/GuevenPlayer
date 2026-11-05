@@ -55,6 +55,8 @@ open class PlayerApp :
             // Nur wenn nötig – sonst würde die Datenbank hier schon im Startfenster geöffnet.
             runCatching { if (container.settingsRepository.current().epgShiftHours != 0) container.epgShifts.adoptLegacy() }
                 .onFailure { AppLog.log("EPG", "Zeitverschiebung nicht übertragen: ${it.javaClass.simpleName}") }
+            // Gedächtnis des Wächters (bis 2 000 Quellen) hier lesen, nicht beim ersten Öffnen des Players im Haupt-Thread.
+            container.playback.sourceHealth.penalty("")
             // Aufnahmen: Unterbrochene markieren und geplante Aufnahmen wieder einplanen.
             container.recordingManager.awaitReady()
             // Erinnerungen: Wecker nach Neustart/Update neu stellen.

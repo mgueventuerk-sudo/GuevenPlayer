@@ -43,7 +43,7 @@ android {
         minSdk = 24
         targetSdk = 37
         versionCode = buildMinutes
-        versionName = "3.50.$buildStamp"
+        versionName = "3.51.$buildStamp"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Labor (Plan A1): mit -PlabStrict=true beendet StrictMode die Debug-App bei jedem Plattenzugriff auf dem Hauptthread.
         buildConfigField("boolean", "LAB_STRICT", (providers.gradleProperty("labStrict").orNull == "true").toString())

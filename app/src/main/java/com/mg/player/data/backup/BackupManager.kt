@@ -45,6 +45,7 @@ class BackupManager(
                 put("autoPlayNext", s.autoPlayNext)
                 put("nextEpisodeTriggerSeconds", s.nextEpisodeTriggerSeconds)
                 put("bufferProfile", s.bufferProfile.name)
+                put("liveCushion", s.liveCushion.name)
                 put("hwDecoding", s.hwDecoding.name)
                 put("autoFrameRate", s.autoFrameRate)
                 put("tunneling_v2", s.tunneling)
@@ -184,6 +185,7 @@ class BackupManager(
                 autoPlayNext = s.optBoolean("autoPlayNext", current.autoPlayNext),
                 nextEpisodeTriggerSeconds = s.optInt("nextEpisodeTriggerSeconds", current.nextEpisodeTriggerSeconds),
                 bufferProfile = enumOr(s.optString("bufferProfile"), current.bufferProfile),
+                liveCushion = enumOr(s.optString("liveCushion"), current.liveCushion),
                 hwDecoding = enumOr(s.optString("hwDecoding"), current.hwDecoding),
                 autoFrameRate = s.optBoolean("autoFrameRate", current.autoFrameRate),
                 tunneling = s.optBoolean("tunneling_v2", current.tunneling),

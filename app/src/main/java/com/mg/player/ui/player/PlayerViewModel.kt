@@ -59,6 +59,9 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
         clock = SystemClock::elapsedRealtime,
     )
 
+    /** Lädt bei einem Hänger die nächste Variante stumm vor, wenn ihr Zugang einen freien Platz hat. */
+    internal val standby = StandbyPreloader(this)
+
     /** Entscheidet bei Störungen; bis die Einstellungen geladen sind, passiert noch nichts (siehe [startPlayer]). */
     internal var guard: PlaybackGuard? = null
 
@@ -142,30 +145,39 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
         if (stoppedByLifecycle) return
         preparedAt = SystemClock.elapsedRealtime()
         sourceHealth.onPrepared(playable)
+        standby.onPrepared()
         guard?.onEnginePrepared()
         if (skipNextPrepare) {
             skipNextPrepare = false
             AppLog.log("Player", "Vorschau übernommen · ${playable.title}")
             return
         }
+        engineHolder.value?.prepare(streamRequest(playable, positionMs))
+    }
+
+    /** Anfrage an die Engine mit den aktuellen Einstellungen (auch für die Ersatz-Variante auf Vorrat). */
+    internal fun streamRequest(playable: Playable, positionMs: Long, autoPlay: Boolean = true): StreamRequest {
         val fix = decoderOverride
-        engineHolder.value?.prepare(
-            StreamRequest(
-                playable.url,
-                playable.title,
-                positionMs,
-                playable.isLive,
-                settings.bufferProfile,
-                hwDecoding = if (fix.safeDecoder) HwDecoding.OFF else settings.hwDecoding,
-                tunneling = settings.tunneling && !fix.safeDecoder,
-                audioPassthrough = settings.audioPassthrough && !fix.safeAudio,
-                allowInsecureHttp = playable.allowInsecureHttp,
-            ),
+        return StreamRequest(
+            playable.url,
+            playable.title,
+            positionMs,
+            playable.isLive,
+            settings.bufferProfile,
+            hwDecoding = if (fix.safeDecoder) HwDecoding.OFF else settings.hwDecoding,
+            tunneling = settings.tunneling && !fix.safeDecoder,
+            audioPassthrough = settings.audioPassthrough && !fix.safeAudio,
+            allowInsecureHttp = playable.allowInsecureHttp,
+            liveCushionMs = if (playable.isLive) settings.liveCushion.ms else 0,
+            autoPlay = autoPlay,
         )
     }
 
-    /** Variante wechseln – nur wenn noch genau dieser Sender in dieser Variante läuft (sonst veraltet, verwerfen). */
-    /** [byUser]: von Hand gewählt – ein noch ladender Start zählt dann nicht als gescheitert (ein Hänger schon). */
+    /**
+     * Variante wechseln – nur wenn noch genau dieser Sender in dieser Variante läuft (sonst veraltet, verwerfen).
+     * [byUser]: von Hand gewählt – ein noch ladender Start zählt dann nicht als gescheitert (ein Hänger schon).
+     * Liegt die Ziel-Variante schon auf Vorrat bereit ([standby]), wird deren Engine übernommen statt neu geladen.
+     */
     internal suspend fun switchVariant(playable: Playable, index: Int, byUser: Boolean = false) {
         if (!isCurrent(playable)) return
         // Film/Folge („Alle Zugänge“): an derselben Stelle in der anderen Quelle weiter.
@@ -178,6 +190,11 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
         val next = resolver.variant(playable, index) ?: return
         if (!isCurrent(playable) || live.zapPending) return
         sourceHealth.onLeaving(startCounts = !byUser)
+        standby.take(next)?.let { ready ->
+            AppLog.log("Player", "Ersatz-Variante war vorgeladen · ${next.sourceName(index)}")
+            adoptEngine(ready, PlayerEngineType.MEDIA3)
+            ready.play()
+        }
         uiState.update { it.copy(playable = next) }
         guard?.onVariantSwitched(next)
         beginPlayback(next, position)
@@ -216,6 +233,7 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
     override fun onCleared() {
         uiState.value.playable?.let { it.activePlaylistId ?: playlistIdOf(it.id) }?.let(container.connectionMonitor::markOwnUse)
         accounts.answer(AccountChoice.Cancel)
+        standby.release()
         guard?.release()
         infoSampler.stop()
         engineHolder.value?.let { engine ->

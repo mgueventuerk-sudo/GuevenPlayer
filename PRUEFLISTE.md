@@ -339,6 +339,15 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P5 Mit gesetzter PIN: Bearbeiten fragt zuerst nach der PIN.
 - [ ] P6 QR-Code im Bearbeiten-Bildschirm: Daten vom Handy landen im Formular (gespeichert wird erst mit „Prüfen & speichern“).
 
+## 16k. Neu in 3.51 – Hänger unsichtbar, kurz, nahtlos
+
+- [ ] H1 Einstellungen → Wiedergabe → „Live-Puffer“ zeigt 4 Sekunden; Umschalten auf Aus / 8 Sekunden wirkt beim nächsten Sender.
+- [ ] H2 Live-Sender (TS) mit Live-Puffer 4 s: nach etwa 80 s läuft er normal schnell; Ton klingt nicht verzerrt.
+- [ ] H3 Hängender Sender mit Ersatz-Variante: Wechselhinweis spätestens 3 s nach dem Stillstand.
+- [ ] H4 Beim Wechsel bleibt das letzte Bild stehen (kein Schwarzbild).
+- [ ] H5 Zugang mit 2 Verbindungen, eine frei: Protokoll zeigt „lade … auf Vorrat“ und „Ersatz-Variante war vorgeladen“.
+- [ ] H6 Zugang mit 1 Verbindung: kein Vorrat, kein „Zugang belegt“.
+
 ## 16j. Neu in 3.50 – Gedächtnis je Quelle
 
 - [ ] W1 Sender mit mehreren Varianten, die erste hängt kurz (1–2 s): beim nächsten Aufruf startet eine andere Variante.

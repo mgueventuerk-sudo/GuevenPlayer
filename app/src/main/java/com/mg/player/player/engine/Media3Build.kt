@@ -64,6 +64,8 @@ internal object Media3Build {
         useController = false
         resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
         setShutterBackgroundColor(Color.BLACK)
+        // Beim Quellenwechsel (und Zappen) bleibt das letzte Bild stehen, bis das neue kommt – kein Schwarzbild (ab 3.51).
+        setKeepContentOnPlayerReset(true)
         keepScreenOn = true
         isFocusable = false
         isFocusableInTouchMode = false

@@ -66,6 +66,7 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         val AUTO_NEXT = booleanPreferencesKey("auto_next")
         val NEXT_TRIGGER = intPreferencesKey("next_trigger")
         val BUFFER = stringPreferencesKey("buffer")
+        val LIVE_CUSHION = stringPreferencesKey("live_cushion")
         val HW = stringPreferencesKey("hw_decoding")
         val AFR = booleanPreferencesKey("auto_frame_rate")
         val START_LAST = booleanPreferencesKey("start_last_channel")
@@ -127,6 +128,7 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
             autoPlayNext = this[Keys.AUTO_NEXT] ?: defaults.autoPlayNext,
             nextEpisodeTriggerSeconds = this[Keys.NEXT_TRIGGER] ?: defaults.nextEpisodeTriggerSeconds,
             bufferProfile = enumOr(this[Keys.BUFFER], defaults.bufferProfile),
+            liveCushion = enumOr(this[Keys.LIVE_CUSHION], defaults.liveCushion),
             hwDecoding = enumOr(this[Keys.HW], defaults.hwDecoding),
             autoFrameRate = this[Keys.AFR] ?: defaults.autoFrameRate,
             startWithLastChannel = this[Keys.START_LAST] ?: defaults.startWithLastChannel,
@@ -172,6 +174,7 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         this[Keys.AUTO_NEXT] = s.autoPlayNext
         this[Keys.NEXT_TRIGGER] = s.nextEpisodeTriggerSeconds
         this[Keys.BUFFER] = s.bufferProfile.name
+        this[Keys.LIVE_CUSHION] = s.liveCushion.name
         this[Keys.HW] = s.hwDecoding.name
         this[Keys.AFR] = s.autoFrameRate
         this[Keys.START_LAST] = s.startWithLastChannel

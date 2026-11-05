@@ -105,6 +105,10 @@ data class StreamRequest(
     val audioPassthrough: Boolean = false,
     /** Explizite Freigabe des IPTV-Zugangs für HTTP; gilt für Playlist und HLS-Unteranfragen. */
     val allowInsecureHttp: Boolean = false,
+    /** Live-Puffer: so viel Abstand zum Live-Rand nach dem Start aufbauen (0 = aus), siehe LiveCushion. */
+    val liveCushionMs: Long = 0,
+    /** false = nur laden, nicht abspielen (Ersatz-Variante auf Vorrat; startet erst mit [VideoPlayerEngine.play]). */
+    val autoPlay: Boolean = true,
 )
 
 /**

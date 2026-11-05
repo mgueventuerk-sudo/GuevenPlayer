@@ -6,6 +6,7 @@ import com.mg.player.domain.model.AppSettings
 import com.mg.player.domain.model.BufferProfile
 import com.mg.player.domain.model.HwDecoding
 import com.mg.player.domain.model.IntroSkipMode
+import com.mg.player.domain.model.LiveCushion
 import com.mg.player.domain.model.PlayerEngineType
 import com.mg.player.domain.model.ThemeMode
 import com.mg.player.ui.theme.AppIcons
@@ -51,6 +52,12 @@ private fun LazyListScope.playerItems(c: SettingsContext) {
                     AppIcons.Refresh,
                 )
             }
+        }
+        // Immer sichtbar (auch mit automatischer Optimierung): Abwägung zwischen Live-Nähe und Stabilität trifft der Nutzer.
+        row("live-cushion") {
+            ChoiceRow("Live-Puffer", c.s.liveCushion.label, {
+                c.vm.update { it.copy(liveCushion = LiveCushion.entries.nextAfter(it.liveCushion)) }
+            }, "Fängt kurze Aussetzer ab – Bild läuft so viel hinter Live", AppIcons.Wifi)
         }
         row("start-last") {
             ToggleRow("Mit dem letzten Sender starten", c.s.startWithLastChannel, {

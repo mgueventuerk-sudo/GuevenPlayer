@@ -24,10 +24,13 @@ data class SupervisorConfig(
     val startNoDataVod: Long = 20_000,
     val startNoPictureWithAlternative: Long = 3_000,
     val startNoPicture: Long = 8_000,
-    /** Live mit Ersatzquelle: 2 s ohne neue Daten reichen (vorher 6 s – zu lang); kommen Daten nach, gilt [stallLive]. */
+    /** Live mit Ersatzquelle: 2 s ohne neue Daten reichen (vorher 6 s – zu lang). */
     val stallWithAlternative: Long = 2_000,
-    /** Wie [stallWithAlternative], wenn die Engine keine Datenmenge meldet (ob Daten nachkommen, ist dann unbekannt). */
-    val stallWithAlternativeNoByteCount: Long = 6_000,
+    /**
+     * Live mit Ersatzquelle: spätestens dann ist es ein Hänger – auch wenn noch Daten kommen, die Engine keine Datenmenge
+     * meldet oder die Position steht (ab 3.51). Mit dem Prüftakt von 500 ms wird so nach höchstens 3 s gewechselt.
+     */
+    val stallWithAlternativeMax: Long = 2_500,
     val stallLive: Long = 20_000,
     val stallVod: Long = 30_000,
     val frozenPicture: Long = 8_000,
@@ -45,6 +48,8 @@ data class SupervisorConfig(
     val liveDriftDuration: Long = 10_000,
     /** Nach einer Maßnahme so lange keine neuen Befunde der Detektoren (Fehler der Engine zählen weiter). */
     val cooldown: Long = 10_000,
+    /** Live mit Ersatzquelle: Hängt auch die nächste Variante, nicht 10 s warten (ab 3.51). */
+    val cooldownWithAlternative: Long = 3_000,
     val maxActionsPerSession: Int = 6,
     val maxActionsPerMinute: Int = 3,
     /** So lange stabile Wiedergabe setzt Zähler zurück und merkt, was geholfen hat. */

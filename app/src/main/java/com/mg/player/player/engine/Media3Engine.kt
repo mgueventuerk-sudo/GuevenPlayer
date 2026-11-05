@@ -61,6 +61,7 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
     }
 
     private var player: ExoPlayer? = null
+    private val cushion = LiveCushionController()
     private var playerView: PlayerView? = null
     private var muted = false
     private var httpFactory: OkHttpDataSource.Factory? = null
@@ -220,8 +221,9 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
         val item = MediaItem.Builder().setUri(url).apply {
             mimeType?.let(::setMimeType)
             // Live: näher am Live-Rand starten (schnellerer Senderwechsel), leichte Tempo-Anpassung hält den Abstand.
+            // Der Live-Puffer gilt als Mindestabstand (HLS regelt ihn selbst über das Tempo).
             if (request?.isLive == true) {
-                liveTargetOffsetMs(request.bufferProfile)?.let { offset ->
+                liveTargetOffsetMs(request.bufferProfile)?.let { maxOf(it, request.liveCushionMs) }?.let { offset ->
                     setLiveConfiguration(
                         MediaItem.LiveConfiguration.Builder().setTargetOffsetMs(offset).setMinPlaybackSpeed(0.97f).setMaxPlaybackSpeed(1.03f).build(),
                     )
@@ -234,9 +236,11 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
         // Alte Verbindung zuerst schließen, dann die neue öffnen: Zugänge mit nur einer Verbindung lehnen den neuen Sender
         // sonst ab, solange der Anbieter den alten Stream noch zählt (Umschalten, Vorschau → anderer Sender).
         p.stop()
+        cushion.reset(p)
         p.setMediaItem(item, positionMs.coerceAtLeast(0))
         p.prepare()
-        p.playWhenReady = true
+        p.playWhenReady = request?.autoPlay != false
+        cushion.start(p, request?.takeIf { it.isLive && builtFor?.tunneling != true }?.liveCushionMs ?: 0)
     }
 
     private fun retryAsHls(): Boolean {
@@ -331,6 +335,7 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
     override fun stats(): StreamStats? = player?.let { Media3Build.stats(it, bytes.bytes.get(), droppedFrames) }
 
     private fun releasePlayer() {
+        cushion.stop()
         player?.let {
             it.removeListener(listener)
             it.removeAnalyticsListener(analytics)

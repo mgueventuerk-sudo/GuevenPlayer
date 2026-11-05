@@ -311,7 +311,8 @@ class PlaybackSupervisor(
         }
         if (item.step !is RecoveryStep.Hint) budget.record(now)
         if (item.counted) actionsThisSession++
-        cooldownUntil = now + config.cooldown
+        val quick = session?.let { it.isLive && it.canSwitchVariant } == true
+        cooldownUntil = now + if (quick) config.cooldownWithAlternative else config.cooldown
         stableHandled = false
         activeFix = when (val step = item.step) {
             RecoveryStep.SafeDecoder -> activeFix.copy(safeDecoder = true)

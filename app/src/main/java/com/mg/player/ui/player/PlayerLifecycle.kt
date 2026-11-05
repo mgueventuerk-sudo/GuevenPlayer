@@ -26,6 +26,7 @@ fun PlayerViewModel.onLifecycleStop() {
     if (uiState.value.engineType == PlayerEngineType.EXTERNAL || stoppedByLifecycle) return
     stoppedByLifecycle = true
     sourceHealth.onInterrupted()
+    standby.release()
     frameRate.cancelPending()
     infoSampler.stop()
     val engine = engineHolder.value ?: return

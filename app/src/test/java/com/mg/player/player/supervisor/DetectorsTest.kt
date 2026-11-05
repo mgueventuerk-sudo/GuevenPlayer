@@ -70,22 +70,71 @@ class DetectorsTest {
     }
 
     /**
-     * Fire-TV-Protokoll vom 01.11.: „puffert seit 3001 ms → andere Quelle“, danach „behoben nach 0,6 s“ – die Engine
-     * hat nur den Puffer gefüllt. Solange Daten nachkommen, ist Puffern kein Hänger.
+     * Ohne Ersatzquelle (nur Neu-Verbinden hilft): Solange Daten nachkommen, ist Puffern kein Hänger – erst nach dem
+     * langen Zeitfenster. Fire-TV-Protokoll vom 01.11.: „puffert seit 3001 ms“, danach „behoben nach 0,6 s“.
      */
     @Test
-    fun bufferingWithIncomingDataIsNoStall() {
+    fun bufferingWithIncomingDataIsNoStallWithoutAlternative() {
         val detector = StallDetector()
         feed(detector, 2_000) { t -> playing(t) }
-        val findings = feed(detector, 15_000, ctx(alternative = true), from = 2_000) { t ->
+        val findings = feed(detector, 15_000, from = 2_000) { t ->
             HealthSnapshot(PlaybackStatus.BUFFERING, false, 2_000, bytesLoaded = 1_000 + t * 50)
         }
         assertTrue(findings.isEmpty())
-        // Dauerpuffern bleibt ein Hänger, auch wenn Daten kommen – nur eben erst nach dem normalen Zeitfenster.
-        val later = feed(detector, 15_000, ctx(alternative = true), from = 17_000) { t ->
+        val later = feed(detector, 15_000, from = 17_000) { t ->
             HealthSnapshot(PlaybackStatus.BUFFERING, false, 2_000, bytesLoaded = 1_000 + t * 50)
         }
         assertEquals(Symptom.STALL, later.single().symptom)
+    }
+
+    /** Ab 3.51, Live mit Ersatzquelle: höchstens 2,5 s – auch wenn noch Daten kommen (mit 500-ms-Takt ≤ 3 s). */
+    @Test
+    fun withAlternativeEveryHangEndsWithinThreeSeconds() {
+        val cases = listOf<(Long) -> HealthSnapshot>(
+            // Daten kommen nach.
+            { t -> HealthSnapshot(PlaybackStatus.BUFFERING, false, 2_000, bytesLoaded = 1_000 + t * 50) },
+            // Engine ohne Datenmenge (LibVLC, System-Player).
+            { _ -> HealthSnapshot(PlaybackStatus.BUFFERING, false, 2_000, bytesLoaded = null) },
+            // „Spielt“, aber die Position steht.
+            { _ -> HealthSnapshot(PlaybackStatus.READY, true, 2_000, bytesLoaded = null) },
+        )
+        cases.forEach { snapshot ->
+            val detector = StallDetector()
+            feed(detector, 2_000) { t -> playing(t) }
+            var firedAt = -1L
+            var t = 2_000L
+            while (firedAt < 0 && t < 10_000) {
+                t += 500
+                if (detector.check(snapshot(t), t, ctx(alternative = true)) != null) firedAt = t
+            }
+            assertTrue("Wechsel nach ${firedAt - 2_000} ms", firedAt in 2_001..5_000)
+            assertTrue("Wechsel nach ${firedAt - 2_000} ms", firedAt - 2_000 <= 3_000)
+        }
+    }
+
+    /** Kurzes Nachladen ist kein Hänger – auch mit Ersatzquelle (2 s mit Daten, 1,5 s ohne). */
+    @Test
+    fun shortRefillWithAlternativeIsNoStall() {
+        val withData = StallDetector()
+        feed(withData, 2_000) { t -> playing(t) }
+        val a = feed(withData, 2_000, ctx(alternative = true), from = 2_000) { t ->
+            HealthSnapshot(PlaybackStatus.BUFFERING, false, 2_000, bytesLoaded = 1_000 + t * 50)
+        }
+        val withoutData = StallDetector()
+        feed(withoutData, 2_000) { t -> playing(t) }
+        val b = feed(withoutData, 1_500, ctx(alternative = true), from = 2_000) { HealthSnapshot(PlaybackStatus.BUFFERING, false, 2_000, 9_999) }
+        assertTrue(a.isEmpty() && b.isEmpty())
+    }
+
+    /** Filme behalten die langen Grenzen (Wechsel ist dort teuer). */
+    @Test
+    fun vodKeepsTheLongLimit() {
+        val detector = StallDetector()
+        feed(detector, 2_000, ctx(live = false)) { t -> playing(t) }
+        val findings = feed(detector, 10_000, ctx(live = false, alternative = true), from = 2_000) { t ->
+            HealthSnapshot(PlaybackStatus.BUFFERING, false, 2_000, bytesLoaded = 1_000 + t * 50)
+        }
+        assertTrue(findings.isEmpty())
     }
 
     @Test
