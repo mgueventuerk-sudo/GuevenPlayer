@@ -53,6 +53,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     val s by vm.settings.collectAsStateWithLifecycle()
     val sportProblem by vm.sportProblem.collectAsStateWithLifecycle()
     val sportSummary by vm.sportSummary.collectAsStateWithLifecycle()
+    val sportStations by vm.sportStations.collectAsStateWithLifecycle()
     val playlists by vm.playlists.collectAsStateWithLifecycle()
     val sync by vm.sync.collectAsStateWithLifecycle()
     val info by vm.info.collectAsStateWithLifecycle()
@@ -83,7 +84,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         LocalParentalGate.current,
         SettingsState(
             s, playlists, rememberConnections(), sync, hasPin, unlocked, isTouch, sportProblem, sportSummary,
-            VpnSettings(vpnProfiles, vpnActive, vpnEnabled, vpnSound), combined, combinedStats,
+            VpnSettings(vpnProfiles, vpnActive, vpnEnabled, vpnSound), combined, combinedStats, sportStations,
         ),
         SettingsActions(
             onSetPin = { pinFlow = PinFlow() },

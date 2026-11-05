@@ -8,6 +8,7 @@ import com.mg.player.data.search.SearchText
 import com.mg.player.data.sport.guide.SportChannelFinder
 import com.mg.player.domain.model.ChannelKeyRow
 import com.mg.player.domain.model.SportEvent
+import com.mg.player.domain.model.StationReport
 
 /**
  * Ordnet Events Kanälen der Zugänge zu (nur sichtbare, nicht gesperrte Gruppen – das erledigt die DAO). Sicherste zuerst:
@@ -110,6 +111,24 @@ class ChannelEventMatcher(private val dao: SportDao, private val finder: SportCh
         byNumber[own] = base
         val (from, below) = byNumber.toSortedMap().entries.partition { it.key >= own }
         return (from + below).map { it.value }
+    }
+
+    /**
+     * Diagnose: Spiele mit Sendern der Online-Quelle, davon mit mindestens einem Kanal im Zugang, und die Sendernamen
+     * ohne Kanal. Gleiche Regeln wie beim Zuordnen (Länder-Vorsatz und FHD/HD/4K zählen nicht).
+     */
+    suspend fun stationReport(events: List<SportEvent>): StationReport {
+        val withStations = events.filter { it.stations.isNotEmpty() }
+        if (withStations.isEmpty()) return StationReport(0, 0, emptyList())
+        val analysis = lastAnalysis
+        val stations = if (analysis == null) stationChannels(withStations) else emptyMap()
+        val found = HashMap<String, Boolean>()
+        fun known(station: String) = found.getOrPut(station) {
+            analysis?.hasStation(station) ?: !stationRows(stations, station).isNullOrEmpty()
+        }
+        val matched = withStations.count { e -> e.stations.any(::known) }
+        val missing = withStations.flatMap { it.stations }.filterNot(::known)
+        return StationReport(withStations.size, matched, StationReport.distinctNames(missing))
     }
 
     /** Zugänge wurden aktualisiert: Senderliste beim nächsten Abgleich neu lesen. */

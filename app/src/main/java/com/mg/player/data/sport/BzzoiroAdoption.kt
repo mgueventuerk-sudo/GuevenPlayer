@@ -63,8 +63,8 @@ internal object BzzoiroAdoption {
 
 /** Kurzer, verständlicher Grund eines fehlgeschlagenen Sport-Abrufs. */
 internal fun sportProblem(e: Exception): String = when (val code = (e as? HttpStatusException)?.code) {
-    401, 403 -> "Schlüssel ungültig oder Liga nicht im Tarif"
-    429 -> "zu viele Anfragen, später erneut"
+    401, 403 -> "Schlüssel ungültig oder Liga nicht im Tarif (HTTP $code)"
+    429 -> "zu viele Anfragen, später erneut (HTTP 429)"
     null -> if (e is JSONException) "unerwartete Antwort" else "keine Verbindung"
-    else -> "Server-Fehler $code"
+    else -> "Server-Fehler (HTTP $code)"
 }

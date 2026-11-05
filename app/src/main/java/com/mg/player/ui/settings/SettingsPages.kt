@@ -11,6 +11,7 @@ import com.mg.player.data.sync.SyncState
 import com.mg.player.domain.model.AppSettings
 import com.mg.player.domain.model.ConnectionStatus
 import com.mg.player.domain.model.Playlist
+import com.mg.player.domain.model.StationReport
 import com.mg.player.ui.common.ParentalGateState
 import com.mg.player.ui.navigation.Navigator
 import com.mg.player.ui.navigation.Screen
@@ -82,6 +83,7 @@ internal class SettingsState(
     val vpn: VpnSettings = VpnSettings(),
     val combined: CombinedConfig = CombinedConfig(),
     val combinedStats: CombinedStats? = null,
+    val sportStations: StationReport? = null,
 )
 
 /** Was die Seiten auslösen, das über die Seite hinausgeht (Dialoge, Unterseiten). */
@@ -113,6 +115,7 @@ internal class SettingsContext(
     val touch get() = state.touch
     val sportProblem get() = state.sportProblem
     val sportSummary get() = state.sportSummary
+    val sportStations get() = state.sportStations
     val vpn get() = state.vpn
     val combined get() = state.combined
     val combinedStats get() = state.combinedStats

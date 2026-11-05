@@ -142,6 +142,21 @@ class SportMatchingTest {
     }
 
     @Test
+    fun stationReportNamesWhatTheListLacks() = runBlocking {
+        val report = ChannelEventMatcher(container.database.sportDao()).stationReport(
+            listOf(
+                event("a", "Bayern Munich", "Borussia Dortmund", stations = listOf("ZDF", "beIN SPORTS 1 Türkiye")),
+                event("b", "Galatasaray", "Fenerbahce", stations = listOf("beIN SPORTS 1 Türkiye", "BEIN SPORTS 1 TÜRKIYE")),
+                event("c", "Mainz", "Werder Bremen"),
+            ),
+        )
+        assertEquals(2, report.events)
+        assertEquals(1, report.matched)
+        // Wie geliefert geschrieben, Doppelte (nur Groß-/Kleinschreibung) einmal.
+        assertEquals(listOf("beIN SPORTS 1 Türkiye"), report.missing)
+    }
+
+    @Test
     fun seriesWithoutTeamsUseTheirKeyword() = runBlocking {
         val f1 = SportEvent("espn:racing/f1#1", "racing", "Formel 1", "Mexico City GP", null, null, kickoff, null, EventStatus.PRE, emptyList())
         assertEquals(mapOf("1" to listOf("104")), matched(f1))

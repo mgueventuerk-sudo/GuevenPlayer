@@ -339,6 +339,12 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P5 Mit gesetzter PIN: Bearbeiten fragt zuerst nach der PIN.
 - [ ] P6 QR-Code im Bearbeiten-Bildschirm: Daten vom Handy landen im Formular (gespeichert wird erst mit „Prüfen & speichern“).
 
+## 16i. Neu in 3.49 – Sender-Diagnose
+
+- [ ] D1 Mit Bzzoiro-Schlüssel: Einstellungen → Sport zeigt „Sender von Bzzoiro“ mit „… Spiele mit Sender, … zugeordnet“.
+- [ ] D2 Fehlt ein Sender in der Senderliste: Er steht unter „Nicht gefunden: ‚…‘“ so geschrieben wie bei Bzzoiro.
+- [ ] D3 Ohne Bzzoiro-Liga: Zeile fehlt. Bei Fehler: Grund mit HTTP-Code.
+
 ## 16h. Neu in 3.48 – Bzzoiro-Senderliste
 
 - [ ] Z1 Süper Lig mit Bzzoiro-Schlüssel: Galatasaray-Spiel zeigt „beIN SPORTS 1“ ohne „(vermutlich)“ (wie auf sports.bzzoiro.com).

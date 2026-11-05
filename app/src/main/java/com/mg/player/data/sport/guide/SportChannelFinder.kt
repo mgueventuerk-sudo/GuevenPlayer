@@ -94,6 +94,9 @@ class SportChannelFinder(
             event.stations.forEach { station -> index.forStation(station).forEach { add(it to STATION) } }
         }
 
+        /** Gibt es einen Kanal zu diesem Sendernamen der Online-Quelle (Diagnose in den Einstellungen)? */
+        fun hasStation(station: String): Boolean = index.forStation(station).isNotEmpty()
+
         /** Wörter, die ein Event-Sender nennen muss: beide Teams bzw. Serie + Kämpfer/Turnier. */
         private fun eventChannelGroups(event: SportEvent): List<Set<String>>? {
             if (event.id.startsWith(GuideSeries.KEY_PREFIX)) return null

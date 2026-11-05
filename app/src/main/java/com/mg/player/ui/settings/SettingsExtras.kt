@@ -87,6 +87,12 @@ internal fun LazyListScope.sportItems(c: SettingsContext) {
                 icon = AppIcons.Sport,
             )
         }
+        // Diagnose der Bzzoiro-Sender: welche Namen die Senderliste nicht kennt (OK → von Hand zuordnen).
+        c.sportStations?.let { report ->
+            row("sport-stations") {
+                ActionRow("Sender von Bzzoiro", { c.navigator.push(Screen.SportAssign()) }, report.text(), icon = AppIcons.LiveTv)
+            }
+        }
         row("sport-assign") {
             ActionRow(
                 "Sender korrigieren",

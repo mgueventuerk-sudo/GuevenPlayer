@@ -11,6 +11,7 @@ import com.mg.player.domain.model.ChannelKeyRow
 import com.mg.player.domain.model.MatchedEvent
 import com.mg.player.domain.model.SportEvent
 import com.mg.player.domain.model.SportLeague
+import com.mg.player.domain.model.StationReport
 import com.mg.player.domain.repository.SettingsRepository
 import com.mg.player.domain.sport.SportBoard
 import com.mg.player.domain.sport.SportEventFilter
@@ -164,6 +165,11 @@ class SportRepository(
     /** Letztes Problem beim Abruf (für die Einstellungen), null = alles in Ordnung. */
     val problem: StateFlow<String?> = _problem.asStateFlow()
 
+    private val _stations = MutableStateFlow<StationReport?>(null)
+
+    /** Diagnose der Bzzoiro-Sendernamen (Einstellungen → Sport), null = keine Bzzoiro-Liga gefolgt. */
+    val stations: StateFlow<StationReport?> = _stations.asStateFlow()
+
     /** Ein Abruf zur Zeit (parallele Aufrufe warten auf den laufenden). */
     private val fetchMutex = Mutex()
 
@@ -284,8 +290,29 @@ class SportRepository(
                 // Speichern darf die Aktualisierungsschleife nie beenden (z. B. Datenbank gerade geschlossen).
                 AppLog.error("Sport", "Events nicht gespeichert", e)
             }
+            updateStationReport(fetched, followed, full = onlyLeagues == null)
             problems.keys.retainAll(followed)
             _problem.value = problems.values.distinct().joinToString(" · ").ifEmpty { null }
+        }
+    }
+
+    /** Nach dem Zuordnen: Welche Bzzoiro-Sender fanden einen Kanal, welche nicht ([StationReport]). */
+    private suspend fun updateStationReport(fetched: Map<String, List<SportEvent>>, followed: Set<String>, full: Boolean) {
+        // Nur nach vollem Abruf: bei laufenden Spielen werden nur einzelne Ligen geholt.
+        if (!full) return
+        if (followed.none { it.startsWith(BzzoiroSource.KEY_PREFIX) }) {
+            _stations.value = null
+            return
+        }
+        val events = fetched.filterKeys { it.startsWith(BzzoiroSource.KEY_PREFIX) }.values.flatten()
+        // Keine Bzzoiro-Liga abgerufen (Backoff, Fehler): letzte Diagnose stehen lassen.
+        if (events.isEmpty() && fetched.keys.none { it.startsWith(BzzoiroSource.KEY_PREFIX) }) return
+        try {
+            _stations.value = matcher.stationReport(events)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            AppLog.error("Sport", "Sender-Diagnose fehlgeschlagen", e)
         }
     }
 

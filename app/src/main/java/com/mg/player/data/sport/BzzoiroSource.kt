@@ -81,7 +81,7 @@ class BzzoiroSource(private val http: HttpFetcher, private val token: suspend ()
             pages("${SportEndpoints.bzzoiro}/broadcasts/?league_id=$leagueId&country_code=$country&$range&limit=$PAGE_SIZE", key)
         } catch (e: Exception) {
             // Blockierender Abruf (kein suspend): hier kommt keine CancellationException an.
-            stationProblems[leagueId] = "Senderliste $country: ${sportProblem(e)}"
+            stationProblems[leagueId] = "Bzzoiro-Senderliste $country nicht abrufbar: ${sportProblem(e)}"
             AppLog.log("Sport", "Bzzoiro-Senderliste $country für Liga $leagueId: ${e.javaClass.simpleName}")
             return emptyList()
         }
@@ -90,6 +90,7 @@ class BzzoiroSource(private val http: HttpFetcher, private val token: suspend ()
             // Antwort da, aber kein Sender lesbar: Feldnamen ins Protokoll (für die Fehlersuche).
             val fields = rows.first().keys().asSequence().toList()
             AppLog.log("Sport", "Bzzoiro-Senderliste $country: ${rows.size} Einträge ohne lesbaren Sender, Felder $fields")
+            stationProblems[leagueId] = "Bzzoiro-Senderliste $country: ${rows.size} Einträge, aber kein Sender lesbar (Felder ${fields.take(MAX_FIELDS)})"
         }
         return parsed
     }
@@ -162,6 +163,7 @@ class BzzoiroSource(private val http: HttpFetcher, private val token: suspend ()
         // 1 h (vorher 3 h): Bzzoiro trägt Sender oft erst kurz vorher nach.
         private const val BROADCAST_TTL_MS = 3_600_000L
         private const val PARALLEL = 2
+        private const val MAX_FIELDS = 8
 
         /** Sender aus diesen Ländern (Deutschland, Österreich, Schweiz, Türkei). */
         private val COUNTRIES = listOf("DE", "AT", "CH", "TR")

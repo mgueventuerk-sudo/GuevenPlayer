@@ -12,6 +12,7 @@ import com.mg.player.data.combined.CombinedStats
 import com.mg.player.data.sync.SyncState
 import com.mg.player.domain.model.AppSettings
 import com.mg.player.domain.model.Playlist
+import com.mg.player.domain.model.StationReport
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -101,6 +102,9 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     /** Letztes Problem beim Abruf der Sport-Events (z. B. ungültiger Sportmonks-Schlüssel). */
     val sportProblem: StateFlow<String?> = container.sport.repository.problem
     val sportSummary: StateFlow<Pair<Int, Int>?> = container.sport.repository.summary
+
+    /** Diagnose der Bzzoiro-Sendernamen (gefunden / nicht gefunden). */
+    val sportStations: StateFlow<StationReport?> = container.sport.repository.stations
 
     fun followedLeagues(s: AppSettings): Int = container.sport.repository.followed(s).size
 

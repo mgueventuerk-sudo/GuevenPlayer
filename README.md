@@ -271,6 +271,16 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.49 (Sport: Sender-Diagnose)
+
+- *Einstellungen → Sport → Sender von Bzzoiro* zeigt nach jedem Abruf, was ankommt, z. B.
+  „Bzzoiro-Senderliste: 9 Spiele mit Sender, 2 zugeordnet“ und „Nicht gefunden: ‚beIN SPORTS 1 Türkiye‘, ‚beIN SPORTS‘“
+  – die Namen genau so, wie Bzzoiro sie liefert und wie sie in der eigenen Senderliste fehlen. OK öffnet „Sender korrigieren“.
+- Fehler nennen den HTTP-Code („Bzzoiro-Senderliste TR nicht abrufbar: Schlüssel ungültig oder Liga nicht im Tarif (HTTP 403)“);
+  eine Antwort ohne lesbaren Sender steht mit Feldnamen ebenfalls dort, nicht nur im Protokoll.
+- Verglichen wird weiterhin über einen internen Schlüssel (klein, ohne Leer- und Sonderzeichen, ohne Länder-Vorsatz und
+  FHD/HD/UHD/4K: „|TR| BEIN SPORTS 1 FHD“ = „beIN SPORTS 1“ = `beinsports1`) – angezeigt wird er nie.
+
 ## Neu in 3.48 (Sport: Bzzoiro-Senderliste kommt an)
 
 - **Gemeldet:** Bzzoiro zeigt auf der Webseite je Spiel den Sender (z. B. Galatasaray – Amedspor: „beIN SPORTS 1“),
