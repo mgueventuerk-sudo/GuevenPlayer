@@ -23,6 +23,17 @@ private const val STEADY_TICK_MS = 1_000L
 private const val OWN_USE_HEARTBEAT_MS = 30_000L
 
 /** Einstellungen laden, Inhalt auflösen, Engine wählen (ggf. aus der Vorschau übernehmen), starten; danach Takt. */
+/**
+ * Eigene Nutzung alle 30 s auffrischen: Auch nach langer Wiedergabe (oder Absturz) weiß die App, dass die belegte
+ * Verbindung dieses Gerät ist. Liefert den Zeitpunkt der letzten Meldung.
+ */
+private fun PlayerViewModel.refreshOwnUse(lastMarkedAt: Long): Long {
+    val now = System.currentTimeMillis()
+    if (now - lastMarkedAt < OWN_USE_HEARTBEAT_MS) return lastMarkedAt
+    uiState.value.playable?.let { it.activePlaylistId ?: playlistIdOf(it.id) }?.let(container.connectionMonitor::markOwnUse)
+    return now
+}
+
 internal fun PlayerViewModel.startPlayer() {
     scope.launch {
         try {
@@ -47,13 +58,7 @@ internal fun PlayerViewModel.startPlayer() {
         }
         var ownUseMarkedAt = 0L
         while (true) {
-            // Eigene Nutzung alle 30 s auffrischen: Auch nach langer Wiedergabe (oder Absturz) weiß die App, dass die
-            // belegte Verbindung dieses Gerät ist.
-            val now = System.currentTimeMillis()
-            if (now - ownUseMarkedAt >= OWN_USE_HEARTBEAT_MS) {
-                ownUseMarkedAt = now
-                uiState.value.playable?.let { it.activePlaylistId ?: playlistIdOf(it.id) }?.let(container.connectionMonitor::markOwnUse)
-            }
+            ownUseMarkedAt = refreshOwnUse(ownUseMarkedAt)
             val state = engineHolder.value?.state?.value
             val stablePlayback = state?.let { it.status == PlaybackStatus.READY && it.isPlaying } == true &&
                 !uiState.value.reconnecting && !uiState.value.waitingForNetwork
