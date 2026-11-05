@@ -110,7 +110,12 @@ class SportChannelFinder(
     }
 
     companion object {
-        const val EVENT_CHANNEL = 110
+        /**
+         * Event-Sender des Anbieters („PRIME DE 016 [Alkmaar vs. Juventus]“): ab 3.53 nur noch Kandidat. Am 05.11. zeigten
+         * genau diese Sender nur „Kein Event“ – ein Name ist kein Beweis. Unter MatchSource.DISPLAY_MIN: nie angezeigt,
+         * bis der Bildbeweis (Plan L3) sie bestätigt.
+         */
+        const val EVENT_CHANNEL = 40
         const val STATION = 85
         private const val INDEX_TTL_MS = 5 * 60_000L
         private const val CHUNK = 2_000

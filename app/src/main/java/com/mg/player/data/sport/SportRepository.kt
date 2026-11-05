@@ -5,9 +5,11 @@ import com.mg.player.core.util.runCatchingCancellable
 import com.mg.player.core.network.HttpStatusException
 import com.mg.player.data.db.dao.SportDao
 import com.mg.player.data.db.entity.SportEventChannelEntity
+import com.mg.player.data.sport.guide.GuideSeries
 import com.mg.player.data.sport.guide.KickoffCheck
 import com.mg.player.domain.model.AppSettings
 import com.mg.player.domain.model.ChannelKeyRow
+import com.mg.player.domain.model.MatchSource
 import com.mg.player.domain.model.MatchedEvent
 import com.mg.player.domain.model.SportEvent
 import com.mg.player.domain.model.SportLeague
@@ -194,7 +196,7 @@ class SportRepository(
     @Volatile var requestCount = 0L
         private set
 
-    fun followed(s: AppSettings): Set<String> = s.sportLeagues ?: EspnSource.DEFAULT_KEYS
+    fun followed(s: AppSettings): Set<String> = s.sportLeagues ?: DEFAULT_LEAGUES
 
     /** Ligen aller Quellen (Sportmonks nur mit Schlüssel – je nach Tarif). */
     suspend fun catalog(): List<SportLeague> = withContext(Dispatchers.IO) {
@@ -219,7 +221,10 @@ class SportRepository(
         var first = true
         // Auch beim Wechsel bzw. ersten Anlegen eines Zugangs (aktiver Zugang ändert sich): andere Sender, neu zuordnen.
         val config = settings.settings.map {
-            listOf(followed(it), it.sportmonksToken, it.bzzoiroToken, it.activePlaylistId, it.sportManualChannels, it.onlineExtras, it.sportGuide)
+            listOf(
+                followed(it), it.sportmonksToken, it.bzzoiroToken, it.activePlaylistId, it.sportManualChannels, it.onlineExtras, it.sportGuide,
+                it.sportSourcesOff, it.sportCountries,
+            )
         }.distinctUntilChanged()
         combine(config, contentUpdated.distinctUntilChanged()) { c, updated -> c to updated }.collectLatest {
             val force = !first
@@ -335,7 +340,8 @@ class SportRepository(
         // Zuordnen ist teurer als der Abruf: nur neue Events bzw. geänderte Anstoßzeiten, bei vollem Abruf alle 30 min alles.
         val stale = rematchAll || (full && now - matchedAtMs >= IDLE_INTERVAL_MS)
         val toMatch = if (stale) events else events.filter { matchedStart[it.id] != it.startMs }
-        val matches: List<SportEventChannelEntity> = matcher.match(toMatch, current.activePlaylistId, current.sportManualChannels, all = events)
+        val matches: List<SportEventChannelEntity> =
+            matcher.match(toMatch, current.activePlaylistId, current.sportManualChannels, all = events, disabled = disabledSources(current))
         dao.replace(
             events = matcher.withBroadcasters(events).map { it.toEntity(now) },
             matchedIds = toMatch.map { it.id },
@@ -363,12 +369,16 @@ class SportRepository(
         storeMutex.withLock {
             matcher.channelsChanged()
             val current = settings.current()
-            val matches = matcher.match(events, current.activePlaylistId, current.sportManualChannels)
+            val matches = matcher.match(events, current.activePlaylistId, current.sportManualChannels, disabled = disabledSources(current))
             dao.replace(events = emptyList(), matchedIds = events.map { it.id }, matches = matches, removeIds = emptyList(), nowMs = clock())
             AppLog.log("Sport", "Neu zugeordnet vor Anstoß: ${matches.map { it.eventId }.distinct().size} von ${events.size} Spielen mit Sender")
         }
     }
 
+
+    /** In den Einstellungen abgeschaltete Quellen (Plan „Spiel-Finder“ K). */
+    private fun disabledSources(s: AppSettings): Set<MatchSource> =
+        s.sportSourcesOff.mapNotNullTo(HashSet()) { name -> MatchSource.entries.firstOrNull { it.name == name && it.switchable } }
 
     private fun tick(periodMs: Long): Flow<Long> = flow {
         while (true) {
@@ -379,6 +389,8 @@ class SportRepository(
     }
 
     companion object {
+        /** Voreinstellung: ESPN-Wettbewerbe plus Boxen aus dem TV-Programm. */
+        val DEFAULT_LEAGUES: Set<String> = EspnSource.DEFAULT_KEYS + "${GuideSeries.KEY_PREFIX}boxing"
         private const val MINUTE = 60_000L
         private const val HOUR = 3_600_000L
         const val MIN_INTERVAL_MS = 60_000L

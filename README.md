@@ -271,6 +271,18 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.53 (Spiel-Finder L1: ehrliche Sender-Anzeige)
+
+- **Event-Sender nur noch Kandidaten:** „PRIME DE 016 [Alkmaar vs. Juventus]“ zeigte am 05.11. nur „Kein Event“. Event-
+  Sender des Anbieters werden ohne Beweis nicht mehr angezeigt (der Bildbeweis folgt in L3).
+- **„Kein Event“ / „No Event“** im Programm des Anbieters widerlegt einen Sender bei der Kontrolle vor Anstoß.
+- **Herkunft sichtbar:** Jedes Spiel nennt seine Quelle („laut TV-Programm“, „laut Sendeliste“, „laut EPG des
+  Anbieters“, „vom Anbieter bestätigt“, „von dir zugeordnet“ …); der Spiel-Dialog erklärt sie.
+- **Quellen abschaltbar** (Einstellungen → Sport → Quellen der Sender), mit Anzahl der Spiele je Quelle.
+- **Länder** (Einstellungen → Sport → Länder): Senderlisten von Bzzoiro für die markierten Länder.
+- **Voreinstellung der Wettbewerbe:** Premier League, LaLiga, Bundesliga, Serie A, Ligue 1, Süper Lig, Champions League,
+  Europa League, WM, EM, UFC, Boxen. Wer selbst gewählt hat, behält seine Auswahl.
+
 ## Neu in 3.52 (App-Updates aus dem privaten Repo)
 
 - Jeder Build mit Release-Schlüssel legt die APK als Release „build-<versionCode>“ im privaten Repo ab (die letzten 5

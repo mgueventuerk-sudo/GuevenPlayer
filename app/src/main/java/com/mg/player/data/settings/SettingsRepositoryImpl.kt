@@ -95,6 +95,8 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         val SPORT_MANUAL = stringSetPreferencesKey("sport_manual")
         val ONLINE_EXTRAS = booleanPreferencesKey("online_extras")
         val SPORT_GUIDE = booleanPreferencesKey("sport_guide")
+        val SPORT_SOURCES_OFF = stringSetPreferencesKey("sport_sources_off")
+        val SPORT_COUNTRIES = stringSetPreferencesKey("sport_countries")
         val DOH = booleanPreferencesKey("doh_fallback")
         val NO_HISTORY = booleanPreferencesKey("no_history")
         val APP_LOCK = booleanPreferencesKey("app_lock")
@@ -158,6 +160,8 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
             }.toMap(),
             onlineExtras = this[Keys.ONLINE_EXTRAS] ?: defaults.onlineExtras,
             sportGuide = this[Keys.SPORT_GUIDE] ?: defaults.sportGuide,
+            sportSourcesOff = this[Keys.SPORT_SOURCES_OFF] ?: defaults.sportSourcesOff,
+            sportCountries = this[Keys.SPORT_COUNTRIES]?.takeIf { it.isNotEmpty() } ?: defaults.sportCountries,
             dohFallback = this[Keys.DOH] ?: defaults.dohFallback,
             noHistory = this[Keys.NO_HISTORY] ?: defaults.noHistory,
             appLock = this[Keys.APP_LOCK] ?: defaults.appLock,
@@ -199,6 +203,8 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         s.sportLeagues?.let { this[Keys.SPORT_LEAGUES] = it } ?: remove(Keys.SPORT_LEAGUES)
         this[Keys.ONLINE_EXTRAS] = s.onlineExtras
         this[Keys.SPORT_GUIDE] = s.sportGuide
+        this[Keys.SPORT_SOURCES_OFF] = s.sportSourcesOff
+        this[Keys.SPORT_COUNTRIES] = s.sportCountries
         this[Keys.DOH] = s.dohFallback
         this[Keys.NO_HISTORY] = s.noHistory
         this[Keys.APP_LOCK] = s.appLock

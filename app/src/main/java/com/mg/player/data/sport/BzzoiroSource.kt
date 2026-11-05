@@ -3,6 +3,7 @@ package com.mg.player.data.sport
 import com.mg.player.core.log.AppLog
 import com.mg.player.core.network.HttpFetcher
 import com.mg.player.core.util.runCatchingCancellable
+import com.mg.player.domain.model.DEFAULT_SPORT_COUNTRIES
 import com.mg.player.domain.model.EventStatus
 import com.mg.player.domain.model.SportEvent
 import com.mg.player.domain.model.SportLeague
@@ -24,15 +25,20 @@ import java.util.concurrent.ConcurrentHashMap
  * („Sky Sport Bundesliga 1“, „DAZN 1“, „beIN Sports 1“), auch wenn das EPG der Playlist keine Mannschaften nennt.
  * Der Schlüssel geht nur an diesen Dienst (Kopf „Authorization: Token …“), nie in die Adresse.
  */
-class BzzoiroSource(private val http: HttpFetcher, private val token: suspend () -> String) : SportSource {
+class BzzoiroSource(
+    private val http: HttpFetcher,
+    private val token: suspend () -> String,
+    /** Länder der Senderlisten (Einstellungen → Sport → Länder), ISO wie „DE“. */
+    private val countries: suspend () -> Set<String> = { DEFAULT_COUNTRIES },
+) : SportSource {
 
     override val name = "Bzzoiro"
 
     @Volatile
     private var leagueNames: Map<Long, String> = emptyMap()
 
-    /** Sender je Spiel, je Liga zwischengespeichert (ändern sich selten; spart Anfragen bei laufenden Spielen). */
-    private val broadcasts = ConcurrentHashMap<Long, Pair<Long, Map<Long, List<String>>>>()
+    /** Sender je Spiel, je Liga und Länderauswahl zwischengespeichert (ändern sich selten; spart Anfragen bei laufenden Spielen). */
+    private val broadcasts = ConcurrentHashMap<Pair<Long, Set<String>>, Pair<Long, Map<Long, List<String>>>>()
 
     override suspend fun leagues(): List<SportLeague> {
         val key = token().takeIf { it.isNotBlank() } ?: return emptyList()
@@ -60,15 +66,17 @@ class BzzoiroSource(private val http: HttpFetcher, private val token: suspend ()
 
     private suspend fun stationsFor(leagueId: Long, range: String, key: String): Map<Long, List<String>> {
         val now = System.currentTimeMillis()
-        broadcasts[leagueId]?.let { (at, map) -> if (now - at < BROADCAST_TTL_MS) return map }
+        val wanted = countries().ifEmpty { DEFAULT_COUNTRIES }
+        val cacheKey = leagueId to wanted
+        broadcasts[cacheKey]?.let { (at, map) -> if (now - at < BROADCAST_TTL_MS) return map }
         // Je zwei Länder gleichzeitig: halbiert die Wartezeit, ohne den Dienst mit Anfragen zu fluten.
         val rows = coroutineScope {
-            COUNTRIES.chunked(PARALLEL).flatMap { chunk ->
+            wanted.sorted().chunked(PARALLEL).flatMap { chunk ->
                 chunk.map { country -> async(Dispatchers.IO) { broadcastRows(leagueId, country, range, key) } }.awaitAll().flatten()
             }
         }
         val result = cleanStations(rows)
-        broadcasts[leagueId] = now to result
+        broadcasts[cacheKey] = now to result
         return result
     }
 
@@ -165,8 +173,8 @@ class BzzoiroSource(private val http: HttpFetcher, private val token: suspend ()
         private const val PARALLEL = 2
         private const val MAX_FIELDS = 8
 
-        /** Sender aus diesen Ländern (Deutschland, Österreich, Schweiz, Türkei). */
-        private val COUNTRIES = listOf("DE", "AT", "CH", "TR")
+        /** Ohne Auswahl: Deutschland, Österreich, Schweiz, Türkei. */
+        private val DEFAULT_COUNTRIES = DEFAULT_SPORT_COUNTRIES
 
         /** Apps und Streaming-Angebote (kein Sender, den ein IPTV-Zugang hat) – stehen bei Bzzoiro bei fast jedem Spiel. */
         private val NOT_TV_EXACT = setOf("sky go", "wow", "rtl+", "joyn", "prime video", "amazon prime video", "magentatv", "dazn app")

@@ -3,6 +3,7 @@ package com.mg.player.data.sport
 import com.mg.player.data.db.dao.MatchedEventRow
 import com.mg.player.data.db.entity.SportEventEntity
 import com.mg.player.domain.model.EventStatus
+import com.mg.player.domain.model.MatchSource
 import com.mg.player.domain.model.MatchedEvent
 import com.mg.player.domain.model.SportEvent
 
@@ -19,7 +20,7 @@ internal fun MatchedEventRow.toDomain() = MatchedEvent(
     channelId = channelId,
     channelName = channelName,
     categoryId = categoryId,
-    guessed = score <= ChannelEventMatcher.MANUAL_SCORE + 1,
+    source = MatchSource.of(score),
 )
 
 internal fun SportEventEntity.toDomain() = SportEvent(

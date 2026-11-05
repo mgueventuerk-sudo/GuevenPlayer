@@ -36,9 +36,12 @@ data class MatchedEvent(
     val channelId: String,
     val channelName: String,
     val categoryId: String,
-    /** Sender nur vermutet (Ersatzsender der Liga bzw. dessen Reihe), nicht aus Sendeliste, Programm oder EPG belegt. */
-    val guessed: Boolean = false,
-)
+    /** Woher die Zuordnung stammt (Anzeige „laut TV-Programm“ usw.). */
+    val source: MatchSource = MatchSource.STATION,
+) {
+    /** Sender nur vermutet (Ersatzsender, unsichere Quelle) – nicht durch Sendeliste, Programm oder EPG belegt. */
+    val guessed: Boolean get() = source.guessed
+}
 
 /** Eine Liga, der man folgen kann. [key] z. B. „espn:soccer/ger.1“ oder „sm:271“. */
 @Immutable

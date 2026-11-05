@@ -6,6 +6,7 @@ import com.mg.player.data.db.entity.SportEventChannelEntity
 import com.mg.player.data.search.SearchText
 import com.mg.player.data.sport.toDomain
 import com.mg.player.domain.model.EpgProgram
+import com.mg.player.domain.model.MatchSource
 import com.mg.player.domain.model.SportEvent
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
@@ -63,7 +64,9 @@ class KickoffCheck(
         for (event in events) {
             if (requests >= MAX_REQUESTS) break
             checkedAt[event.id] = now
-            val candidates = matches[event.id].orEmpty().filter { it.score < SportChannelFinder.EVENT_CHANNEL }
+            // Angezeigte, noch nicht bestätigte Sender. Event-Sender nicht: Ihr EPG stammt vom selben Anbieter wie ihr Name –
+            // das bestätigt nichts (05.11.: „PRIME DE 016 [Alkmaar vs. Juventus]“ zeigte „Kein Event“).
+            val candidates = matches[event.id].orEmpty().filter { it.score in MatchSource.DISPLAY_MIN until CONFIRMED }
                 .sortedByDescending { it.score }.take(MAX_PER_EVENT)
             for (c in candidates) {
                 if (requests++ >= MAX_REQUESTS) break
@@ -110,6 +113,7 @@ class KickoffCheck(
         private const val RECHECK_MS = 10 * MIN
         private const val MAX_PER_EVENT = 3
         private const val MAX_REQUESTS = 9
+        private val NO_EVENT = Regex("""\b(no|kein|keine)\s+events?\b""", RegexOption.IGNORE_CASE)
         private val PAIRING = Regex("""\S\s+(–|-|vs\.?|v)\s+\S""", RegexOption.IGNORE_CASE)
 
         /** Was läuft laut Anbieter zur Anstoßzeit auf dem Sender – passt es zum Spiel? */
@@ -122,6 +126,8 @@ class KickoffCheck(
             for (p in running) {
                 val text = listOfNotNull(p.title, p.description).joinToString(" ")
                 val words = SearchText.words(text)
+                // Platzhalter („No Event“, „Kein Event“): eindeutig nicht das Spiel.
+                if (NO_EVENT.containsMatchIn(text)) return Verdict.OTHER_MATCH
                 if ((scorer(words) ?: 0) >= GuideMatching.SERIES_ONLY && !GuideMatching.isNotLive(words)) return Verdict.CONFIRMED
                 // Nur eine deutlich andere Paarung zählt als Gegenbeweis („Live Event“ o. Ä. sagt nichts).
                 if (PAIRING.containsMatchIn(p.title)) other = true

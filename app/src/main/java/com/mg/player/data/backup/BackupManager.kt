@@ -65,6 +65,8 @@ class BackupManager(
                 put("bzzoiroToken", s.bzzoiroToken)
                 put("onlineExtras", s.onlineExtras)
                 put("sportGuide", s.sportGuide)
+                put("sportSourcesOff", org.json.JSONArray(s.sportSourcesOff.toList()))
+                put("sportCountries", org.json.JSONArray(s.sportCountries.toList()))
                 put("dohFallback", s.dohFallback)
                 put("noHistory", s.noHistory)
                 put("appLock", s.appLock)
@@ -207,6 +209,9 @@ class BackupManager(
                 bzzoiroToken = s.optString("bzzoiroToken", current.bzzoiroToken),
                 onlineExtras = s.optBoolean("onlineExtras", current.onlineExtras),
                 sportGuide = s.optBoolean("sportGuide", current.sportGuide),
+                sportSourcesOff = s.optJSONArray("sportSourcesOff")?.let { a -> (0 until a.length()).map(a::optString).toSet() } ?: current.sportSourcesOff,
+                sportCountries = s.optJSONArray("sportCountries")?.let { a -> (0 until a.length()).map(a::optString).filter(String::isNotBlank).toSet() }
+                    ?.takeIf { it.isNotEmpty() } ?: current.sportCountries,
                 dohFallback = s.optBoolean("dohFallback", current.dohFallback),
                 noHistory = s.optBoolean("noHistory", current.noHistory),
                 // App-Sperre nur übernehmen, wenn auch eine PIN mitkommt – sonst sperrt man sich aus.

@@ -166,9 +166,12 @@ class EspnSource(private val http: HttpFetcher) : SportSource {
             return listOf("australian open", "roland garros", "french open", "wimbledon", "us open", "atp finals", "wta finals").any { it in t }
         }
 
-        /** Voreinstellung, solange man selbst nichts gewählt hat. */
+        /**
+         * Voreinstellung, solange man selbst nichts gewählt hat (ab 3.53, Plan „Spiel-Finder“): die fünf großen Ligen, Süper
+         * Lig, Champions und Europa League, WM, EM und UFC. Boxen kommt aus dem TV-Programm (siehe SportRepository).
+         */
         val DEFAULT_KEYS: Set<String> = LEAGUES.filter {
-            it.slug in setOf("ger.1", "ger.2", "ger.dfb_pokal", "uefa.champions", "uefa.europa", "uefa.nations", "eng.1", "tur.1", "ufc")
+            it.slug in setOf("eng.1", "esp.1", "ger.1", "ita.1", "fra.1", "tur.1", "uefa.champions", "uefa.europa", "fifa.world", "uefa.euro", "ufc")
         }.mapTo(HashSet()) { it.key }
 
         internal fun day(ms: Long): String = SimpleDateFormat("yyyyMMdd", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(ms)

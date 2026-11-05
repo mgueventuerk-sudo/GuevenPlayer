@@ -339,6 +339,13 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P5 Mit gesetzter PIN: Bearbeiten fragt zuerst nach der PIN.
 - [ ] P6 QR-Code im Bearbeiten-Bildschirm: Daten vom Handy landen im Formular (gespeichert wird erst mit „Prüfen & speichern“).
 
+## 16m. Neu in 3.53 – Spiel-Finder L1
+
+- [ ] F1 Sport: Kein Spiel zeigt einen Event-Sender wie „PRIME DE 016 [… vs. …]“.
+- [ ] F2 Jedes Spiel nennt die Quelle („laut TV-Programm“ usw.); OK zeigt die Erklärung.
+- [ ] F3 Einstellungen → Sport → Quellen: „Laut TV-Programm“ aus → nach der nächsten Aktualisierung keine Spiele mehr aus dieser Quelle.
+- [ ] F4 Länder: „Großbritannien“ an → Bzzoiro-Diagnose nennt mehr Spiele mit Sender (falls Bzzoiro dort Sender kennt).
+
 ## 16l. Neu in 3.52 – App-Updates
 
 - [ ] U1 Einstellungen → System → App-Updates: Schlüssel eintragen, „Nach Update suchen“ → „Aktuell“ oder „Update installieren“.

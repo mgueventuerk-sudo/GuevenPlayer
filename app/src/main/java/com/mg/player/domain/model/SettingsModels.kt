@@ -129,6 +129,10 @@ data class AppSettings(
     val onlineExtras: Boolean = true,
     /** Öffentliches Sport-Programm der Sender (epgshare01) laden, um die Sender der Spiele zu finden. */
     val sportGuide: Boolean = true,
+    /** Abgeschaltete Quellen der Sender-Zuordnung (Namen von MatchSource), siehe Einstellungen → Sport. */
+    val sportSourcesOff: Set<String> = emptySet(),
+    /** Länder, deren Sender für Sport zählen (ISO, z. B. „DE“); Senderlisten von Bzzoiro je Land. */
+    val sportCountries: Set<String> = DEFAULT_SPORT_COUNTRIES,
     /** Verschlüsseltes DNS (DoH), solange das VPN nicht verbunden ist. */
     val dohFallback: Boolean = true,
     /** Ohne Verlauf: kein „Zuletzt gesehen“, kein Fortschritt, keine Aktivitäten im Protokoll. */
@@ -159,3 +163,6 @@ fun AppSettings.forAutomaticOptimization(tier: com.mg.player.core.device.DeviceT
         audioPassthrough = false,
         playbackSupervisor = true,
     )
+
+/** Voreinstellung der Sport-Länder (Deutschland, Österreich, Schweiz, Türkei). */
+val DEFAULT_SPORT_COUNTRIES: Set<String> = setOf("DE", "AT", "CH", "TR")

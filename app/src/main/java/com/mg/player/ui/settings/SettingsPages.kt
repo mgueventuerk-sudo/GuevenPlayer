@@ -143,7 +143,10 @@ internal fun LazyListScope.settingsPage(page: SettingsPage, c: SettingsContext) 
         SettingsPage.ACCOUNTS -> accountOverviewItems(c)
         SettingsPage.PLAYBACK -> playbackItems(c)
         SettingsPage.CONTENT -> contentItems(c)
-        SettingsPage.SPORT -> sportItems(c)
+        SettingsPage.SPORT -> {
+            sportItems(c)
+            sportSourceItems(c)
+        }
         SettingsPage.SECURITY -> securityItems(c)
         SettingsPage.LOOK -> lookItems(c)
         SettingsPage.SYSTEM -> systemItems(c)

@@ -23,7 +23,11 @@ class SportModule(private val container: AppContainer) {
         val sources = listOf(
             EspnSource(container.httpFetcher),
             SportmonksSource(container.httpFetcher) { container.settingsRepository.current().sportmonksToken },
-            BzzoiroSource(container.httpFetcher) { container.settingsRepository.current().bzzoiroToken },
+            BzzoiroSource(
+                container.httpFetcher,
+                token = { container.settingsRepository.current().bzzoiroToken },
+                countries = { container.settingsRepository.current().sportCountries },
+            ),
             GuideSeries(finder::guide),
         )
         SportRepository(

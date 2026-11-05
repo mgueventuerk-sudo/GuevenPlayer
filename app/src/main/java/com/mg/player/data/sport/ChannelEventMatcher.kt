@@ -8,6 +8,7 @@ import com.mg.player.data.search.SearchText
 import com.mg.player.data.sport.guide.GuideCatalog
 import com.mg.player.data.sport.guide.SportChannelFinder
 import com.mg.player.domain.model.ChannelKeyRow
+import com.mg.player.domain.model.MatchSource
 import com.mg.player.domain.model.SportEvent
 import com.mg.player.domain.model.StationReport
 
@@ -34,22 +35,18 @@ class ChannelEventMatcher(private val dao: SportDao, private val finder: SportCh
         preferredPlaylistId: Long? = null,
         manual: Map<String, String> = emptyMap(),
         all: List<SportEvent> = events,
+        /** Abgeschaltete Quellen (Einstellungen → Sport): ihre Funde zählen nicht. */
+        disabled: Set<MatchSource> = emptySet(),
     ): List<SportEventChannelEntity> {
         val analysis = if (all.isEmpty()) null else finder?.analyze(all)?.also { lastAnalysis = it }
         if (events.isEmpty()) return emptyList()
         val horizon = dao.epgHorizonMs() ?: 0L
         val stations = if (analysis == null) stationChannels(events) else emptyMap()
-        // Viele Spiele beginnen gleichzeitig (Samstag 15:30): je Anstoßzeit nur eine EPG-Abfrage.
         val windows = HashMap<Long, List<EpgCandidateRow>>()
         val perEvent = LinkedHashMap<SportEvent, MutableList<Pair<ChannelKeyRow, Int>>>()
         for (event in events) {
-            val found = ArrayList<Pair<ChannelKeyRow, Int>>()
-            event.stations.forEach { station -> stationRows(stations, station)?.forEach { found += it to SportChannelFinder.STATION } }
-            analysis?.let { found += it.matches(event) }
-            if (event.startMs <= horizon) {
-                val rows = windows.getOrPut(event.startMs) { dao.epgStartingBetween(event.startMs - WINDOW_MS, event.startMs + WINDOW_MS) }
-                found += epgMatches(event, rows)
-            }
+            val found = candidates(event, stations, analysis, horizon, windows)
+            if (disabled.isNotEmpty()) found.removeAll { MatchSource.of(it.second) in disabled }
             perEvent[event] = found
         }
         // Ersatzsender von Hand zuletzt: erst jetzt ist klar, welche Spiele schon sicher einen Sender haben.
@@ -63,6 +60,25 @@ class ChannelEventMatcher(private val dao: SportDao, private val finder: SportCh
             }
         }
         return result
+    }
+
+    /** Alle Funde eines Spiels: Sendeliste, Programm/Event-Sender ([analysis]) und EPG (innerhalb seiner Reichweite). */
+    private suspend fun candidates(
+        event: SportEvent,
+        stations: Map<String, List<ChannelKeyRow>>,
+        analysis: SportChannelFinder.Analysis?,
+        horizon: Long,
+        windows: HashMap<Long, List<EpgCandidateRow>>,
+    ): MutableList<Pair<ChannelKeyRow, Int>> {
+        val found = ArrayList<Pair<ChannelKeyRow, Int>>()
+        event.stations.forEach { station -> stationRows(stations, station)?.forEach { found += it to SportChannelFinder.STATION } }
+        analysis?.let { found += it.matches(event) }
+        if (event.startMs <= horizon) {
+            // Viele Spiele beginnen gleichzeitig (Samstag 15:30): je Anstoßzeit nur eine EPG-Abfrage.
+            val rows = windows.getOrPut(event.startMs) { dao.epgStartingBetween(event.startMs - WINDOW_MS, event.startMs + WINDOW_MS) }
+            found += epgMatches(event, rows)
+        }
+        return found
     }
 
     /**

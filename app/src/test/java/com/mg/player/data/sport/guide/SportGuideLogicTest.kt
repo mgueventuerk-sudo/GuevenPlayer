@@ -191,6 +191,9 @@ class SportGuideLogicTest {
         assertEquals(KickoffCheck.Verdict.CONFIRMED, KickoffCheck.verdict(g, listOf(p("Premier League: Liverpool - Brighton"))))
         assertEquals(KickoffCheck.Verdict.OTHER_MATCH, KickoffCheck.verdict(g, listOf(p("Premier League: Chelsea - Arsenal"))))
         assertEquals(KickoffCheck.Verdict.UNKNOWN, KickoffCheck.verdict(g, listOf(p("Live Event"))))
+        // Platzhalter (05.11.: „PRIME DE 016“ zeigte „Kein Event“) ist eindeutig nicht das Spiel.
+        assertEquals(KickoffCheck.Verdict.OTHER_MATCH, KickoffCheck.verdict(g, listOf(p("Kein Event"))))
+        assertEquals(KickoffCheck.Verdict.OTHER_MATCH, KickoffCheck.verdict(g, listOf(p("No Event"))))
         assertEquals(KickoffCheck.Verdict.UNKNOWN, KickoffCheck.verdict(g, listOf(p("Liverpool - Brighton", start = kickoff + 4 * 60 * min))))
     }
 }

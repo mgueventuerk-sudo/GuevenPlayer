@@ -7,6 +7,7 @@ import androidx.room.Upsert
 import com.mg.player.data.db.entity.SportEventChannelEntity
 import com.mg.player.data.db.entity.SportEventEntity
 import com.mg.player.domain.model.ChannelKeyRow
+import com.mg.player.domain.model.MatchSource
 import kotlinx.coroutines.flow.Flow
 
 /** Event + bester Kanal (nur sichtbare, nicht gesperrte Gruppen – gleiche Regel wie Suche und „Alle“). */
@@ -69,7 +70,7 @@ abstract class SportDao {
             "FROM sport_events e INNER JOIN sport_event_channels m ON m.eventId = e.id " +
             "INNER JOIN channels c ON c.id = m.channelId " +
             "WHERE e.startMs BETWEEN :fromMs AND :toMs AND $EXCLUDE_RESTRICTED " +
-            "GROUP BY e.id ORDER BY e.startMs",
+            "GROUP BY e.id HAVING MAX(m.score) >= ${MatchSource.DISPLAY_MIN} ORDER BY e.startMs",
     )
     abstract fun observeMatched(fromMs: Long, toMs: Long): Flow<List<MatchedEventRow>>
 
