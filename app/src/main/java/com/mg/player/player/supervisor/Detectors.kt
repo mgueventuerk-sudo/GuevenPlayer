@@ -85,14 +85,16 @@ class StallDetector : Detector {
         if (s.playing) started = true
         if (!started) return null
         val cfg = ctx.config
-        val max = ctx.limit(cfg.stallWithAlternative, cfg.stallLive, cfg.stallVod)
+        // Ohne Datenmenge ist „kein Nachschub“ nicht feststellbar: nicht schon nach 2 s wechseln – das gilt auch für
+        // die Positionsprüfung (LibVLC/System-Player melden weder Puffern zuverlässig noch eine Datenmenge).
+        val max = if (s.bytesLoaded == null && ctx.quickSwitch) {
+            cfg.stallWithAlternativeNoByteCount
+        } else {
+            ctx.limit(cfg.stallWithAlternative, cfg.stallLive, cfg.stallVod)
+        }
         return when {
             // „hart“: Auch wenn Daten nachkommen, ist Dauerpuffern irgendwann ein Hänger.
-            s.status == PlaybackStatus.BUFFERING -> {
-                // Ohne Datenmenge ist „kein Nachschub“ nicht feststellbar: nicht schon nach 2 s wechseln.
-                val limit = if (s.bytesLoaded == null && ctx.quickSwitch) cfg.stallWithAlternativeNoByteCount else max
-                buffering(s, now, limit, if (ctx.session.isLive) cfg.stallLive else cfg.stallVod)
-            }
+            s.status == PlaybackStatus.BUFFERING -> buffering(s, now, max, if (ctx.session.isLive) cfg.stallLive else cfg.stallVod)
 
             s.playing -> positionCheck(s.positionMs, now, max)
 

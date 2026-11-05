@@ -101,5 +101,5 @@ fun PlayerViewModel.selectVariant(index: Int) {
     val playable = ui.value.playable ?: return
     if (index == playable.variantIndex) return
     guard?.onUserInterrupt()
-    scope.launch { switchVariant(playable, index) }
+    scope.launch { switchVariant(playable, index, byUser = true) }
 }

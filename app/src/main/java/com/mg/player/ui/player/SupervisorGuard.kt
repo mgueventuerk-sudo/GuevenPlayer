@@ -195,6 +195,8 @@ internal class SupervisorGuard(private val vm: PlayerViewModel) : PlaybackGuard 
     private inline fun applyOverride(override: StartHint, changes: () -> Boolean): Boolean {
         if (!changes() || override == vm.decoderOverride) return false
         vm.decoderOverride = override
+        // Decoder-Problem liegt an Engine/Gerät, nicht an der Quelle: der Neustart zählt nicht als gescheiterter Start.
+        vm.sourceHealth.onInterrupted()
         return vm.retryCurrent()
     }
 

@@ -53,11 +53,14 @@ object VariantOrder {
         rememberedId: String?,
         supports4K: Boolean,
         health: (String) -> Int = { 0 },
-    ): List<T> =
-        items.withIndex().sortedWith(
+    ): List<T> {
+        // Einmal je Variante abfragen (stabil während des Sortierens, keine Neuberechnung je Vergleich).
+        val healthOf = items.associate { id(it) to health(id(it)) }
+        return items.withIndex().sortedWith(
             compareBy<IndexedValue<T>> { if (!supports4K && quality(it.value) in beyondFullHd && id(it.value) != rememberedId) 1 else 0 }
-                .thenBy { health(id(it.value)) }
+                .thenBy { healthOf[id(it.value)] ?: 0 }
                 .thenBy { if (id(it.value) == rememberedId) 0 else 1 }
                 .thenBy { it.index },
         ).map { it.value }
+    }
 }

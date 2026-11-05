@@ -149,6 +149,11 @@ class MiniHttpServer(
                     if (n < 0) break
                     read += n
                 }
+                // Verbindung vor dem Ende des Inhalts abgebrochen: nie ein abgeschnittenes Backup/Formular weitergeben.
+                if (read < contentLength) {
+                    respond(s, Response.html(HTTP_BAD_REQUEST, "<h1>Unvollständig</h1><p>Die Übertragung wurde abgebrochen.</p>"))
+                    return
+                }
                 val request = Request(parts.getOrNull(0).orEmpty(), uri.path.orEmpty().ifEmpty { "/" }, query, String(body, 0, read, Charsets.UTF_8))
                 respond(s, handler(request))
             } catch (e: Exception) {
@@ -249,6 +254,7 @@ internal fun sameSubnet(a: ByteArray, b: ByteArray, prefix: Int): Boolean {
 }
 
 private const val HTTP_PAYLOAD_TOO_LARGE = 413
+private const val HTTP_BAD_REQUEST = 400
 
 /**
  * Schutz für die Seiten im Handy-Browser: Das Token steht in der Adresse – kein Referer an fremde Seiten,

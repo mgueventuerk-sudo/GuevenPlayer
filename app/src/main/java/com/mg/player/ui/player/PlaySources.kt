@@ -58,18 +58,22 @@ object SourceRanker {
         unreliable: (Long) -> Boolean = { false },
         accountRank: (Long) -> Int = { 0 },
         health: (String) -> Int = { 0 },
-    ): List<T> = candidates.withIndex().sortedWith(
-        compareBy<IndexedValue<Candidate<T>>> { if (!supports4K && it.value.quality in beyondFullHd) 1 else 0 }
-            .thenBy { if (statuses[it.value.playlistId]?.full == true) 1 else 0 }
-            .thenBy { languagePenalty(it.value.language, preferredLanguage) }
-            .thenBy { health(it.value.id) }
-            .thenBy { if (it.value.id == rememberedId) 0 else 1 }
-            .thenBy { it.value.qualityRank }
-            .thenBy { if (unreliable(it.value.playlistId)) 1 else 0 }
-            .thenByDescending { freeSlots(statuses[it.value.playlistId]) }
-            .thenBy { accountRank(it.value.playlistId) }
-            .thenBy { it.index },
-    ).map { it.value.item }
+    ): List<T> {
+        // Einmal je Quelle abfragen: Der Rang verfällt mit der Uhr – mitten im Sortieren darf er sich nicht ändern.
+        val healthOf = candidates.associate { it.id to health(it.id) }
+        return candidates.withIndex().sortedWith(
+            compareBy<IndexedValue<Candidate<T>>> { if (!supports4K && it.value.quality in beyondFullHd) 1 else 0 }
+                .thenBy { if (statuses[it.value.playlistId]?.full == true) 1 else 0 }
+                .thenBy { languagePenalty(it.value.language, preferredLanguage) }
+                .thenBy { healthOf[it.value.id] ?: 0 }
+                .thenBy { if (it.value.id == rememberedId) 0 else 1 }
+                .thenBy { it.value.qualityRank }
+                .thenBy { if (unreliable(it.value.playlistId)) 1 else 0 }
+                .thenByDescending { freeSlots(statuses[it.value.playlistId]) }
+                .thenBy { accountRank(it.value.playlistId) }
+                .thenBy { it.index },
+        ).map { it.value.item }
+    }
 
     /** Freie Verbindungen; unbegrenzt bzw. unbekannt zählt wie „viel frei“, aber hinter echten Angaben gleicher Güte. */
     private fun freeSlots(status: ConnectionStatus?): Int = when {

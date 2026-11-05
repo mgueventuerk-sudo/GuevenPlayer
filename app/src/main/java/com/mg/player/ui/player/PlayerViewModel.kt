@@ -165,7 +165,8 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
     }
 
     /** Variante wechseln – nur wenn noch genau dieser Sender in dieser Variante läuft (sonst veraltet, verwerfen). */
-    internal suspend fun switchVariant(playable: Playable, index: Int) {
+    /** [byUser]: von Hand gewählt – ein noch ladender Start zählt dann nicht als gescheitert (ein Hänger schon). */
+    internal suspend fun switchVariant(playable: Playable, index: Int, byUser: Boolean = false) {
         if (!isCurrent(playable)) return
         // Film/Folge („Alle Zugänge“): an derselben Stelle in der anderen Quelle weiter.
         val position = if (playable.isLive) {
@@ -176,7 +177,7 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
         }
         val next = resolver.variant(playable, index) ?: return
         if (!isCurrent(playable) || live.zapPending) return
-        sourceHealth.onLeaving()
+        sourceHealth.onLeaving(startCounts = !byUser)
         uiState.update { it.copy(playable = next) }
         guard?.onVariantSwitched(next)
         beginPlayback(next, position)

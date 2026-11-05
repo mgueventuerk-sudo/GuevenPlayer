@@ -115,6 +115,20 @@ class SourceHealthTrackerTest {
     }
 
     @Test
+    fun flippingThroughSourcesByHandIsNoFailureButAHangStillCounts() {
+        tracker.onPrepared(live())
+        now += 2_500
+        tracker.onLeaving(startCounts = false)
+        assertEquals(0, health.rank("1:L:a"))
+
+        startPlaying(live(1))
+        tracker.onState(buffering)
+        now += 2_000
+        tracker.onLeaving(startCounts = false)
+        assertEquals(2, health.rank("1:L:b"))
+    }
+
+    @Test
     fun anInterruptedStartIsNoFailure() {
         tracker.onPrepared(live())
         now += 2_500

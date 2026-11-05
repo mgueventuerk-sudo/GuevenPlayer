@@ -67,7 +67,14 @@ internal fun PlayerViewModel.startPlayer() {
         }
     }
     // VPN steht (wieder): Stream neu verbinden, damit er durch den Tunnel läuft statt über die normale Leitung.
-    scope.launch { container.vpn.tunnelUps().collect { if (!stoppedByLifecycle) retryCurrent() } }
+    scope.launch {
+        container.vpn.tunnelUps().collect {
+            if (stoppedByLifecycle) return@collect
+            // Neu verbinden wegen des Tunnels, nicht wegen der Quelle: kein Strafpunkt für Start oder Hänger.
+            sourceHealth.onInterrupted()
+            retryCurrent()
+        }
+    }
 }
 
 /** Derselbe Sender lief eben in der Vorschau: Engine übernehmen, damit der Stream nicht neu lädt. */

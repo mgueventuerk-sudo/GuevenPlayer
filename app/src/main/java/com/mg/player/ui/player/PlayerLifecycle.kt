@@ -11,6 +11,8 @@ fun PlayerViewModel.onLifecyclePause() {
     val engine = engineHolder.value ?: return
     if (uiState.value.engineType == PlayerEngineType.EXTERNAL) return
     pausedByLifecycle = true
+    // Pausiert vom System (Dialog, anderes Fenster): ein laufender Start oder Hänger liegt nicht an der Quelle.
+    sourceHealth.onInterrupted()
     progress.saveNow(uiState.value.playable, engine)
     engine.pause()
 }
