@@ -9,6 +9,11 @@ on:
 permissions:
   contents: read
 
+# Neuer Push auf denselben Zweig bricht den laufenden Build ab: Nur der neueste Stand wird gebaut.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
