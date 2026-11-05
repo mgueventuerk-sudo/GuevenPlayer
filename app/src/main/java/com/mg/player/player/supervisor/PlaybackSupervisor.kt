@@ -295,6 +295,13 @@ class PlaybackSupervisor(
             enterNetworkWait()
             return
         }
+        // Budget erst beim Ausführen prüfen: Zwischen Planen und Fälligkeit kann eine andere Maßnahme gelaufen sein
+        // (z. B. „Netz wieder da – verbinde neu“) – sonst wären es 4 statt höchstens 3 je Minute.
+        val wait = if (item.step is RecoveryStep.Hint) 0L else budget.waitMs(clock())
+        if (wait > 0) {
+            pending = item.copy(dueAt = clock() + wait)
+            return
+        }
         execute(item)
     }
 
