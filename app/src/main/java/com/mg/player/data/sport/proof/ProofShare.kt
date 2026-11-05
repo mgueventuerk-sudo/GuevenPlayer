@@ -171,7 +171,8 @@ class ProofShareClient(private val context: Context, private val http: HttpFetch
         val verdict = Verdict.entries.firstOrNull { it.name == o.optString("v") }
         val eventId = o.optString("e").takeIf { it.isNotBlank() }
         val key = o.optString("k").takeIf { it.isNotBlank() }
-        if (verdict == null || eventId == null || key == null || proofs.verdictFor(eventId, listOf(key)) == verdict) return null
+        if (verdict == null || eventId == null || key == null) return null
+        if (proofs.verdictFor(eventId, listOf(key)) == verdict) return null
         proofs.record(eventId, key, key, verdict, ProofHunter.BY_HUB)
         return eventId
     }
