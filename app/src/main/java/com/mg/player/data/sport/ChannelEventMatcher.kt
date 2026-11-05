@@ -6,7 +6,9 @@ import com.mg.player.data.db.dao.SportDao
 import com.mg.player.data.db.entity.SportEventChannelEntity
 import com.mg.player.data.search.SearchText
 import com.mg.player.data.sport.guide.GuideCatalog
+import com.mg.player.data.sport.guide.KickoffCheck
 import com.mg.player.data.sport.guide.SportChannelFinder
+import com.mg.player.data.sport.rights.SportRights
 import com.mg.player.domain.model.ChannelKeyRow
 import com.mg.player.domain.model.MatchSource
 import com.mg.player.domain.model.SportEvent
@@ -56,10 +58,21 @@ class ChannelEventMatcher(private val dao: SportDao, private val finder: SportCh
             found.groupBy { it.first.id }.values.forEach { list ->
                 val (channel, score) = list.maxBy { it.second }
                 val bonus = if (channel.playlistId == preferredPlaylistId) 1 else 0
-                result += SportEventChannelEntity(event.id, channel.id, channel.playlistId, score + bonus)
+                result += SportEventChannelEntity(event.id, channel.id, channel.playlistId, rightsChecked(event, channel, score) + bonus)
             }
         }
         return result
+    }
+
+    /**
+     * Rechte-Tabelle (Plan „Spiel-Finder“ B): Überträgt die Senderfamilie den Wettbewerb in diesem Land laut Tabelle nicht,
+     * bleibt der Sender sichtbar, aber als „widerspricht den Senderechten“ – außer der Anbieter hat ihn bestätigt.
+     * Ersatzsender von Hand bleiben unangetastet (deine Wahl).
+     */
+    private fun rightsChecked(event: SportEvent, channel: ChannelKeyRow, score: Int): Int {
+        if (score >= KickoffCheck.CONFIRMED || score == MANUAL_SCORE || score < MatchSource.DISPLAY_MIN) return score
+        val verdict = SportRights.verdict(event, channel.name, GuideCatalog.countryOfName(channel.name))
+        return if (verdict == SportRights.Verdict.CONFLICT) MatchSource.RIGHTS_CONFLICT else score
     }
 
     /** Alle Funde eines Spiels: Sendeliste, Programm/Event-Sender ([analysis]) und EPG (innerhalb seiner Reichweite). */
