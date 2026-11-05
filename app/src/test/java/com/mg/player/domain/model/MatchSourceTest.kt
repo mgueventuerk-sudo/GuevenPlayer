@@ -21,6 +21,9 @@ class MatchSourceTest {
         assertEquals(MatchSource.GUIDE_WEAK, MatchSource.of(GuideMatching.ONE_TEAM))
         assertEquals(MatchSource.KEYWORD, MatchSource.of(60))
         assertEquals(MatchSource.MANUAL, MatchSource.of(ChannelEventMatcher.MANUAL_SCORE + 1))
+        assertEquals(MatchSource.TIMESLOT, MatchSource.of(MatchSource.TIMESLOT_SCORE))
+        assertEquals(MatchSource.TIMESLOT, MatchSource.of(MatchSource.TIMESLOT_SCORE + 1))
+        assertEquals(MatchSource.EVENT_NAME, MatchSource.of(SportChannelFinder.EVENT_CHANNEL))
     }
 
     /** Event-Sender ohne Beweis und widerlegte Sender liegen unter der Anzeigegrenze. */

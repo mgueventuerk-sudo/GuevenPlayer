@@ -8,11 +8,21 @@ enum class MatchSource(val label: String, val detail: String, val guessed: Boole
     PROVEN("● bewiesen", "Im Bild des Senders geprüft: Spielstand-Einblendung passt zum Live-Stand – oder du hast hier zugeschaut."),
     CONFIRMED("vom Anbieter bestätigt", "Das Programm des Anbieters nennt das Spiel kurz vor Anstoß."),
     GUIDE("laut TV-Programm", "Das öffentliche TV-Programm des Senders nennt beide Mannschaften.", switchable = true),
+    TIMESLOT(
+        "laut Zeitfenster (bewährt)",
+        "In diesem Zeitfenster (Wettbewerb, Wochentag, Anstoß) lief das Spiel schon mehrmals nachweislich hier.",
+        switchable = true,
+    ),
     STATION("laut Sendeliste", "Bzzoiro bzw. ESPN nennen diesen Sender für das Spiel.", switchable = true),
     EPG("laut EPG des Anbieters", "Das Programm deines Anbieters nennt beide Mannschaften.", switchable = true),
     GUIDE_WEAK("laut TV-Programm, unsicher", "Das TV-Programm nennt nur eine Mannschaft oder nur den Wettbewerb.", guessed = true, switchable = true),
     KEYWORD("laut EPG-Stichwort", "Das EPG nennt nur die Serie (z. B. Formel 1, UFC).", guessed = true, switchable = true),
     MANUAL("von dir zugeordnet", "Ersatzsender, den du für die Liga gewählt hast (bzw. dessen Reihe).", guessed = true),
+    EVENT_NAME(
+        "laut Sendername",
+        "Ein Event-Sender des Anbieters trägt den Spielnamen – ohne Bildbeweis wird er nicht angezeigt.",
+        guessed = true,
+    ),
     CONFLICT(
         "widerspricht den Senderechten",
         "Eine Quelle nennt den Sender, aber laut Rechte-Tabelle überträgt seine Senderfamilie diesen Wettbewerb hier nicht.",
@@ -27,6 +37,9 @@ enum class MatchSource(val label: String, val detail: String, val guessed: Boole
         /** Score eines Senders, der der Rechte-Tabelle widerspricht (sichtbar, aber gekennzeichnet). */
         const val RIGHTS_CONFLICT = 46
 
+        /** Score einer Vorhersage aus dem Zeitfenster-Gedächtnis (Plan „Spiel-Finder“ G). */
+        const val TIMESLOT_SCORE = 88
+
         /** Score eines im Bild bewiesenen Senders (über allem anderen). */
         const val PROVEN_SCORE = 120
 
@@ -37,11 +50,14 @@ enum class MatchSource(val label: String, val detail: String, val guessed: Boole
             score >= MIN_PROVEN -> PROVEN
             score >= MIN_CONFIRMED -> CONFIRMED
             score >= MIN_GUIDE -> GUIDE
+            score >= MIN_TIMESLOT -> TIMESLOT
             score >= MIN_STATION -> STATION
             score >= MIN_EPG -> EPG
             score >= MIN_GUIDE_WEAK -> GUIDE_WEAK
             score >= MIN_KEYWORD -> KEYWORD
             score >= MIN_MANUAL -> MANUAL
+            score >= DISPLAY_MIN -> CONFLICT
+            score >= MIN_EVENT_NAME -> EVENT_NAME
             else -> CONFLICT
         }
 
@@ -49,10 +65,12 @@ enum class MatchSource(val label: String, val detail: String, val guessed: Boole
         private const val MIN_PROVEN = 115
         private const val MIN_CONFIRMED = 105
         private const val MIN_GUIDE = 90
+        private const val MIN_TIMESLOT = 88
         private const val MIN_STATION = 85
         private const val MIN_EPG = 80
         private const val MIN_GUIDE_WEAK = 70
         private const val MIN_KEYWORD = 55
         private const val MIN_MANUAL = 50
+        private const val MIN_EVENT_NAME = 40
     }
 }

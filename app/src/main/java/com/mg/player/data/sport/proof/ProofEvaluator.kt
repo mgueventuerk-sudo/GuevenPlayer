@@ -85,6 +85,21 @@ object ProofEvaluator {
         SCORE.containsMatchIn(line) && WORD.findAll(line).count { it.value.length in SHORT_WORD } >= 2
     }
 
+    /**
+     * Logo-Prüfung (Plan „Spiel-Finder“ E): Zeigt das Bild in mehreren kurzen Textzeilen (Senderlogo, Bauchbinde) eine
+     * andere Senderfamilie als der Name des Senders – und nie die eigene –, läuft dort ein anderes Programm.
+     * Unbekannte Familie des Senders → keine Aussage.
+     */
+    fun foreignLogo(texts: List<String>, channelName: String, familyOf: (String) -> String?): Boolean {
+        val own = familyOf(channelName) ?: return false
+        val families = texts.map { it.trim() }.filter { it.split(BLANK).size <= LOGO_WORDS }.mapNotNull(familyOf)
+        val foreign = families.count { it != own }
+        return foreign >= LOGO_MIN && own !in families && texts.none { familyOf(it) == own }
+    }
+
+    private const val LOGO_WORDS = 3
+    private const val LOGO_MIN = 2
+    private val BLANK = Regex("""\s+""")
     private const val MAX_PLAY_MINUTE = 130
     private const val ABBREVIATION = 3
     private const val FULL_WORD_MIN = 4

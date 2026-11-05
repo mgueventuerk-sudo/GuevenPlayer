@@ -76,6 +76,7 @@ fun SportEventDialog(item: MatchedEvent, onDismiss: () -> Unit) {
             // Herkunft immer nennen (Plan „Spiel-Finder“ A) – bei unsicheren Quellen ausdrücklich als Vermutung.
             append("\nQuelle: ${item.source.label}. ${item.source.detail}")
             if (item.guessed) append(" Sender nur vermutet.")
+            container.sport.stats.overallPercent(item.source)?.let { append(" Vorhersage dieser Quelle: $it %.") }
             nowOnChannel?.let { append(" Dort läuft gerade „$it“.") }
         }
     }

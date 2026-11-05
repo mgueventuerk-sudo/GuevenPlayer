@@ -10,6 +10,7 @@ import com.mg.player.data.sport.guide.KickoffCheck
 import com.mg.player.data.sport.guide.SportChannelFinder
 import com.mg.player.data.sport.proof.ProofEvaluator
 import com.mg.player.data.sport.proof.ProofStore
+import com.mg.player.data.sport.proof.SourceStats
 import com.mg.player.data.sport.rights.SportRights
 import com.mg.player.domain.model.ChannelKeyRow
 import com.mg.player.domain.model.MatchSource
@@ -33,6 +34,8 @@ class ChannelEventMatcher(
     private val finder: SportChannelFinder? = null,
     /** Beweise aus Bild, Zuschauen und „Falscher Sender“ (Plan „Spiel-Finder“ C/H). */
     private val proofs: ProofStore? = null,
+    /** Trefferquoten je Quelle und Zeitfenster-Gedächtnis (Plan „Spiel-Finder“ F/G). */
+    private val stats: SourceStats? = null,
 ) {
 
     /** Sender laut Sport-Programm aus dem letzten Abgleich (für den Hinweis „läuft auf … – nicht in deinem Zugang“). */
@@ -55,8 +58,11 @@ class ChannelEventMatcher(
         val perEvent = LinkedHashMap<SportEvent, MutableList<Pair<ChannelKeyRow, Int>>>()
         for (event in events) {
             val found = candidates(event, stations, analysis, horizon, windows)
-            provenOutside(event, found)?.let { found += it }
-            if (disabled.isNotEmpty()) found.removeAll { MatchSource.of(it.second) in disabled }
+            found += timeSlot(event).filter { slot -> found.none { it.first.id == slot.first.id } }
+            val outside = provenOutside(event, found)
+            learn(event, found, outside)
+            outside?.let { found += it }
+            found.removeAll { (channel, score) -> dropped(event, channel, score, disabled) }
             perEvent[event] = found
         }
         // Ersatzsender von Hand zuletzt: erst jetzt ist klar, welche Spiele schon sicher einen Sender haben.
@@ -82,6 +88,43 @@ class ChannelEventMatcher(
             proof != null || store.isBlocked(leagueOfEvent(event.id), keys) -> MatchSource.DISPROVEN_SCORE
             else -> rightsChecked(event, channel, score)
         }
+    }
+
+    /**
+     * Selbstkalibrierung (Plan F): Ist das Spiel bewiesen, zählt für jede Quelle, ob ihr Sender der bewiesene war.
+     * [found] sind die Funde der Quellen vor dem Beweis, [outside] bewiesene Sender, die keine Quelle genannt hatte.
+     */
+    private fun learn(event: SportEvent, found: List<Pair<ChannelKeyRow, Int>>, outside: List<Pair<ChannelKeyRow, Int>>?) {
+        val s = stats ?: return
+        val store = proofs ?: return
+        val provenKey = (found.map { it.first } + outside.orEmpty().map { it.first })
+            .firstOrNull { store.verdictFor(event.id, listOf(it.id, GuideCatalog.nameKey(it.name))) == ProofEvaluator.Verdict.PROVEN }
+            ?.let { GuideCatalog.nameKey(it.name) } ?: return
+        val guesses = found.mapNotNull { (channel, score) ->
+            val source = MatchSource.of(score).takeIf { it != MatchSource.CONFLICT && it != MatchSource.PROVEN } ?: return@mapNotNull null
+            SourceStats.Guess(source, channel.playlistId, GuideCatalog.nameKey(channel.name) == provenKey)
+        }
+        s.learn(event.id, leagueOfEvent(event.id), event.startMs, provenKey, guesses)
+    }
+
+    /**
+     * Fund verwerfen: Quelle abgeschaltet oder für diesen Wettbewerb und diese Playlist nachweislich nutzlos (0 von 5,
+     * Plan F). Ein bewiesener Sender bleibt immer.
+     */
+    private fun dropped(event: SportEvent, channel: ChannelKeyRow, score: Int, disabled: Set<MatchSource>): Boolean {
+        val source = MatchSource.of(score)
+        val useless = stats?.isUseless(source, leagueOfEvent(event.id), channel.playlistId) == true
+        if (source !in disabled && !useless) return false
+        val keys = listOf(channel.id, GuideCatalog.nameKey(channel.name))
+        return proofs?.verdictFor(event.id, keys) != ProofEvaluator.Verdict.PROVEN
+    }
+
+    /** Zeitfenster-Gedächtnis (Plan G): Sender, die in diesem Zeitfenster schon mehrmals bewiesen wurden. */
+    private suspend fun timeSlot(event: SportEvent): List<Pair<ChannelKeyRow, Int>> {
+        val keys = stats?.slotStations(leagueOfEvent(event.id), event.startMs)?.toSet().orEmpty()
+        if (keys.isEmpty()) return emptyList()
+        val rows = finder?.index()?.rows.orEmpty().filter { GuideCatalog.nameKey(it.name) in keys }
+        return rows.distinctBy { it.playlistId }.map { ChannelKeyRow(it.id, it.name, it.playlistId) to MatchSource.TIMESLOT_SCORE }
     }
 
     /** Bewiesene Sender, die keine Quelle genannt hat (gefunden bei der Suche, Plan D) – als Kandidaten dazu. */

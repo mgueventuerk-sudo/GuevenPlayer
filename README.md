@@ -271,6 +271,17 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.56 (Spiel-Finder L5/L6: Selbstkalibrierung, Zeitfenster, Logo-Prüfung)
+
+- **Trefferquote je Quelle:** Jedes bewiesene Spiel zählt, ob eine Quelle (TV-Programm, Sendeliste, EPG …) den richtigen
+  Sender genannt hatte – getrennt nach Wettbewerb und Playlist. Ab 5 Spielen steht „Vorhersage NN %“ in Einstellungen →
+  Sport und im Spiel-Dialog. Eine Quelle mit 0 von 5 zählt dort nicht mehr (bewiesene Sender bleiben immer).
+- **Zeitfenster-Gedächtnis:** Wurde ein Sender im selben Zeitfenster (Wettbewerb, Wochentag, Anstoßzeit) mindestens
+  zweimal bewiesen, wird er für die nächsten Spiele vorgeschlagen („laut Zeitfenster (bewährt)“, abschaltbar).
+- **Logo-Prüfung:** Zeigt das Bild mehrmals das Logo einer anderen Senderfamilie (und nie das eigene), gilt der Sender
+  für dieses Spiel als widerlegt.
+- **Behoben:** Der Wecker für die Hintergrundsuche folgt dem Schalter „Dieses Gerät prüft im Hintergrund“ zuverlässig.
+
 ## Neu in 3.55 (Spiel-Finder L4: Suche, Mosaik, Hintergrund, Prüfgerät)
 
 - **Suche über die Sport-Gruppen:** Findet die Prüfung bei den Kandidaten nichts, sieht sie Sport-Sender der Familien mit

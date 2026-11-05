@@ -4,10 +4,8 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mg.player.core.util.TimeUtils
-import com.mg.player.data.sport.proof.ProofAlarm
 import com.mg.player.data.sport.proof.ProofEvaluator
 import com.mg.player.domain.model.MatchSource
 import com.mg.player.domain.sport.SportBoard
@@ -37,36 +35,7 @@ internal fun LazyListScope.sportSourceItems(c: SettingsContext) {
                 )
             }
         }
-        row("sport-proof-device") {
-            val context = LocalContext.current
-            ToggleRow(
-                "Dieses Gerät prüft im Hintergrund",
-                c.s.sportProofDevice,
-                {
-                    c.vm.update { it.copy(sportProofDevice = !it.sportProofDevice) }
-                    ProofAlarm.scheduleNext(context)
-                },
-                "2 Minuten vor Anpfiff, höchstens 15 Minuten, nur über freie Playlists. Nur auf einem Gerät einschalten (z. B. Fire TV Cube).",
-                AppIcons.Clock,
-            )
-        }
-        if (c.s.sportProofDevice) {
-            row("sport-hub-code") {
-                ActionRow(
-                    "Code für andere Geräte",
-                    {},
-                    c.s.sportHubCode.ifBlank { "wird erzeugt …" } + " – auf Stick/Handy unter „Code des Prüfgeräts“ eintragen",
-                    icon = AppIcons.Lock,
-                    chevron = false,
-                )
-            }
-        } else {
-            row("sport-hub-join", contentType = "text-field") {
-                SecretKeyField(c.s.sportHubJoinCode, "Code des Prüfgeräts (z. B. Fire TV Cube)") { code ->
-                    c.vm.update { it.copy(sportHubJoinCode = code.filter(Char::isDigit)) }
-                }
-            }
-        }
+        proofDeviceRows(c)
         row("sport-source-counts") { SourceSummaryRow() }
         row("sport-proofs") { ProofHistoryRow() }
     }
@@ -85,11 +54,42 @@ internal fun LazyListScope.sportSourceItems(c: SettingsContext) {
     }
 }
 
+/** Prüfgerät und Code fürs Heimnetz (Plan „Spiel-Finder“ N/O); der Wecker folgt der Einstellung von selbst (PlayerApp). */
+private fun GroupBuilder.proofDeviceRows(c: SettingsContext) {
+    row("sport-proof-device") {
+        ToggleRow(
+            "Dieses Gerät prüft im Hintergrund",
+            c.s.sportProofDevice,
+            { c.vm.update { it.copy(sportProofDevice = !it.sportProofDevice) } },
+            "2 Minuten vor Anpfiff, höchstens 15 Minuten, nur über freie Playlists. Nur auf einem Gerät einschalten (z. B. Fire TV Cube).",
+            AppIcons.Clock,
+        )
+    }
+    if (c.s.sportProofDevice) {
+        row("sport-hub-code") {
+            ActionRow(
+                "Code für andere Geräte",
+                {},
+                c.s.sportHubCode.ifBlank { "wird erzeugt …" } + " – auf Stick/Handy unter „Code des Prüfgeräts“ eintragen",
+                icon = AppIcons.Lock,
+                chevron = false,
+            )
+        }
+    } else {
+        row("sport-hub-join", contentType = "text-field") {
+            SecretKeyField(c.s.sportHubJoinCode, "Code des Prüfgeräts (z. B. Fire TV Cube)") { code ->
+                c.vm.update { it.copy(sportHubJoinCode = code.filter(Char::isDigit)) }
+            }
+        }
+    }
+}
+
 @Composable
 private fun sourceCountText(source: MatchSource): String {
     val board by LocalAppContainer.current.sport.repository.board.collectAsStateWithLifecycle()
     val count = board?.let { sourceCounts(it)[source] } ?: 0
-    return "${source.detail} Gerade $count ${if (count == 1) "Spiel" else "Spiele"}."
+    val rate = LocalAppContainer.current.sport.stats.overallPercent(source)?.let { " Vorhersage $it % (an bewiesenen Spielen gemessen)." }.orEmpty()
+    return "${source.detail} Gerade $count ${if (count == 1) "Spiel" else "Spiele"}.$rate"
 }
 
 @Composable

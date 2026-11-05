@@ -143,7 +143,10 @@ class ProofHunter(
 
     private suspend fun check(event: SportEvent, row: EventMatchRow, channel: ChannelKeyRow): ProofEvaluator.Verdict? {
         val seen = look(channel.id) ?: return null
-        val verdict = ProofEvaluator.evaluate(seen.texts, gameOf(event), seen.staticPicture)
+        val verdict = ProofEvaluator.evaluate(seen.texts, gameOf(event), seen.staticPicture).let { v ->
+            val wrongLogo = v != ProofEvaluator.Verdict.PROVEN && ProofEvaluator.foreignLogo(seen.texts, channel.name, SportRights::familyOf)
+            if (wrongLogo) ProofEvaluator.Verdict.OTHER else v
+        }
         // Event-Kanäle gibt es nur bei einem Anbieter – ihr Ergebnis gilt nur für diesen Kanal (Regel „Freie Playlist“ 3).
         val eventChannel = row.score <= SportChannelFinder.EVENT_CHANNEL + 1
         val key = if (eventChannel) channel.id else GuideCatalog.nameKey(channel.name)

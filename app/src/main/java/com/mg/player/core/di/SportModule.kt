@@ -19,6 +19,7 @@ import com.mg.player.data.sport.proof.ProofLook
 import com.mg.player.data.sport.proof.ProofShareClient
 import com.mg.player.data.sport.proof.ProofShareServer
 import com.mg.player.data.sport.proof.ProofStore
+import com.mg.player.data.sport.proof.SourceStats
 import com.mg.player.data.sport.rights.SportRights
 import com.mg.player.domain.model.BufferProfile
 import com.mg.player.domain.model.ChannelKeyRow
@@ -27,9 +28,9 @@ import com.mg.player.domain.model.SportEvent
 import com.mg.player.domain.sport.EventCountdownTicker
 import com.mg.player.player.engine.StreamRequest
 import com.mg.player.player.proof.ProofProbe
-import java.io.File
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.map
+import java.io.File
 
 /** Teil-Container Sport (aus [AppContainer] herausgelöst): Quellen, Zuordnung zu Sendern, öffentliches Programm. */
 class SportModule(private val container: AppContainer) {
@@ -50,7 +51,7 @@ class SportModule(private val container: AppContainer) {
             dao,
             container.settingsRepository,
             sources,
-            ChannelEventMatcher(dao, finder, proofs),
+            ChannelEventMatcher(dao, finder, proofs, stats),
             container.appScope,
             hasPlaylists = { container.database.playlistDao().all().isNotEmpty() },
             // Nach jeder Aktualisierung – und nach jedem Neuaufbau von „Alle Zugänge“, der erst danach fertig wird
@@ -90,6 +91,9 @@ class SportModule(private val container: AppContainer) {
 
     /** Beweise je Spiel und Sender (Bild, Zuschauen, „Falscher Sender“), über Neustarts hinweg. */
     val proofs: ProofStore by lazy { ProofStore(PrefsStreamStore(container.appContext, "sport_proofs")) }
+
+    /** Trefferquoten der Quellen und Zeitfenster-Gedächtnis (Plan „Spiel-Finder“ F/G). */
+    val stats: SourceStats by lazy { SourceStats(PrefsStreamStore(container.appContext, "sport_stats")) }
 
     /** Beweise aus deiner Bedienung (Zuschauen, Mosaik, „Falscher Sender“). */
     val proofActions: ProofActions by lazy { ProofActions(repository, container.database.sportDao(), proofs) }

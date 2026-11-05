@@ -20,9 +20,9 @@ import com.mg.player.core.log.AppLog
 import com.mg.player.core.log.DebugChecks
 import com.mg.player.core.log.StartupClock
 import com.mg.player.core.security.SecretCipher
+import com.mg.player.data.sport.proof.ProofAlarm
 import com.mg.player.data.sync.AutoRefreshWork
 import com.mg.player.data.sync.AutoRefresher
-import com.mg.player.data.sport.proof.ProofAlarm
 import com.wireguard.android.backend.GoBackend
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -57,7 +57,11 @@ open class PlayerApp :
             runCatching { if (container.settingsRepository.current().epgShiftHours != 0) container.epgShifts.adoptLegacy() }
                 .onFailure { AppLog.log("EPG", "Zeitverschiebung nicht übertragen: ${it.javaClass.simpleName}") }
             // Spiel-Finder: Wecker für die Beweissuche im Hintergrund (nur auf dem Prüfgerät) und Austausch im Heimnetz.
-            ProofAlarm.scheduleNext(this@PlayerApp)
+            // Wecker neu stellen, sobald „Dieses Gerät prüft im Hintergrund“ umgeschaltet wird (auch beim Start).
+            container.appScope.launch {
+                container.settingsRepository.settings.map { it.sportProofDevice }.distinctUntilChanged()
+                    .collect { ProofAlarm.scheduleNext(this@PlayerApp) }
+            }
             container.appScope.launch { container.sport.shareLoop() }
             // Gedächtnis des Wächters (bis 2 000 Quellen) hier lesen, nicht beim ersten Öffnen des Players im Haupt-Thread.
             container.playback.sourceHealth.penalty("")

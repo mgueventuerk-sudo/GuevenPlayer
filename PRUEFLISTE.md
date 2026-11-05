@@ -339,6 +339,13 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P5 Mit gesetzter PIN: Bearbeiten fragt zuerst nach der PIN.
 - [ ] P6 QR-Code im Bearbeiten-Bildschirm: Daten vom Handy landen im Formular (gespeichert wird erst mit „Prüfen & speichern“).
 
+## 16p. Neu in 3.56 – Lernen aus Beweisen
+
+- [ ] K1 Nach mehreren bewiesenen Spielen: Einstellungen → Sport zeigt bei den Quellen „Vorhersage NN %“.
+- [ ] K2 Zwei Freitagsspiele derselben Liga zur selben Uhrzeit bewiesen → nächstes Spiel im Zeitfenster zeigt den Sender „laut Zeitfenster (bewährt)“.
+- [ ] K3 Sender mit fremdem Logo (z. B. DAZN-Bild auf „Sky …“): „Letzte Prüfungen“ zeigt „anderes Spiel“, der Sender verschwindet beim Spiel.
+- [ ] K4 Schalter „Dieses Gerät prüft im Hintergrund“ aus → keine Hintergrundsuche mehr; an → Wecker vor dem nächsten Spiel.
+
 ## 16o. Neu in 3.55 – Suche, Mosaik, Hintergrund, Prüfgerät
 
 - [ ] S1 Spiel unter „Ohne Sender“ → OK → „Sender suchen“-Mosaik; Wahl öffnet den Sender, Spiel danach „● bewiesen“.

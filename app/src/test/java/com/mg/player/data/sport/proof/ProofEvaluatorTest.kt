@@ -69,4 +69,26 @@ class ProofEvaluatorTest {
         assertFalse(FrameDiff.isStatic(listOf(a, moving)))
         assertFalse(FrameDiff.isStatic(listOf(a)))
     }
+
+    private val family: (String) -> String? = { name ->
+        val n = name.lowercase()
+        when {
+            "dazn" in n -> "dazn"
+            "sky" in n -> "sky"
+            else -> null
+        }
+    }
+
+    @Test
+    fun foreignLogoInSeveralFramesDisprovesChannel() {
+        assertTrue(ProofEvaluator.foreignLogo(listOf("DAZN", "12:30", "DAZN"), "DE: Sky Sport Bundesliga 1 HD", family))
+    }
+
+    @Test
+    fun ownLogoOrSingleSightingIsNoProofOfWrongChannel() {
+        assertFalse(ProofEvaluator.foreignLogo(listOf("DAZN", "sky sport", "DAZN"), "DE: Sky Sport Bundesliga 1", family))
+        assertFalse(ProofEvaluator.foreignLogo(listOf("DAZN"), "DE: Sky Sport Bundesliga 1", family))
+        assertFalse(ProofEvaluator.foreignLogo(listOf("Jetzt auch bei DAZN streamen", "Mehr bei DAZN online sehen"), "Sky Sport 1", family))
+        assertFalse(ProofEvaluator.foreignLogo(listOf("DAZN", "DAZN"), "beIN SPORTS 1", family))
+    }
 }

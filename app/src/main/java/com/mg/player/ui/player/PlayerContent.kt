@@ -2,6 +2,7 @@ package com.mg.player.ui.player
 
 import com.mg.player.core.device.DeviceTier
 import com.mg.player.core.log.AppLog
+import com.mg.player.core.util.runCatchingCancellable
 import com.mg.player.core.vpn.tunnelUps
 import com.mg.player.domain.binge.BingeAction
 import com.mg.player.domain.model.Category

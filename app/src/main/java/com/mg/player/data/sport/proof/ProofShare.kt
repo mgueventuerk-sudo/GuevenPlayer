@@ -114,18 +114,17 @@ class ProofShareClient(private val context: Context, private val http: HttpFetch
         val text = runCatching { http.getText("$url/proofs?t=${enc(code)}", allowRedirects = false, allowInsecureHttp = true) }
             .onFailure { base = null }.getOrNull() ?: return@withContext emptySet()
         val array = runCatching { JSONArray(text) }.getOrNull() ?: return@withContext emptySet()
-        val changed = HashSet<String>()
-        for (i in 0 until array.length()) {
-            val o = array.optJSONObject(i) ?: continue
-            val verdict = Verdict.entries.firstOrNull { it.name == o.optString("v") } ?: continue
-            val eventId = o.optString("e").takeIf { it.isNotBlank() } ?: continue
-            val key = o.optString("k").takeIf { it.isNotBlank() } ?: continue
-            if (proofs.verdictFor(eventId, listOf(key)) != verdict) {
-                proofs.record(eventId, key, key, verdict, ProofHunter.BY_HUB)
-                changed += eventId
-            }
-        }
-        changed
+        (0 until array.length()).mapNotNull { i -> array.optJSONObject(i)?.let(::adopt) }.toSet()
+    }
+
+    /** Ein Ergebnis vom Prüfgerät übernehmen; liefert das Spiel, wenn sich etwas geändert hat. */
+    private fun adopt(o: org.json.JSONObject): String? {
+        val verdict = Verdict.entries.firstOrNull { it.name == o.optString("v") }
+        val eventId = o.optString("e").takeIf { it.isNotBlank() }
+        val key = o.optString("k").takeIf { it.isNotBlank() }
+        if (verdict == null || eventId == null || key == null || proofs.verdictFor(eventId, listOf(key)) == verdict) return null
+        proofs.record(eventId, key, key, verdict, ProofHunter.BY_HUB)
+        return eventId
     }
 
     /** Vorfahrt fürs Zuschauen: Das Prüfgerät gibt diese Playlist sofort frei (Regel „Freie Playlist“ 4). */
