@@ -43,7 +43,8 @@ class ProofShareServer(private val context: Context, private val proofs: ProofSt
         }
         val listener = object : NsdManager.RegistrationListener {
             override fun onServiceRegistered(info: NsdServiceInfo) = AppLog.log("Sport", "Prüfgerät im Heimnetz bereit (Port $port)")
-            override fun onRegistrationFailed(info: NsdServiceInfo, code: Int) = AppLog.log("Sport", "Prüfgerät: Anmeldung im Heimnetz fehlgeschlagen ($code)")
+            override fun onRegistrationFailed(info: NsdServiceInfo, code: Int) =
+                AppLog.log("Sport", "Prüfgerät: Anmeldung im Heimnetz fehlgeschlagen ($code)")
             override fun onServiceUnregistered(info: NsdServiceInfo) = Unit
             override fun onUnregistrationFailed(info: NsdServiceInfo, code: Int) = Unit
         }

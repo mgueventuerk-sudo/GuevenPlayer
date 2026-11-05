@@ -74,7 +74,7 @@ fun MosaicScreen(categoryId: String, startChannelId: String?) {
                 val sport = sportEventId(categoryId) != null
                 ScreenTitle(if (sport) "Sender suchen" else "Live-Mosaik")
                 Text(
-                    if (sport) "Wo läuft das Spiel? OK auf dem richtigen Bild öffnet den Sender und merkt ihn sich" else "Standbilder alle 30 Sekunden · OK öffnet den Sender",
+                    if (sport) SPORT_HINT else "Standbilder alle 30 Sekunden · OK öffnet den Sender",
                     style = MaterialTheme.typography.bodyMedium,
                     color = AppColors.TextSecondary,
                 )
@@ -229,3 +229,5 @@ internal fun liveProgress(startMs: Long?, endMs: Long?, nowMs: Long): Float? {
     if (duration <= 0 || nowMs < startMs) return null
     return ((nowMs - startMs).toFloat() / duration).coerceIn(0f, 1f)
 }
+
+private const val SPORT_HINT = "Wo läuft das Spiel? OK auf dem richtigen Bild öffnet den Sender und merkt ihn sich"
