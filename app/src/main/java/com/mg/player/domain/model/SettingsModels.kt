@@ -131,6 +131,12 @@ data class AppSettings(
     val sportGuide: Boolean = true,
     /** Abgeschaltete Quellen der Sender-Zuordnung (Namen von MatchSource), siehe Einstellungen → Sport. */
     val sportSourcesOff: Set<String> = emptySet(),
+    /** Dieses Gerät sucht im Hintergrund Beweise (Plan „Spiel-Finder“ N/O: nur auf einem Prüfgerät, z. B. Fire TV Cube). */
+    val sportProofDevice: Boolean = false,
+    /** Code dieses Prüfgeräts für die anderen Geräte im Heimnetz (8 Ziffern, beim Einschalten erzeugt). */
+    val sportHubCode: String = "",
+    /** Code des Prüfgeräts, eingetragen auf Stick/Handy (leer = keine Beweise vom Prüfgerät holen). */
+    val sportHubJoinCode: String = "",
     /** Länder, deren Sender für Sport zählen (ISO, z. B. „DE“); Senderlisten von Bzzoiro je Land. */
     val sportCountries: Set<String> = DEFAULT_SPORT_COUNTRIES,
     /** Verschlüsseltes DNS (DoH), solange das VPN nicht verbunden ist. */

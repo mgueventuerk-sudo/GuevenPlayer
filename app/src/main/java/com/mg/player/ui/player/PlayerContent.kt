@@ -98,7 +98,11 @@ private suspend fun PlayerViewModel.loadChannelList(playable: Playable, sameAcco
 internal suspend fun PlayerViewModel.startPlayable(playable: Playable) {
     if (!switchingAccount) accounts.resetOffers()
     switchingAccount = false
-    (playable.activePlaylistId ?: playlistIdOf(playable.id))?.let(container.connectionMonitor::markOwnUse)
+    (playable.activePlaylistId ?: playlistIdOf(playable.id))?.let { playlistId ->
+        container.connectionMonitor.markOwnUse(playlistId)
+        // Vorfahrt fürs Zuschauen: Prüft das Prüfgerät gerade über diesen Zugang, gibt es ihn sofort frei (Spiel-Finder O).
+        scope.launch { runCatchingCancellable { container.sport.releaseForViewing(playlistId) } }
+    }
     bingeSession.reset()
     frameRate.cancelPending()
     // War für den letzten Inhalt eine andere Engine als Notlösung aktiv: der neue startet wieder mit der eingestellten.

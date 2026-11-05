@@ -28,6 +28,8 @@ import java.util.concurrent.Semaphore
 class MiniHttpServer(
     private val maxBodyBytes: Int = 16 * 1024,
     private val requestDeadlineMs: Long = 20_000,
+    /** Fester Zugangscode statt Einmal-Token (Prüfgerät im Heimnetz, Code wird am anderen Gerät eingetippt). */
+    private val fixedToken: String? = null,
     private val handler: suspend (Request) -> Response,
 ) {
 
@@ -48,7 +50,7 @@ class MiniHttpServer(
     private var localNet: Pair<InetAddress, Int>? = null
     private var serverSocket: ServerSocket? = null
 
-    val token: String = SecureRandom().let { random ->
+    val token: String = fixedToken ?: SecureRandom().let { random ->
         (1..TOKEN_LENGTH).map { TOKEN_ALPHABET[random.nextInt(TOKEN_ALPHABET.length)] }.joinToString("")
     }
 

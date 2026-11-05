@@ -271,6 +271,19 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.55 (Spiel-Finder L4: Suche, Mosaik, Hintergrund, Prüfgerät)
+
+- **Suche über die Sport-Gruppen:** Findet die Prüfung bei den Kandidaten nichts, sieht sie Sport-Sender der Familien mit
+  Rechten an (bis 10 je Spiel) – so wird ein Spiel auch auf Sendern gefunden, die keine Liste nennt.
+- **„Sender suchen“:** OK auf einem Spiel ohne Sender (und im Spiel-Dialog) öffnet ein Live-Mosaik der wahrscheinlichsten
+  Sender; deine Wahl ist der Beweis.
+- **Hinweis:** „Spiel gefunden: … auf … (geprüft)“; eine Erinnerung an das Spiel zeigt danach auf den bewiesenen Sender.
+- **Im Hintergrund:** Einstellungen → Sport → „Dieses Gerät prüft im Hintergrund“ (nur auf einem Gerät, z. B. Fire TV
+  Cube). Ein Wecker 2 Minuten vor Anpfiff startet die Suche für höchstens 15 Minuten.
+- **Prüfgerät im Heimnetz:** Das Prüfgerät zeigt einen 8-stelligen Code; auf Stick/Handy unter „Code des Prüfgeräts“
+  eintragen. Sie übernehmen dann seine Beweise (nur Spiel, Sender, Ergebnis) und melden beim Losschauen „Ich brauche
+  diese Playlist“ – das Prüfgerät gibt sie sofort frei (Regel „Freie Playlist“).
+
 ## Neu in 3.54 (Spiel-Finder L2 + L3: Senderechte und Bildbeweis)
 
 - **Rechte-Tabelle 2026/27** (DE, AT, TR; Quellen im Code): Sender, deren Familie den Wettbewerb laut Tabelle nicht

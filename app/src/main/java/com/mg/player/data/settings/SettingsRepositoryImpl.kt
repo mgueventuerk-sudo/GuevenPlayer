@@ -97,6 +97,9 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         val SPORT_GUIDE = booleanPreferencesKey("sport_guide")
         val SPORT_SOURCES_OFF = stringSetPreferencesKey("sport_sources_off")
         val SPORT_COUNTRIES = stringSetPreferencesKey("sport_countries")
+        val SPORT_PROOF_DEVICE = booleanPreferencesKey("sport_proof_device")
+        val SPORT_HUB_CODE = stringPreferencesKey("sport_hub_code")
+        val SPORT_HUB_JOIN = stringPreferencesKey("sport_hub_join")
         val DOH = booleanPreferencesKey("doh_fallback")
         val NO_HISTORY = booleanPreferencesKey("no_history")
         val APP_LOCK = booleanPreferencesKey("app_lock")
@@ -161,6 +164,9 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
             onlineExtras = this[Keys.ONLINE_EXTRAS] ?: defaults.onlineExtras,
             sportGuide = this[Keys.SPORT_GUIDE] ?: defaults.sportGuide,
             sportSourcesOff = this[Keys.SPORT_SOURCES_OFF] ?: defaults.sportSourcesOff,
+            sportProofDevice = this[Keys.SPORT_PROOF_DEVICE] ?: defaults.sportProofDevice,
+            sportHubCode = this[Keys.SPORT_HUB_CODE] ?: defaults.sportHubCode,
+            sportHubJoinCode = this[Keys.SPORT_HUB_JOIN] ?: defaults.sportHubJoinCode,
             sportCountries = this[Keys.SPORT_COUNTRIES]?.takeIf { it.isNotEmpty() } ?: defaults.sportCountries,
             dohFallback = this[Keys.DOH] ?: defaults.dohFallback,
             noHistory = this[Keys.NO_HISTORY] ?: defaults.noHistory,
@@ -204,6 +210,9 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         this[Keys.ONLINE_EXTRAS] = s.onlineExtras
         this[Keys.SPORT_GUIDE] = s.sportGuide
         this[Keys.SPORT_SOURCES_OFF] = s.sportSourcesOff
+        this[Keys.SPORT_PROOF_DEVICE] = s.sportProofDevice
+        this[Keys.SPORT_HUB_CODE] = s.sportHubCode
+        this[Keys.SPORT_HUB_JOIN] = s.sportHubJoinCode
         this[Keys.SPORT_COUNTRIES] = s.sportCountries
         this[Keys.DOH] = s.dohFallback
         this[Keys.NO_HISTORY] = s.noHistory

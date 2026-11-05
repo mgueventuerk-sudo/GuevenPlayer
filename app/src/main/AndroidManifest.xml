@@ -78,6 +78,18 @@
                 android:value="Aufnahme eines laufenden Live-TV-Streams auf Wunsch des Nutzers" />
         </service>
 
+        <!-- Spiel-Finder: Beweissuche im Hintergrund, 2 Minuten vor Anpfiff, höchstens 15 Minuten (nur auf dem Prüfgerät). -->
+        <service
+            android:name=".data.sport.proof.ProofService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Prüft kurz vor Anpfiff auf Wunsch des Nutzers, auf welchem Sender ein Sportereignis läuft" />
+        </service>
+        <receiver
+            android:name=".data.sport.proof.ProofAlarmReceiver"
+            android:exported="false" />
         <receiver
             android:name=".data.recording.RecordingAlarmReceiver"
             android:exported="false" />

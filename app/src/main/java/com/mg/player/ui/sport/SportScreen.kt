@@ -32,7 +32,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.mg.player.data.reminder.LaunchRequest
-import com.mg.player.data.sport.leagueOfEvent
 import com.mg.player.domain.model.MatchedEvent
 import com.mg.player.domain.model.SportEvent
 import com.mg.player.domain.model.SportGroups
@@ -51,6 +50,7 @@ import com.mg.player.ui.common.ScreenTitle
 import com.mg.player.ui.common.edgePadding
 import com.mg.player.ui.common.isTouch
 import com.mg.player.ui.navigation.LocalNavigator
+import com.mg.player.ui.live.SPORT_MOSAIC_PREFIX
 import com.mg.player.ui.navigation.Screen
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
@@ -137,7 +137,8 @@ fun SportScreen(modifier: Modifier = Modifier) {
                 }
             }
             if (unmatched.isNotEmpty()) {
-                unmatchedItems(unmatched) { event -> navigator.push(Screen.SportAssign(leagueOfEvent(event.id))) }
+                // Plan „Spiel-Finder“ I: „Sender suchen“ zeigt die wahrscheinlichsten Sender als Live-Mosaik.
+                unmatchedItems(unmatched) { event -> navigator.push(Screen.Mosaic(SPORT_MOSAIC_PREFIX + event.id, null)) }
             }
             // Am Ende (nicht oben): Beim Öffnen liegt der Fokus so auf dem ersten Spiel.
             item(key = "leagues", contentType = "action") {
@@ -319,7 +320,7 @@ private fun EventState(startMs: Long, live: Boolean, ticker: EventCountdownTicke
 
 /** Hinweis für ein Spiel ohne Sender im Zugang. */
 internal fun unmatchedHint(stations: List<String>): String = when {
-    stations.isEmpty() -> "Sender unbekannt"
+    stations.isEmpty() -> "OK: Sender suchen"
     else -> "läuft auf ${stations.take(2).joinToString(", ", transform = ::stationLabel)} – nicht in deinem Zugang"
 }
 

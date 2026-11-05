@@ -53,6 +53,7 @@ import com.mg.player.ui.common.LocalParentalGate
 import com.mg.player.ui.common.LocalToast
 import com.mg.player.ui.common.ParentalGateHost
 import com.mg.player.ui.common.ParentalGateState
+import com.mg.player.ui.common.ProofFoundHost
 import com.mg.player.ui.common.ReminderHost
 import com.mg.player.ui.common.ToastHost
 import com.mg.player.ui.common.ToastState
@@ -223,6 +224,8 @@ fun AppRoot(container: AppContainer) {
             ParentalGateHost(gate)
             // Nach einem Absturz beim nächsten Start: Bericht anbieten.
             CrashReportHost(onOpenLog = { navigator.push(Screen.Share(ShareMode.LOG)) })
+            // Spiel im Bild bewiesen: kurzer Hinweis, Erinnerung auf den bewiesenen Sender.
+            ProofFoundHost(container)
             // App-Update verfügbar: einmal nachfragen – nicht mitten in der Wiedergabe.
             if (!video) UpdatePromptHost(container)
             // App-Sperre deckt alles ab, bis die PIN stimmt (als Letztes: liegt über allen anderen Fenstern).

@@ -54,6 +54,20 @@ class ReminderManager(private val context: Context, private val clock: () -> Lon
         return "Erinnerung gesetzt: „${reminder.title}“ um ${TimeUtils.formatClock(reminder.startMs)} – ${LEAD_MS / 60_000} Minuten vorher"
     }
 
+    /**
+     * Plan „Spiel-Finder“ L: Das Spiel [title] um [startMs] ist auf [channelId] bewiesen – eine Erinnerung an dasselbe Spiel
+     * auf einem anderen Sender zeigt danach auf den bewiesenen (die Benachrichtigung öffnet den richtigen Sender).
+     */
+    fun retarget(title: String, startMs: Long, channelId: String, channelName: String) {
+        val old = _items.value.firstOrNull { it.title == title && it.startMs == startMs && it.channelId != channelId } ?: return
+        remove(old.id)
+        val moved = old.copy(channelId = channelId, channelName = channelName)
+        if (moved.startMs <= clock()) return
+        _items.update { (it + moved).sortedBy { r -> r.startMs } }
+        save()
+        schedule(moved)
+    }
+
     fun remove(id: String) {
         _items.value.firstOrNull { it.id == id }?.let { cancel(it) }
         _items.update { list -> list.filterNot { it.id == id } }

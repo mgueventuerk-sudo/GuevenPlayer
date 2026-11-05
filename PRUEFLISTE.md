@@ -339,6 +339,14 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P5 Mit gesetzter PIN: Bearbeiten fragt zuerst nach der PIN.
 - [ ] P6 QR-Code im Bearbeiten-Bildschirm: Daten vom Handy landen im Formular (gespeichert wird erst mit „Prüfen & speichern“).
 
+## 16o. Neu in 3.55 – Suche, Mosaik, Hintergrund, Prüfgerät
+
+- [ ] S1 Spiel unter „Ohne Sender“ → OK → „Sender suchen“-Mosaik; Wahl öffnet den Sender, Spiel danach „● bewiesen“.
+- [ ] S2 Cube: „Dieses Gerät prüft im Hintergrund“ an → Code erscheint. Stick: Code eintragen.
+- [ ] S3 App auf dem Cube geschlossen, Spiel beginnt → nach einigen Minuten zeigt der Stick „● bewiesen“.
+- [ ] S4 Auf dem Stick über eine Playlist schauen, die der Cube gerade prüft → kein „Zugang belegt“ (oder ein kurzer Neuversuch).
+- [ ] S5 Erinnerung gesetzt, Spiel bewiesen → Benachrichtigung öffnet den bewiesenen Sender.
+
 ## 16n. Neu in 3.54 – Rechte und Bildbeweis
 
 - [ ] B1 Europa-League-Spiel auf „PRIME …“: steht als „widerspricht den Senderechten“ (falls überhaupt).

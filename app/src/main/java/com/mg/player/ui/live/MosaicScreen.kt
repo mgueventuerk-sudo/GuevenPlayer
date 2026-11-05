@@ -31,6 +31,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import com.mg.player.domain.model.Category
 import com.mg.player.domain.model.PlayRequest
 import com.mg.player.ui.common.ActionButton
 import com.mg.player.ui.common.CenteredMessage
@@ -70,9 +71,10 @@ fun MosaicScreen(categoryId: String, startChannelId: String?) {
     Column(Modifier.fillMaxSize().padding(start = Dimens.ScreenPadding, end = Dimens.ScreenPadding, top = 28.dp, bottom = 24.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                ScreenTitle("Live-Mosaik")
+                val sport = sportEventId(categoryId) != null
+                ScreenTitle(if (sport) "Sender suchen" else "Live-Mosaik")
                 Text(
-                    "Standbilder alle 30 Sekunden · OK öffnet den Sender",
+                    if (sport) "Wo läuft das Spiel? OK auf dem richtigen Bild öffnet den Sender und merkt ihn sich" else "Standbilder alle 30 Sekunden · OK öffnet den Sender",
                     style = MaterialTheme.typography.bodyMedium,
                     color = AppColors.TextSecondary,
                 )
@@ -114,7 +116,16 @@ fun MosaicScreen(categoryId: String, startChannelId: String?) {
                                             EngineSurface(current, Modifier.fillMaxSize(), onContainer = vm.scanner::onSurface)
                                         }
                                     },
-                                    onClick = { navigator.push(Screen.Player(PlayRequest.Live(tile.channel.id, categoryId))) },
+                                    onClick = {
+                                        val eventId = sportEventId(categoryId)
+                                        if (eventId == null) {
+                                            navigator.push(Screen.Player(PlayRequest.Live(tile.channel.id, categoryId)))
+                                        } else {
+                                            // Deine Wahl ist der Beweis (Plan „Spiel-Finder“ H/I).
+                                            vm.confirmChoice(tile.channel, eventId)
+                                            navigator.push(Screen.Player(PlayRequest.Live(tile.channel.id, Category.ALL)))
+                                        }
+                                    },
                                     modifier = Modifier
                                         .weight(1f)
                                         .then(if (index == 0) Modifier.focusRequester(firstFocus) else Modifier),

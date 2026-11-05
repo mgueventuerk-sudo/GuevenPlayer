@@ -41,9 +41,12 @@ import com.mg.player.ui.common.glass
 import com.mg.player.ui.common.isTouch
 import com.mg.player.ui.common.rememberNotificationPermission
 import com.mg.player.ui.common.requestFocusWhenReady
-import com.mg.player.ui.theme.AppShapes
+import com.mg.player.ui.live.SPORT_MOSAIC_PREFIX
+import com.mg.player.ui.navigation.LocalNavigator
+import com.mg.player.ui.navigation.Screen
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
+import com.mg.player.ui.theme.AppShapes
 import com.mg.player.ui.theme.Dimens
 import kotlinx.coroutines.launch
 
@@ -56,6 +59,7 @@ fun SportEventDialog(item: MatchedEvent, onDismiss: () -> Unit) {
     val container = LocalAppContainer.current
     val toast = LocalToast.current
     val scope = rememberCoroutineScope()
+    val navigator = LocalNavigator.current
     val askPermission = rememberNotificationPermission()
     val reminders by container.reminders.items.collectAsStateWithLifecycle()
     val reminderSet = reminders.any { it.channelId == item.channelId && it.startMs == item.event.startMs }
@@ -116,6 +120,15 @@ fun SportEventDialog(item: MatchedEvent, onDismiss: () -> Unit) {
                             LaunchRequest.play(item.channelId)
                         },
                         icon = AppIcons.Play,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    ActionButton(
+                        "Sender suchen (Mosaik)",
+                        onClick = {
+                            onDismiss()
+                            navigator.push(Screen.Mosaic(SPORT_MOSAIC_PREFIX + item.event.id, null))
+                        },
+                        icon = AppIcons.Grid,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     // Plan „Spiel-Finder“ H: Der Sender fällt für diesen Wettbewerb weg und zählt als Fehltreffer seiner Quelle.

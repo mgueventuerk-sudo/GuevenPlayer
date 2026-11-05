@@ -28,19 +28,20 @@ object ProofEvaluator {
     fun evaluate(texts: List<String>, game: Game, staticPicture: Boolean): Verdict {
         val text = fold(texts.joinToString("\n"))
         if (staticPicture || PLACEHOLDER.containsMatchIn(text)) return Verdict.PLACEHOLDER
-        val homeHit = game.home?.let { teamSeen(text, it) } == true
-        val awayHit = game.away?.let { teamSeen(text, it) } == true
-        val scoreHit = game.goals?.let { scoreSeen(text, it) } == true
-        val minuteOk = minuteMatches(text, game.minute)
-        val foreignScoreBug = SCORE.containsMatchIn(text) && looksLikeScoreBug(text)
-        return when {
-            minuteOk == false -> Verdict.OTHER
-            homeHit && awayHit -> Verdict.PROVEN
-            (homeHit || awayHit) && scoreHit -> Verdict.PROVEN
-            // Eine fremde Paarung mit Stand im Bild ist ein anderes Spiel.
-            !homeHit && !awayHit && foreignScoreBug -> Verdict.OTHER
-            else -> Verdict.UNKNOWN
-        }
+        if (minuteMatches(text, game.minute) == false) return Verdict.OTHER
+        return judge(teamHits(text, game), game.goals?.let { scoreSeen(text, it) } == true, SCORE.containsMatchIn(text) && looksLikeScoreBug(text))
+    }
+
+    /** Wie viele der beiden Teams im Text vorkommen (0–2). */
+    private fun teamHits(text: String, game: Game): Int =
+        listOfNotNull(game.home, game.away).count { teamSeen(text, it) }
+
+    private fun judge(teams: Int, scoreHit: Boolean, foreignScoreBug: Boolean): Verdict = when {
+        teams >= 2 -> Verdict.PROVEN
+        teams == 1 && scoreHit -> Verdict.PROVEN
+        // Eine fremde Paarung mit Stand im Bild ist ein anderes Spiel.
+        teams == 0 && foreignScoreBug -> Verdict.OTHER
+        else -> Verdict.UNKNOWN
     }
 
     /** Erkennt ein Team im Text: Kürzel aus den Anfangsbuchstaben, die ersten 3 Buchstaben eines Wortes oder ein Wort ab 4 Zeichen. */
@@ -54,12 +55,13 @@ object ProofEvaluator {
         val parts = WORD.findAll(fold(team)).map { it.value }.filter { it !in GENERIC }.toList()
         val result = HashSet<String>()
         parts.forEach { p ->
-            if (p.length >= 2) result += p.take(3)
-            if (p.length >= 4) result += p
-            if (p.length in 2..3) result += p
+            result += p.take(ABBREVIATION)
+            if (p.length >= FULL_WORD_MIN || p.length <= ABBREVIATION) result += p
         }
-        if (parts.size >= 2) result += parts.joinToString("") { it.take(1) }
-        if (parts.size >= 2) result += (parts[0].take(1) + parts[1].take(2))
+        if (parts.size >= 2) {
+            result += parts.joinToString("") { it.take(1) }
+            result += parts[0].take(1) + parts[1].take(2)
+        }
         return result.filter { it.length >= 2 }.toSet()
     }
 
@@ -80,10 +82,13 @@ object ProofEvaluator {
 
     /** Ein Stand allein (z. B. Uhrzeit „20:45“ im Programmhinweis) ist noch keine Einblendung: kurze Wörter daneben nötig. */
     private fun looksLikeScoreBug(text: String): Boolean = text.lines().any { line ->
-        SCORE.containsMatchIn(line) && WORD.findAll(line).count { it.value.length in 2..4 } >= 2
+        SCORE.containsMatchIn(line) && WORD.findAll(line).count { it.value.length in SHORT_WORD } >= 2
     }
 
     private const val MAX_PLAY_MINUTE = 130
+    private const val ABBREVIATION = 3
+    private const val FULL_WORD_MIN = 4
+    private val SHORT_WORD = 2..4
     private val WORD = Regex("""[a-z]{2,}""")
     private val GENERIC = setOf("fc", "sc", "sv", "ac", "cf", "fk", "sk", "club", "de", "la", "the", "of", "1")
 
