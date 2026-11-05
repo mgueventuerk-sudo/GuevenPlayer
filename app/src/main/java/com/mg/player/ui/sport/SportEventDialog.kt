@@ -17,7 +17,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -58,7 +57,6 @@ import kotlinx.coroutines.launch
 fun SportEventDialog(item: MatchedEvent, onDismiss: () -> Unit) {
     val container = LocalAppContainer.current
     val toast = LocalToast.current
-    val scope = rememberCoroutineScope()
     val navigator = LocalNavigator.current
     val askPermission = rememberNotificationPermission()
     val reminders by container.reminders.items.collectAsStateWithLifecycle()
@@ -137,7 +135,11 @@ fun SportEventDialog(item: MatchedEvent, onDismiss: () -> Unit) {
                         "Falscher Sender",
                         onClick = {
                             onDismiss()
-                            scope.launch { container.sport.proofActions.markWrong(item.event, item.channelId, item.channelName) }
+                            // App-Bereich statt Dialog-Bereich: Der Dialog ist schon geschlossen, sein Bereich würde die
+                            // Neuzuordnung mitten im Lauf abbrechen (der falsche Sender bliebe stehen).
+                            container.appScope.launch {
+                                runCatchingCancellable { container.sport.proofActions.markWrong(item.event, item.channelId, item.channelName) }
+                            }
                             toast.show("${item.channelName} wird für ${item.event.league} nicht mehr vorgeschlagen")
                         },
                         icon = AppIcons.Close,

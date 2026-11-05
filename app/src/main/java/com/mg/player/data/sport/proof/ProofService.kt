@@ -98,7 +98,11 @@ class ProofService : Service() {
 
         fun start(context: Context) {
             runCatching { ContextCompat.startForegroundService(context, Intent(context, ProofService::class.java)) }
-                .onFailure { AppLog.error("Sport", "Beweissuche im Hintergrund nicht startbar", it) }
+                .onFailure {
+                    AppLog.error("Sport", "Beweissuche im Hintergrund nicht startbar", it)
+                    // Sonst stellt niemand den nächsten Wecker (das macht nur der laufende Dienst am Ende).
+                    ProofAlarm.scheduleNext(context)
+                }
         }
     }
 }

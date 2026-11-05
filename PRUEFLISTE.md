@@ -344,6 +344,7 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] K1 Nach mehreren bewiesenen Spielen: Einstellungen → Sport zeigt bei den Quellen „Vorhersage NN %“.
 - [ ] K2 Zwei Freitagsspiele derselben Liga zur selben Uhrzeit bewiesen → nächstes Spiel im Zeitfenster zeigt den Sender „laut Zeitfenster (bewährt)“.
 - [ ] K3 Sender mit fremdem Logo (z. B. DAZN-Bild auf „Sky …“): „Letzte Prüfungen“ zeigt „anderes Spiel“, der Sender verschwindet beim Spiel.
+- [ ] K5 Cube und Stick auf 3.56, Code auf dem Stick eingetragen → Stick zeigt nach ≤ 1 min die Beweise des Cube; falscher Code → nichts.
 - [ ] K4 Schalter „Dieses Gerät prüft im Hintergrund“ aus → keine Hintergrundsuche mehr; an → Wecker vor dem nächsten Spiel.
 
 ## 16o. Neu in 3.55 – Suche, Mosaik, Hintergrund, Prüfgerät

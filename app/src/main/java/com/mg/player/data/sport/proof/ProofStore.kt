@@ -26,14 +26,19 @@ class ProofStore(private val store: StreamMemory.Store? = null, private val cloc
     val found: SharedFlow<Record> = _found
 
     init {
+        val now = clock()
+        val expired = ArrayList<String>()
         store?.all()?.forEach { (key, value) ->
             val at = value.substringAfter('|').toLongOrNull() ?: return@forEach
             when {
                 key.startsWith(BLOCK) -> blocked[key.removePrefix(BLOCK)] = at
+                // Abgelaufene Beweise nicht wieder aufleben lassen (sonst galten sie bis zum nächsten neuen Ergebnis weiter).
+                key.startsWith(PROOF) && now - at > MAX_AGE_MS -> expired += key
                 key.startsWith(PROOF) -> Verdict.entries.firstOrNull { it.name == value.substringBefore('|') }
                     ?.let { verdicts[key.removePrefix(PROOF)] = it to at }
             }
         }
+        if (expired.isNotEmpty()) store?.remove(expired)
     }
 
     /** Ergebnis für [eventId] auf einem Sender ([keys]: Senderschlüssel und/oder Kanal-ID), das stärkste zuerst. */

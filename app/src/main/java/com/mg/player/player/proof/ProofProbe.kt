@@ -48,7 +48,8 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
             }
             if (frames.isEmpty()) return@withContext null
             val grays = frames.map { FrameDiff.gray(pixels(it.scale(DIFF_W, DIFF_H))) }
-            val texts = if (readText) recognize(frames.last()) else emptyList()
+            // Mit Frist: Hängt die Texterkennung, bliebe sonst die Verbindung des Zugangs (und die Suchrunde) belegt.
+            val texts = if (readText) withTimeoutOrNull(OCR_TIMEOUT_MS) { recognize(frames.last()) }.orEmpty() else emptyList()
             ProofLook(texts, FrameDiff.isStatic(grays))
         } finally {
             engine.setOffscreenSurface(null)
@@ -102,6 +103,7 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
         const val GAP_MS = 2_500L
         private const val START_TIMEOUT_MS = 10_000L
         private const val POLL_MS = 200L
+        private const val OCR_TIMEOUT_MS = 10_000L
         private const val DIFF_W = 32
         private const val DIFF_H = 18
     }

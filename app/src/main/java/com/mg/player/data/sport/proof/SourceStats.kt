@@ -39,6 +39,7 @@ class SourceStats(private val store: StreamMemory.Store? = null, clock: () -> Lo
     data class Guess(val source: MatchSource, val playlistId: Long, val hit: Boolean)
 
     /** Bewiesenes Spiel auswerten (einmal je Spiel): Trefferquoten und Zeitfenster aktualisieren. */
+    @Synchronized
     fun learn(eventId: String, league: String, startMs: Long, provenStation: String?, guesses: List<Guess>) {
         if (!learned.add(eventId)) return
         store?.put(DONE + eventId, startMs.toString())

@@ -48,7 +48,8 @@ class SportmonksSource(private val http: HttpFetcher, private val token: suspend
             url =
                 pagination?.optString("next_page")?.takeIf {
                     pagination.optBoolean("has_more") &&
-                        it.startsWith(SportEndpoints.sportmonks.substringBefore("/v3"))
+                        // Mit „/“: sonst ginge der Schlüssel auch an „api.sportmonks.com.fremd.example“.
+                        it.startsWith(SportEndpoints.sportmonks.substringBefore("/v3") + "/")
                 }
                     // Der Schlüssel geht im Kopf mit – nie in der Adresse (Server- und Proxy-Protokolle).
                     ?.let(::withoutToken)

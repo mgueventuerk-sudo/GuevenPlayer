@@ -28,8 +28,11 @@ import java.util.concurrent.Semaphore
 class MiniHttpServer(
     private val maxBodyBytes: Int = 16 * 1024,
     private val requestDeadlineMs: Long = 20_000,
-    /** Fester Zugangscode statt Einmal-Token (Prüfgerät im Heimnetz, Code wird am anderen Gerät eingetippt). */
-    private val fixedToken: String? = null,
+    /**
+     * Eigene Prüfung statt Einmal-Token (Prüfgerät im Heimnetz: signierte Anfragen, der Code selbst wird nie gesendet).
+     * Bekommt Pfad und Parameter, bevor Kopfzeilen und Inhalt gelesen werden.
+     */
+    private val authorize: ((path: String, query: Map<String, String>) -> Boolean)? = null,
     private val handler: suspend (Request) -> Response,
 ) {
 
@@ -50,13 +53,23 @@ class MiniHttpServer(
     private var localNet: Pair<InetAddress, Int>? = null
     private var serverSocket: ServerSocket? = null
 
-    val token: String = fixedToken ?: SecureRandom().let { random ->
+    val token: String = SecureRandom().let { random ->
         (1..TOKEN_LENGTH).map { TOKEN_ALPHABET[random.nextInt(TOKEN_ALPHABET.length)] }.joinToString("")
     }
 
     /** Token-Vergleich in konstanter Zeit (kein Rückschluss über die Antwortzeit, wie viele Zeichen stimmen). */
     fun isAuthorized(candidate: String?): Boolean =
         candidate != null && MessageDigest.isEqual(candidate.toByteArray(Charsets.UTF_8), token.toByteArray(Charsets.UTF_8))
+
+    private val failures = ArrayDeque<Long>()
+
+    private fun throttled(): Boolean = synchronized(failures) {
+        val now = System.currentTimeMillis()
+        while (failures.isNotEmpty() && failures.first() < now - FAIL_WINDOW_MS) failures.removeFirst()
+        failures.size >= MAX_FAILURES
+    }
+
+    private fun failed() = synchronized(failures) { failures.addLast(System.currentTimeMillis()) }
 
     /** Startet den Server und liefert die Basis-Adresse (z. B. http://192.168.1.20:8765) oder null ohne Netzwerk. */
     fun start(): String? {
@@ -124,7 +137,10 @@ class MiniHttpServer(
                 val uri = ("http://x" + parts.getOrNull(1).orEmpty()).toUri()
                 val query = uri.queryParameterNames.associateWith { uri.getQueryParameter(it).orEmpty() }
                 // Token prüfen, BEVOR Kopfzeilen und Inhalt gelesen werden (kein Speicher für fremde Anfragen).
-                if (!isAuthorized(query["t"])) {
+                // Viele Fehlversuche kurz hintereinander: eine Weile alles ablehnen (kein Durchprobieren von Codes).
+                val blocked = throttled()
+                if (blocked || !(authorize?.invoke(uri.path.orEmpty(), query) ?: isAuthorized(query["t"]))) {
+                    if (!blocked) failed()
                     respond(s, Response.html(403, "<h1>Abgelehnt</h1><p>Bitte den QR-Code am Fernseher erneut scannen.</p>"))
                     discardRest(s, input)
                     return
@@ -238,6 +254,8 @@ class MiniHttpServer(
         const val TOKEN_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"
         val PORTS = listOf(8765, 8766, 8767, 8768, 8769)
         const val MAX_CLIENTS = 4
+        private const val MAX_FAILURES = 20
+        private const val FAIL_WINDOW_MS = 10 * 60_000L
         const val MAX_HEADERS = 64
     }
 }

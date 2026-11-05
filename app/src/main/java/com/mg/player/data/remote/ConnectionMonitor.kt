@@ -36,7 +36,7 @@ import java.util.concurrent.ConcurrentHashMap
 class ConnectionMonitor(
     private val db: AppDatabase,
     private val api: XtreamApi,
-    scope: CoroutineScope,
+    private val scope: CoroutineScope,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
 
@@ -91,11 +91,14 @@ class ConnectionMonitor(
     fun recentlyUsedHere(playlistId: Long): Boolean = lastOwnUse[playlistId]?.let { clock() - it < OWN_USE_GRACE_MS } == true
 
     /** Frische Einzelabfrage (vor dem Abspielen); null = unbekannt (M3U ohne Angaben, offline, Zeitüberschreitung). */
-    suspend fun checkNow(playlistId: Long, timeoutMs: Long = 1_500): ConnectionStatus? = withTimeoutOrNull(timeoutMs) {
-        withContext(Dispatchers.IO) {
-            db.playlistDao().get(playlistId)?.let { refreshOne(it, force = true) }
+    suspend fun checkNow(playlistId: Long, timeoutMs: Long = 1_500): ConnectionStatus? {
+        // Eigener Job: Ein blockierender HTTP-Aufruf lässt sich nicht abbrechen – mit withContext hätte die Frist erst nach
+        // dem Ende des Aufrufs gegriffen (bis zur vollen Netz-Zeitüberschreitung vor dem Abspielen).
+        val fetch = scope.async(Dispatchers.IO) { db.playlistDao().get(playlistId)?.let { refreshOne(it, force = true) } }
+        return withTimeoutOrNull(timeoutMs) {
+            fetch.await()
+            _status.value[playlistId]
         }
-        _status.value[playlistId]
     }
 
     suspend fun refresh(force: Boolean = false) = withContext(Dispatchers.IO) {

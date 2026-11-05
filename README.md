@@ -281,6 +281,14 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
 - **Logo-Prüfung:** Zeigt das Bild mehrmals das Logo einer anderen Senderfamilie (und nie das eigene), gilt der Sender
   für dieses Spiel als widerlegt.
 - **Behoben:** Der Wecker für die Hintergrundsuche folgt dem Schalter „Dieses Gerät prüft im Hintergrund“ zuverlässig.
+- **Prüfgerät sicherer:** Der 8-stellige Code wird nicht mehr übertragen; Anfragen und Antworten sind damit signiert
+  (gilt nur einmal, 5 Minuten). Ein fremdes Gerät im WLAN, das sich als Prüfgerät ausgibt, bekommt keinen Code und kann
+  keine Ergebnisse unterschieben; nach 20 Fehlversuchen in 10 Minuten lehnt das Prüfgerät alles ab. **Nach dem Update
+  müssen Prüfgerät und Stick/Handy beide 3.56 haben.**
+- **Review:** Vor Anpfiff speichert die Suche nur Beweise (Platzhalter vor dem Spiel verstecken den Sender nicht mehr);
+  Texterkennung mit Frist; Zugangs-Abfrage vor dem Abspielen bricht nach 1,5 s wirklich ab; „Falscher Sender“ wird auch
+  nach dem Schließen des Dialogs fertig; abgelaufene Beweise gelten nach Neustart nicht mehr; Sportmonks-Schlüssel nur an
+  api.sportmonks.com.
 
 ## Neu in 3.55 (Spiel-Finder L4: Suche, Mosaik, Hintergrund, Prüfgerät)
 

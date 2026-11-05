@@ -148,7 +148,14 @@ class ProofHunter(
         // diesen einen Kanal: Ein Logo-Fehlschluss soll nicht denselben Sender in allen Playlists verstecken.
         val wrongLogo = read == ProofEvaluator.Verdict.UNKNOWN && clock() >= event.startMs &&
             ProofEvaluator.foreignLogo(seen.texts, channel.name, SportRights::familyOf)
-        val verdict = if (wrongLogo) ProofEvaluator.Verdict.OTHER else read
+        // Vor Anpfiff zählt nur ein Beweis: Platzhalter („Kein Event“), Standbild oder das vorige Spiel mit Stand im Bild
+        // sind dann normal – gespeichert würden sie den Sender für das ganze Spiel verstecken (nie neu geprüft).
+        val beforeKickoff = clock() < event.startMs
+        val verdict = when {
+            wrongLogo -> ProofEvaluator.Verdict.OTHER
+            beforeKickoff && read != ProofEvaluator.Verdict.PROVEN -> ProofEvaluator.Verdict.UNKNOWN
+            else -> read
+        }
         // Event-Kanäle gibt es nur bei einem Anbieter – ihr Ergebnis gilt nur für diesen Kanal (Regel „Freie Playlist“ 3).
         // Score 0 = gefunden über die Suche in den Sport-Gruppen (Plan D): ein normaler Sport-Sender.
         val eventChannel = row.score in 1..SportChannelFinder.EVENT_CHANNEL + 1

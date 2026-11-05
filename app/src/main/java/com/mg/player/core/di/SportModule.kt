@@ -28,6 +28,8 @@ import com.mg.player.domain.model.SportEvent
 import com.mg.player.domain.sport.EventCountdownTicker
 import com.mg.player.player.engine.StreamRequest
 import com.mg.player.player.proof.ProofProbe
+import com.mg.player.core.log.AppLog
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.map
 import java.io.File
@@ -142,15 +144,22 @@ class SportModule(private val container: AppContainer) {
      */
     suspend fun shareLoop() {
         while (true) {
-            val s = container.settingsRepository.current()
-            if (s.sportProofDevice) {
-                val code = s.sportHubCode.ifBlank {
-                    ProofShareServer.newCode().also { c -> container.settingsRepository.update { it.copy(sportHubCode = c) } }
+            // Ein Fehler (Datenbank, Einstellungen) darf den Austausch nicht bis zum nächsten App-Start beenden.
+            try {
+                val s = container.settingsRepository.current()
+                if (s.sportProofDevice) {
+                    val code = s.sportHubCode.ifBlank {
+                        ProofShareServer.newCode().also { c -> container.settingsRepository.update { it.copy(sportHubCode = c) } }
+                    }
+                    shareServer.start(code)
+                } else {
+                    shareServer.stop()
+                    pullFromHub(s.sportHubJoinCode)
                 }
-                shareServer.start(code)
-            } else {
-                shareServer.stop()
-                pullFromHub(s.sportHubJoinCode)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLog.log("Sport", "Prüfgerät-Austausch: ${e.javaClass.simpleName}")
             }
             delay(SHARE_INTERVAL_MS)
         }
