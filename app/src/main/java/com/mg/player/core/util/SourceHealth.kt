@@ -73,12 +73,12 @@ class SourceHealth(private val store: StreamMemory.Store? = null, private val cl
         store?.remove(keys)
     }
 
-    /** Verfallene und die ältesten Einträge entfernen. */
+    /** Verfallene und die ältesten Einträge entfernen – mit Luft ([PRUNE_TO]), damit nicht jeder neue Eintrag sortiert. */
     private fun prune() {
         val now = clock()
-        val gone = map.entries.filter { decayed(it.value, now) < FORGET_BELOW }.map { it.key }
-        val rest = map.entries.filter { it.key !in gone }.sortedBy { it.value.atMs }
-        remove(gone + rest.take((rest.size - MAX_ENTRIES).coerceAtLeast(0)).map { it.key })
+        val (gone, rest) = map.entries.partition { decayed(it.value, now) < FORGET_BELOW }
+        val oldest = rest.sortedBy { it.value.atMs }.take((rest.size - PRUNE_TO).coerceAtLeast(0))
+        remove((gone + oldest).map { it.key })
     }
 
     private fun decayed(entry: Entry, now: Long): Double {
@@ -102,5 +102,6 @@ class SourceHealth(private val store: StreamMemory.Store? = null, private val cl
         private const val MAX_PENALTY = 20.0
         private const val FORGET_BELOW = 0.1
         private const val MAX_ENTRIES = 2_000
+        private const val PRUNE_TO = MAX_ENTRIES * 9 / 10
     }
 }

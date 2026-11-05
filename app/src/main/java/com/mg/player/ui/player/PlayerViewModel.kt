@@ -174,9 +174,9 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
             val now = engineHolder.value?.positionMs?.takeIf { it > 0 } ?: lastKnownPosition
             CombinedPlayables.mapPosition(now, playable.activeVodSource?.durationSec, playable.vodSources.getOrNull(index)?.durationSec)
         }
-        sourceHealth.onLeaving()
         val next = resolver.variant(playable, index) ?: return
         if (!isCurrent(playable) || live.zapPending) return
+        sourceHealth.onLeaving()
         uiState.update { it.copy(playable = next) }
         guard?.onVariantSwitched(next)
         beginPlayback(next, position)
@@ -202,6 +202,8 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
         }
         val position = if (playable.isLive) 0 else (engineHolder.value?.positionMs?.takeIf { it > 0 } ?: lastKnownPosition)
         if (byUser) guard?.onUserInterrupt() else autoFallbackActive = true
+        // Anderer Player für dieselbe Quelle: ein abgebrochener Start oder Hänger liegt nicht an der Quelle.
+        sourceHealth.onInterrupted()
         createEngine(type)
         guard?.onEngineSwitched(type)
         prepare(playable, position)

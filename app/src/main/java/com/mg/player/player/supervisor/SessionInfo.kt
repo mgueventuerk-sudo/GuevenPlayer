@@ -26,6 +26,8 @@ data class SupervisorConfig(
     val startNoPicture: Long = 8_000,
     /** Live mit Ersatzquelle: 2 s ohne neue Daten reichen (vorher 6 s – zu lang); kommen Daten nach, gilt [stallLive]. */
     val stallWithAlternative: Long = 2_000,
+    /** Wie [stallWithAlternative], wenn die Engine keine Datenmenge meldet (ob Daten nachkommen, ist dann unbekannt). */
+    val stallWithAlternativeNoByteCount: Long = 6_000,
     val stallLive: Long = 20_000,
     val stallVod: Long = 30_000,
     val frozenPicture: Long = 8_000,

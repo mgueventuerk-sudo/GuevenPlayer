@@ -41,4 +41,11 @@ class VariantOrderTest {
         val ordered = VariantOrder.order(variants, { it.id }, { it.quality }, "a", supports4K = true) { health[it] ?: 0 }.map { it.id }
         assertEquals(listOf("c", "d", "b", "a"), ordered)
     }
+
+    /** Eine Hänger-Variante macht 4K auf einem 1080p-Gerät nicht zur ersten Wahl. */
+    @Test
+    fun healthNeverPutsUnsupported4KFirst() {
+        val ordered = VariantOrder.order(variants, { it.id }, { it.quality }, null, supports4K = false) { if (it == "b") 1 else 0 }.map { it.id }
+        assertEquals(listOf("c", "d", "b", "a"), ordered)
+    }
 }

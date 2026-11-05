@@ -39,9 +39,9 @@ object DeviceVideo {
 }
 
 /**
- * Reihenfolge der Stream-Varianten eines Senders: zuerst die mit den wenigsten Hängern und Fehlern ([health], ab 3.50 –
- * die Qualität ist Nebensache), dann die zuletzt bewährte, dann alles, was das Gerät darstellen kann (beste Qualität
- * zuerst), zuletzt Varianten über der Gerätefähigkeit (4K/8K auf 1080p).
+ * Reihenfolge der Stream-Varianten eines Senders: Varianten über der Gerätefähigkeit (4K/8K auf 1080p) immer zuletzt,
+ * außer der zuletzt bewährten (sie lief hier nachweislich). Davor zuerst die mit den wenigsten Hängern und Fehlern
+ * ([health], ab 3.50 – die Qualität ist Nebensache), dann die zuletzt bewährte, dann die Reihenfolge des Anbieters.
  */
 object VariantOrder {
     private val beyondFullHd = setOf("4K", "8K")
@@ -55,9 +55,9 @@ object VariantOrder {
         health: (String) -> Int = { 0 },
     ): List<T> =
         items.withIndex().sortedWith(
-            compareBy<IndexedValue<T>> { health(id(it.value)) }
+            compareBy<IndexedValue<T>> { if (!supports4K && quality(it.value) in beyondFullHd && id(it.value) != rememberedId) 1 else 0 }
+                .thenBy { health(id(it.value)) }
                 .thenBy { if (id(it.value) == rememberedId) 0 else 1 }
-                .thenBy { if (!supports4K && quality(it.value) in beyondFullHd) 1 else 0 }
                 .thenBy { it.index },
         ).map { it.value }
 }

@@ -3,6 +3,7 @@ package com.mg.player.ui.player
 import com.mg.player.core.util.SourceHealth
 import com.mg.player.domain.model.Channel
 import com.mg.player.player.engine.EngineState
+import com.mg.player.player.engine.ErrorCause
 import com.mg.player.player.engine.ErrorKind
 import com.mg.player.player.engine.PlaybackStatus
 import org.junit.Assert.assertEquals
@@ -92,6 +93,34 @@ class SourceHealthTrackerTest {
         assertEquals(0, health.rank("1:L:a"))
         online = true
         tracker.onState(EngineState(status = PlaybackStatus.ERROR, errorKind = ErrorKind.AUTH, httpCode = 403))
+        assertEquals(0, health.rank("1:L:a"))
+    }
+
+    @Test
+    fun aHangWhileOfflineDoesNotCountOnceTheNetworkIsBack() {
+        startPlaying()
+        online = false
+        tracker.onState(buffering)
+        now += 5_000
+        online = true
+        tracker.onState(playing)
+        assertEquals(0, health.rank("1:L:a"))
+    }
+
+    @Test
+    fun decoderErrorIsNotTheSourcesFault() {
+        startPlaying()
+        tracker.onState(EngineState(status = PlaybackStatus.ERROR, errorKind = ErrorKind.FORMAT, errorCause = ErrorCause.DECODER))
+        assertEquals(0, health.rank("1:L:a"))
+    }
+
+    @Test
+    fun anInterruptedStartIsNoFailure() {
+        tracker.onPrepared(live())
+        now += 2_500
+        tracker.onInterrupted()
+        now += 60_000
+        tracker.onPrepared(live())
         assertEquals(0, health.rank("1:L:a"))
     }
 

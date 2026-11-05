@@ -279,8 +279,10 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   entscheidet erst danach (eine störungsfreie HD-Variante vor einer hängenden FHD-Variante). Gilt auch für Filme und
   Folgen aus „Alle Zugänge“.
 - **Erholt sich:** Punkte verfallen (Halbwertszeit 12 h) und halbieren sich nach 2 Minuten störungsfreier Wiedergabe.
-- **Nicht gezählt:** ohne Internet, „Zugang belegt“/Drosselung (liegt am Zugang), Spulen bei Filmen, Wechsel von Hand
-  bei laufendem Bild, Zappen während des Starts.
+- **Nicht gezählt:** ohne Internet (auch wenn es während des Hängers zurückkommt), „Zugang belegt“/Drosselung (liegt am
+  Zugang), Decoder-Fehler (liegt an Player/Gerät), Spulen bei Filmen, Wechsel von Hand bei laufendem Bild, Zappen während
+  des Starts, Start unterbrochen durch Home-Taste oder Player-Wechsel. 4K/8K bleibt auf 1080p-Geräten trotzdem hinten.
+- Engines ohne Angabe der geladenen Datenmenge (Nachschub nicht messbar): Wechsel weiter erst nach 6 s.
 - **Schneller wechseln:** Hängt ein Live-Sender mit Ersatzquelle und kommen keine Daten mehr, wechselt der Wächter
   nach 2 s (vorher 6 s). Kommen noch Daten, wartet er weiter (sonst würde er Quellen wechseln, die sich selbst fangen).
 
