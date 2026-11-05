@@ -28,7 +28,7 @@ class BzzoiroLiveTest {
         val key = System.getenv("BZZOIRO_KEY")
         assumeTrue("BZZOIRO_KEY nicht gesetzt", !key.isNullOrBlank())
         SportEndpoints.bzzoiro = "https://sports.bzzoiro.com/api/v2"
-        val source = BzzoiroSource(HttpFetcher(OkHttpClient())) { key!! }
+        val source = BzzoiroSource(HttpFetcher(OkHttpClient()), token = { key!! })
         val leagues = source.leagues()
         val report = StringBuilder("Ligen: ${leagues.size}\n")
 

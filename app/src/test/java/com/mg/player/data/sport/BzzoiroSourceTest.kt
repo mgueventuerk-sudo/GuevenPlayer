@@ -62,7 +62,7 @@ class BzzoiroSourceTest {
 
     @Test
     fun eventsComeWithGermanTvStationsAndTheKeyOnlyInTheHeader() = runBlocking {
-        val source = BzzoiroSource(http) { "geheim" }
+        val source = BzzoiroSource(http, token = { "geheim" })
         val from = BzzoiroSource.parseTime("2026-10-30T00:00:00Z")!!
         val events = source.fetch("bsd:8", from, from + 7 * 86_400_000L)
         assertEquals(2, events.size)
@@ -79,7 +79,7 @@ class BzzoiroSourceTest {
 
     @Test
     fun withoutKeyNothingIsRequested() = runBlocking {
-        val source = BzzoiroSource(http) { "" }
+        val source = BzzoiroSource(http, token = { "" })
         assertTrue(source.fetch("bsd:8", 0, Long.MAX_VALUE).isEmpty())
         assertTrue(source.leagues().isEmpty())
         assertEquals(0, requests.size)
@@ -87,7 +87,7 @@ class BzzoiroSourceTest {
 
     @Test
     fun leaguesCarryCountryAndTimesParse() = runBlocking {
-        val leagues = BzzoiroSource(http) { "geheim" }.leagues()
+        val leagues = BzzoiroSource(http, token = { "geheim" }).leagues()
         assertEquals(listOf("Bundesliga (Germany)", "Süper Lig (Turkey)"), leagues.map { it.name })
         assertEquals("bsd:8", leagues.first().key)
         assertEquals(BzzoiroSource.parseTime("2026-10-31T14:30:00Z"), BzzoiroSource.parseTime("2026-10-31T15:30:00.000+01:00"))
