@@ -143,16 +143,19 @@ class ProofHunter(
 
     private suspend fun check(event: SportEvent, row: EventMatchRow, channel: ChannelKeyRow): ProofEvaluator.Verdict? {
         val seen = look(channel.id) ?: return null
-        val verdict = ProofEvaluator.evaluate(seen.texts, gameOf(event), seen.staticPicture).let { v ->
-            val wrongLogo = v != ProofEvaluator.Verdict.PROVEN && ProofEvaluator.foreignLogo(seen.texts, channel.name, SportRights::familyOf)
-            if (wrongLogo) ProofEvaluator.Verdict.OTHER else v
-        }
+        val read = ProofEvaluator.evaluate(seen.texts, gameOf(event), seen.staticPicture)
+        // Logo-Prüfung (Plan E) erst nach Anpfiff – davor laufen oft Werbung und Hinweise auf andere Sender – und nur für
+        // diesen einen Kanal: Ein Logo-Fehlschluss soll nicht denselben Sender in allen Playlists verstecken.
+        val wrongLogo = read == ProofEvaluator.Verdict.UNKNOWN && clock() >= event.startMs &&
+            ProofEvaluator.foreignLogo(seen.texts, channel.name, SportRights::familyOf)
+        val verdict = if (wrongLogo) ProofEvaluator.Verdict.OTHER else read
         // Event-Kanäle gibt es nur bei einem Anbieter – ihr Ergebnis gilt nur für diesen Kanal (Regel „Freie Playlist“ 3).
-        val eventChannel = row.score <= SportChannelFinder.EVENT_CHANNEL + 1
-        val key = if (eventChannel) channel.id else GuideCatalog.nameKey(channel.name)
+        // Score 0 = gefunden über die Suche in den Sport-Gruppen (Plan D): ein normaler Sport-Sender.
+        val eventChannel = row.score in 1..SportChannelFinder.EVENT_CHANNEL + 1
+        val key = if (eventChannel || wrongLogo) channel.id else GuideCatalog.nameKey(channel.name)
         proofs.record(event.id, key, channel.name, verdict, BY_PICTURE)
         if (verdict == ProofEvaluator.Verdict.PROVEN && !eventChannel) proofs.record(event.id, channel.id, channel.name, verdict, BY_PICTURE)
-        AppLog.log("Sport", "Bildbeweis ${event.title} · ${channel.name}: $verdict (${seen.texts.size} Textzeilen)")
+        AppLog.log("Sport", "Bildbeweis ${event.title} · ${channel.name}: $verdict${if (wrongLogo) " (fremdes Logo)" else ""} (${seen.texts.size} Textzeilen)")
         return verdict
     }
 

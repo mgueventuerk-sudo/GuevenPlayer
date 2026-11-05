@@ -92,9 +92,8 @@ object ProofEvaluator {
      */
     fun foreignLogo(texts: List<String>, channelName: String, familyOf: (String) -> String?): Boolean {
         val own = familyOf(channelName) ?: return false
-        val families = texts.map { it.trim() }.filter { it.split(BLANK).size <= LOGO_WORDS }.mapNotNull(familyOf)
-        val foreign = families.count { it != own }
-        return foreign >= LOGO_MIN && own !in families && texts.none { familyOf(it) == own }
+        if (texts.any { familyOf(it) == own }) return false
+        return texts.count { it.trim().split(BLANK).size <= LOGO_WORDS && familyOf(it) != null } >= LOGO_MIN
     }
 
     private const val LOGO_WORDS = 3

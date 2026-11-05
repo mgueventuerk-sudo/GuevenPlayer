@@ -15,30 +15,33 @@ import java.util.concurrent.ConcurrentHashMap
  *   Ab [SLOT_MIN] Beweisen wird daraus eine Vorhersage für die nächsten Spiele im selben Zeitfenster.
  * Jedes Spiel zählt nur einmal. Alles bleibt auf dem Gerät.
  */
-class SourceStats(private val store: StreamMemory.Store? = null) {
+class SourceStats(private val store: StreamMemory.Store? = null, clock: () -> Long = System::currentTimeMillis) {
 
     private val counts = ConcurrentHashMap<String, Pair<Int, Int>>()
     private val slots = ConcurrentHashMap<String, Int>()
     private val learned = ConcurrentHashMap.newKeySet<String>()
 
     init {
+        val stale = ArrayList<String>()
         store?.all()?.forEach { (key, value) ->
             when {
                 key.startsWith(RATE) -> value.split('/').takeIf { it.size == 2 }
                     ?.let { (hits, total) -> counts[key.removePrefix(RATE)] = (hits.toIntOrNull() ?: 0) to (total.toIntOrNull() ?: 0) }
                 key.startsWith(SLOT) -> slots[key.removePrefix(SLOT)] = value.toIntOrNull() ?: 0
-                key.startsWith(DONE) -> learned += key.removePrefix(DONE)
+                // „Schon gezählt“ nur, solange der Beweis des Spiels noch gilt – sonst wächst der Speicher ohne Ende.
+                key.startsWith(DONE) -> if ((value.toLongOrNull() ?: 0L) > clock() - DONE_KEEP_MS) learned += key.removePrefix(DONE) else stale += key
             }
         }
+        if (stale.isNotEmpty()) store?.remove(stale)
     }
 
     /** Eine Vorhersage einer Quelle für ein bewiesenes Spiel: welche Quelle, über welche Playlist, und ob sie stimmte. */
     data class Guess(val source: MatchSource, val playlistId: Long, val hit: Boolean)
 
     /** Bewiesenes Spiel auswerten (einmal je Spiel): Trefferquoten und Zeitfenster aktualisieren. */
-    fun learn(eventId: String, league: String, startMs: Long, provenStation: String, guesses: List<Guess>) {
+    fun learn(eventId: String, league: String, startMs: Long, provenStation: String?, guesses: List<Guess>) {
         if (!learned.add(eventId)) return
-        store?.put(DONE + eventId, "1")
+        store?.put(DONE + eventId, startMs.toString())
         guesses.forEach { g ->
             val key = rateKey(g.source, league, g.playlistId)
             val (hits, total) = counts[key] ?: (0 to 0)
@@ -46,6 +49,7 @@ class SourceStats(private val store: StreamMemory.Store? = null) {
             counts[key] = next
             store?.put(RATE + key, "${next.first}/${next.second}")
         }
+        if (provenStation == null) return
         val slot = slotKey(league, startMs) + SEP + provenStation
         val n = (slots[slot] ?: 0) + 1
         slots[slot] = n
@@ -95,5 +99,6 @@ class SourceStats(private val store: StreamMemory.Store? = null) {
         const val MIN_SAMPLES = 5
         const val SLOT_MIN = 2
         private const val PERCENT = 100
+        private const val DONE_KEEP_MS = 7 * 24 * 3_600_000L
     }
 }

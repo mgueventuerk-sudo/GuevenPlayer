@@ -62,10 +62,18 @@ class SourceStatsTest {
         val store = MemStore()
         val first = SourceStats(store)
         repeat(5) { first.learn("g$it", league, friday + it * week, "sky", listOf(guess(MatchSource.STATION, true))) }
-        val second = SourceStats(store)
+        val second = SourceStats(store, clock = { friday })
         assertEquals(100, second.ratePercent(MatchSource.STATION, league, 1L))
         assertEquals(listOf("sky"), second.slotStations(league, friday))
         second.learn("g0", league, friday, "sky", listOf(guess(MatchSource.STATION, false)))
         assertEquals(100, second.ratePercent(MatchSource.STATION, league, 1L))
+    }
+
+    @Test
+    fun forgetsCountedGamesAfterAWeek() {
+        val store = MemStore()
+        SourceStats(store).learn("g0", league, friday, "sky", emptyList())
+        SourceStats(store, clock = { friday + 2 * week })
+        assertFalse(store.map.keys.any { it.startsWith("d:") })
     }
 }

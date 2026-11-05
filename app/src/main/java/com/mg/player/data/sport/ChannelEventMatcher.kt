@@ -97,14 +97,19 @@ class ChannelEventMatcher(
     private fun learn(event: SportEvent, found: List<Pair<ChannelKeyRow, Int>>, outside: List<Pair<ChannelKeyRow, Int>>?) {
         val s = stats ?: return
         val store = proofs ?: return
-        val provenKey = (found.map { it.first } + outside.orEmpty().map { it.first })
-            .firstOrNull { store.verdictFor(event.id, listOf(it.id, GuideCatalog.nameKey(it.name))) == ProofEvaluator.Verdict.PROVEN }
-            ?.let { GuideCatalog.nameKey(it.name) } ?: return
+        val proven = (found + outside.orEmpty())
+            .filter { (channel, _) -> store.verdictFor(event.id, listOf(channel.id, GuideCatalog.nameKey(channel.name))) == ProofEvaluator.Verdict.PROVEN }
+        if (proven.isEmpty()) return
+        val provenIds = proven.mapTo(HashSet()) { it.first.id }
+        val provenKeys = proven.mapTo(HashSet()) { GuideCatalog.nameKey(it.first.name) }
+        // Event-Kanäle tragen den Spielnamen – als Zeitfenster-Sender taugen sie nicht.
+        val station = proven.firstOrNull { (_, score) -> score > SportChannelFinder.EVENT_CHANNEL + 1 }?.let { GuideCatalog.nameKey(it.first.name) }
+        // Jedes Spiel zählt je Quelle und Playlist nur einmal (Treffer, wenn einer ihrer Sender bewiesen ist).
         val guesses = found.mapNotNull { (channel, score) ->
             val source = MatchSource.of(score).takeIf { it != MatchSource.CONFLICT && it != MatchSource.PROVEN } ?: return@mapNotNull null
-            SourceStats.Guess(source, channel.playlistId, GuideCatalog.nameKey(channel.name) == provenKey)
-        }
-        s.learn(event.id, leagueOfEvent(event.id), event.startMs, provenKey, guesses)
+            SourceStats.Guess(source, channel.playlistId, channel.id in provenIds || GuideCatalog.nameKey(channel.name) in provenKeys)
+        }.groupBy { it.source to it.playlistId }.map { (_, list) -> list.firstOrNull { it.hit } ?: list.first() }
+        s.learn(event.id, leagueOfEvent(event.id), event.startMs, station, guesses)
     }
 
     /**
@@ -113,7 +118,8 @@ class ChannelEventMatcher(
      */
     private fun dropped(event: SportEvent, channel: ChannelKeyRow, score: Int, disabled: Set<MatchSource>): Boolean {
         val source = MatchSource.of(score)
-        val useless = stats?.isUseless(source, leagueOfEvent(event.id), channel.playlistId) == true
+        // Event-Kanäle sind ohne Bildbeweis ohnehin unsichtbar; verworfen würden sie nie mehr geprüft und nie bewiesen.
+        val useless = source != MatchSource.EVENT_NAME && stats?.isUseless(source, leagueOfEvent(event.id), channel.playlistId) == true
         if (source !in disabled && !useless) return false
         val keys = listOf(channel.id, GuideCatalog.nameKey(channel.name))
         return proofs?.verdictFor(event.id, keys) != ProofEvaluator.Verdict.PROVEN
@@ -124,7 +130,9 @@ class ChannelEventMatcher(
         val keys = stats?.slotStations(leagueOfEvent(event.id), event.startMs)?.toSet().orEmpty()
         if (keys.isEmpty()) return emptyList()
         val rows = finder?.index()?.rows.orEmpty().filter { GuideCatalog.nameKey(it.name) in keys }
-        return rows.distinctBy { it.playlistId }.map { ChannelKeyRow(it.id, it.name, it.playlistId) to MatchSource.TIMESLOT_SCORE }
+        // Je Playlist und Sender ein Kanal – mehrere bewährte Sender im selben Zeitfenster bleiben alle.
+        return rows.distinctBy { it.playlistId to GuideCatalog.nameKey(it.name) }
+            .map { ChannelKeyRow(it.id, it.name, it.playlistId) to MatchSource.TIMESLOT_SCORE }
     }
 
     /** Bewiesene Sender, die keine Quelle genannt hat (gefunden bei der Suche, Plan D) – als Kandidaten dazu. */
