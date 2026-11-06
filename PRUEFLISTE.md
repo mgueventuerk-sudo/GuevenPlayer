@@ -355,6 +355,10 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P8 Spiel um 20:30 bewiesen, nächste Woche Anpfiff 20:45 → gilt als dasselbe Zeitfenster („laut Zeitfenster“).
 - [ ] P9 „Letzte Prüfungen“ zeigt unter jedem Eintrag „gelesen: …“ mit dem erkannten Text (bei Platzhaltern „No Event“
       bzw. „Standbild“).
+- [ ] P11 Cube, Einstellungen → Sport → „Neues Geheimnis erzeugen“: Rückfrage erscheint; nach „Erzeugen“ steht ein
+      neues Geheimnis in Vierergruppen da. Der Stick bekommt **sofort** nichts mehr (ohne App-Neustart des Cube) und
+      erst wieder, nachdem das neue Geheimnis dort eingetragen ist.
+- [ ] P12 Mit altem 8-stelligem Code: Die Zeile erklärt, dass der Code aus einer älteren Version stammt.
 - [ ] P10 Prüfgerät mit absichtlich um 10 Minuten falsch gestellter Uhr → Stick bekommt nichts, und das Fehlerprotokoll
       nennt „Anfrage mit abweichender Uhrzeit abgelehnt“ (vorher scheiterte es ohne Hinweis).
 

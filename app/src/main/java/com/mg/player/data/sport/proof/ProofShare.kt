@@ -50,9 +50,16 @@ class ProofShareServer(private val context: Context, private val proofs: ProofSt
      */
     private val seen = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
+    /**
+     * Prüfgerät bereitstellen. Läuft es schon mit einem **anderen** Geheimnis (der Nutzer hat in den Einstellungen ein
+     * neues erzeugt), wird es erst beendet und dann neu angemeldet: Sonst signierte es bis zum nächsten App-Start
+     * weiter mit dem alten Schlüssel, und das neue Geheimnis bliebe wirkungslos.
+     */
     fun start(secret: String) {
-        if (server != null) return
-        key = if (keyFor == secret) key else HubAuth.key(secret).also { keyFor = secret }
+        if (server != null && keyFor == secret) return
+        if (server != null) stop()
+        key = HubAuth.key(secret)
+        keyFor = secret
         val http = MiniHttpServer(authorize = ::authorized) { request -> handle(request) }
         val base = http.start() ?: return
         server = http

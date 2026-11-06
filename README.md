@@ -280,6 +280,10 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   auf einer Grafikkarte in einer Stunde erschöpft, und weil der Salzwert für alle Installationen derselbe war, hätte
   eine einmal berechnete Tabelle für jedes Gerät gegolten. Mit 80 Bit ist das keine Frage der Rechenzeit mehr.
   **Bestehende 8-stellige Codes funktionieren weiter**, bis man im Prüfgerät ein neues Geheimnis erzeugt.
+- **Neues Geheimnis auf Knopfdruck:** Einstellungen → Sport → „Neues Geheimnis erzeugen“ (mit Rückfrage). Nötig, weil
+  ein Geheimnis nur angelegt wird, wenn noch keines gespeichert ist – ein bestehendes Paar mit altem 8-stelligem Code
+  käme sonst nie an das stärkere Verfahren. Das Prüfgerät stellt sich sofort darauf um, ohne App-Neustart; an jedem
+  anderen Gerät muss das neue Geheimnis danach neu eingetragen werden.
 - **Quoten mit Stichprobe:** Statt „Vorhersage 80 %“ steht jetzt „Vorhersage 80 % (4 von 5 bewiesenen Spielen)“ –
   4 von 5 bedeutet statistisch alles zwischen 38 % und 96 %, und das soll man sehen. Sortiert wird nach der
   vorsichtigen Untergrenze, damit „1 von 1“ nicht über „17 von 20“ landet.

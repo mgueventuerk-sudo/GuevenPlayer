@@ -7,6 +7,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mg.player.core.util.TimeUtils
 import com.mg.player.data.sport.proof.HubAuth
 import com.mg.player.data.sport.proof.ProofEvaluator
+import com.mg.player.data.sport.proof.ProofShareServer
 import com.mg.player.domain.model.MatchSource
 import com.mg.player.domain.sport.SportBoard
 import com.mg.player.ui.common.LocalAppContainer
@@ -75,6 +76,9 @@ private fun GroupBuilder.proofDeviceRows(c: SettingsContext) {
                 chevron = false,
             )
         }
+        // Ein vor 3.57 erzeugter 8-stelliger Code bleibt sonst für immer bestehen: Er wird nur angelegt, wenn noch
+        // keiner da ist. Ohne diesen Knopf käme ein bestehendes Paar nie an das stärkere Geheimnis.
+        row("sport-hub-renew") { HubSecretRenewRow(c) }
     } else {
         row("sport-hub-join", contentType = "text-field") {
             // Buchstaben und Ziffern annehmen (alte 8-stellige Codes laufen weiter) und in die Gruppenform bringen.
@@ -83,6 +87,37 @@ private fun GroupBuilder.proofDeviceRows(c: SettingsContext) {
             }
         }
     }
+}
+
+/**
+ * „Neues Geheimnis erzeugen“ – mit Rückfrage, weil danach **jedes** andere Gerät das neue Geheimnis braucht. Der Weg
+ * aus einem alten 8-stelligen Code heraus: Der wird beim Start nur angelegt, wenn noch keiner gespeichert ist.
+ */
+@Composable
+private fun HubSecretRenewRow(c: SettingsContext) {
+    val hasLegacy = c.s.sportHubCode.isNotBlank() && !HubAuth.isStrong(c.s.sportHubCode)
+    val detail = if (hasLegacy) {
+        "Dein Code stammt aus einer älteren Version. Ein neues Geheimnis ist deutlich schwerer zu erraten – " +
+            "danach musst du es an jedem anderen Gerät neu eintragen."
+    } else {
+        "Nur nötig, wenn das Geheimnis in fremde Hände geraten ist – danach musst du es an jedem anderen Gerät neu eintragen."
+    }
+    ActionRow(
+        "Neues Geheimnis erzeugen",
+        {
+            c.onConfirm(
+                ConfirmRequest(
+                    "Neues Geheimnis erzeugen?",
+                    "Stick und Handy verlieren sofort die Verbindung zum Prüfgerät, bis du das neue Geheimnis dort einträgst.",
+                    "Erzeugen",
+                ) { c.vm.update { it.copy(sportHubCode = ProofShareServer.newSecret()) } },
+            )
+        },
+        detail,
+        icon = AppIcons.Lock,
+        danger = !hasLegacy,
+        chevron = false,
+    )
 }
 
 @Composable
