@@ -1,6 +1,9 @@
 package com.mg.player.core.di
 
 import android.content.Context
+import com.mg.player.data.handoff.HandoffClient
+import com.mg.player.data.handoff.HandoffServer
+import com.mg.player.data.reminder.LaunchRequest
 import com.mg.player.core.log.AppLog
 import com.mg.player.core.network.HttpFetcher
 import com.mg.player.core.network.NetworkMonitor
@@ -251,6 +254,28 @@ class AppContainer(context: Context, settingsOverride: SettingsRepository? = nul
 
     /** Sport: Spielpläne, Sender-Zuordnung, öffentliches Sport-Programm. */
     val sport = SportModule(this)
+
+    /** "Auf dem Fernseher weiterschauen": Dieses Geraet nimmt Wiedergabe entgegen (Schalter in den Einstellungen). */
+    val handoffServer: HandoffServer by lazy { HandoffServer(appContext) { request -> LaunchRequest.play(request) } }
+
+    /** Gegenstueck auf dem Handy: laufende Wiedergabe an den Fernseher geben. */
+    val handoffClient: HandoffClient by lazy { HandoffClient(appContext, httpFetcher) }
+
+    /**
+     * Laeuft, solange die App lebt: lauschen, wenn der Schalter an ist - und sofort aufhoeren, wenn er ausgeht.
+     * Das Geheimnis ist dasselbe wie beim Pruefgeraet: eine Kopplung je Haushalt, nicht zwei.
+     */
+    suspend fun handoffLoop() {
+        settingsRepository.settings
+            .map { it.tvHandoff to (if (it.sportProofDevice) it.sportHubCode else it.sportHubJoinCode) }
+            .distinctUntilChanged()
+            .collect { (listening, secret) ->
+                withContext(Dispatchers.IO) {
+                    runCatching { if (listening) handoffServer.start(secret) else handoffServer.stop() }
+                        .onFailure { AppLog.log("Übergabe", "Fernseher nicht bereit: ${it.javaClass.simpleName}") }
+                }
+            }
+    }
 
     val favoriteOrder: FavoriteOrderRepository by lazy { FavoriteOrderRepository(database) }
 

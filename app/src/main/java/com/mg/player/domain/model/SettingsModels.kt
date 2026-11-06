@@ -150,6 +150,8 @@ data class AppSettings(
      * Kalte App-Starts. Daraus folgt [showHints]: Einfuehrungstexte verschwinden, sobald man die App kennt -
      * vorher standen sie auf jedem Bildschirm dauerhaft im Weg.
      */
+    /** Dieses Geraet nimmt Wiedergabe vom Handy entgegen ("Auf dem Fernseher weiterschauen"). */
+    val tvHandoff: Boolean = false,
     val coldStarts: Int = 0,
     val largeText: Boolean = false,
     /** Ohne Glas-Verläufe und Hintergrundbilder: ruhiger und schneller auf schwachen TV-Sticks. */

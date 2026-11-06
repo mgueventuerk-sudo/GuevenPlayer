@@ -339,6 +339,19 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P5 Mit gesetzter PIN: Bearbeiten fragt zuerst nach der PIN.
 - [ ] P6 QR-Code im Bearbeiten-Bildschirm: Daten vom Handy landen im Formular (gespeichert wird erst mit „Prüfen & speichern“).
 
+## 16r. Neu in 3.57 – Weiterschauen auf dem Fernseher
+
+- [ ] W1 Fernseher: Einstellungen → Wiedergabe → „Wiedergabe vom Handy übernehmen“ an. Ohne eingetragenes
+      Geheimnis sagt die Zeile, dass es fehlt.
+- [ ] W2 Handy: Film starten, 10 Minuten vorspulen, „Mehr“ → „Auf dem Fernseher weiterschauen“ → der Film läuft
+      auf dem Fernseher **an derselben Stelle** weiter, und das Handy meldet „An den Fernseher gegeben“.
+- [ ] W3 Dasselbe mit einem Sender und mit einer Serienfolge.
+- [ ] W4 Fernseher aus oder Schalter aus → das Handy meldet „Kein Fernseher im Heimnetz erreichbar“ (und behauptet
+      nicht, es hätte geklappt).
+- [ ] W5 Der Eintrag erscheint **nur am Handy**, nicht auf dem Fernseher selbst.
+- [ ] W6 Kindersicherung aktiv und der Inhalt gesperrt → der Fernseher fragt nach der PIN, startet nicht einfach.
+- [ ] W7 Zeitversetzte Sendung (Archiv) → der Eintrag erscheint gar nicht erst.
+
 ## 16q. Neu in 3.57 – Pairing, ehrliche Quoten, nachvollziehbare Beweise
 
 - [ ] P1 Cube: „Dieses Gerät prüft im Hintergrund“ an → es erscheint ein Geheimnis in Vierergruppen (`X4K9-2M7P-0ABC-DEFG`),

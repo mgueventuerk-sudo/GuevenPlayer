@@ -17,6 +17,35 @@ internal fun LazyListScope.playbackItems(c: SettingsContext) {
     playerItems(c)
     seriesItems(c)
     pictureItems(c)
+    handoffItems(c)
+}
+
+/**
+ * „Auf dem Fernseher weiterschauen“: Dieses Geraet nimmt Wiedergabe vom Handy entgegen. Gesichert wird das mit
+ * demselben Geheimnis wie das Pruefgeraet (Einstellungen -> Sport) - eine Kopplung je Haushalt, nicht zwei.
+ */
+private fun LazyListScope.handoffItems(c: SettingsContext) {
+    settingsGroup(
+        "handoff",
+        "Vom Handy übernehmen",
+        footer = "Im Player am Handy erscheint dann „Auf dem Fernseher weiterschauen“. Übertragen werden nur die " +
+            "Kennung des Inhalts und die Position – der Fernseher spielt über seinen eigenen Zugang.",
+    ) {
+        row("tv-handoff") {
+            val secret = if (c.s.sportProofDevice) c.s.sportHubCode else c.s.sportHubJoinCode
+            ToggleRow(
+                "Wiedergabe vom Handy übernehmen",
+                c.s.tvHandoff,
+                { c.vm.update { it.copy(tvHandoff = !it.tvHandoff) } },
+                if (secret.isBlank()) {
+                    "Dafür fehlt noch das Geheimnis des Prüfgeräts (Einstellungen → Sport) – es sichert auch diese Übergabe."
+                } else {
+                    "Auf dem Fernseher einschalten, nicht auf dem Handy."
+                },
+                AppIcons.Play,
+            )
+        }
+    }
 }
 
 private fun LazyListScope.playerItems(c: SettingsContext) {

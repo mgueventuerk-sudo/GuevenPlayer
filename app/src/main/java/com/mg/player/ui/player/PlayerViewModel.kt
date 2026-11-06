@@ -2,6 +2,7 @@ package com.mg.player.ui.player
 
 import android.os.SystemClock
 import androidx.lifecycle.ViewModel
+import com.mg.player.data.handoff.HandoffRequest
 import com.mg.player.core.di.AppContainer
 import com.mg.player.core.log.AppLog
 import com.mg.player.data.sport.proof.ProofHunter
@@ -208,6 +209,35 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
     }
 
     private fun isCurrent(playable: Playable): Boolean = uiState.value.playable?.isSameStream(playable) == true
+
+    /**
+     * „Auf dem Fernseher weiterschauen“: denselben Inhalt an das Geraet im Heimnetz geben, das die Uebergabe
+     * angeschaltet hat - mit der **aktuellen** Position, nicht der, mit der hier gestartet wurde.
+     * Uebertragen werden nur Kennung und Position; der Fernseher spielt ueber seinen eigenen Zugang.
+     */
+    fun handoffToTv() {
+        scope.launch {
+            val settings = container.settingsRepository.current()
+            val secret = if (settings.sportProofDevice) settings.sportHubCode else settings.sportHubJoinCode
+            if (secret.isBlank()) {
+                toast("Dafuer fehlt das Geheimnis des Pruefgeraets (Einstellungen → Sport)")
+                return@launch
+            }
+            val position = engineHolder.value?.positionMs?.takeIf { it > 0 } ?: lastKnownPosition
+            val target = when (val r = request) {
+                is PlayRequest.Movie -> r.copy(startPositionMs = position)
+                is PlayRequest.Episode -> r.copy(startPositionMs = position)
+                else -> request
+            }
+            if (!HandoffRequest.isSupported(target)) {
+                toast("Das laesst sich nicht uebergeben")
+                return@launch
+            }
+            // Ehrlich melden: Ohne Antwort des Fernsehers laeuft dort nichts, und der Nutzer soll das sehen.
+            val sent = container.handoffClient.send(secret, target)
+            toast(if (sent) "An den Fernseher gegeben" else "Kein Fernseher im Heimnetz erreichbar")
+        }
+    }
 
     internal fun toast(message: String) {
         scope.launch { eventSink.emit(PlayerEvent.Toast(message)) }

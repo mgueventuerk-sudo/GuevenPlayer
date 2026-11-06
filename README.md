@@ -273,6 +273,13 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
 
 ## Neu in 3.57 (Spiel-Finder: Pairing, ehrliche Quoten, nachvollziehbare Beweise)
 
+- **Handy → TV weiterschauen (neu):** Im Player am Handy unter „Mehr“ steht „Auf dem Fernseher weiterschauen“.
+  Der Fernseher muss dafür „Wiedergabe vom Handy übernehmen“ eingeschaltet haben (Einstellungen → Wiedergabe);
+  gesichert wird das mit **demselben Geheimnis wie das Prüfgerät** – eine Kopplung je Haushalt, nicht zwei.
+  Übertragen werden nur die Kennung des Inhalts und die Position, **keine Stream-Adresse und keine Zugangsdaten**:
+  Der Fernseher löst den Inhalt über seine eigene Datenbank und seinen eigenen Zugang auf und startet ihn mit
+  Kindersicherung wie jeden anderen Start. Geht für Sender, Filme, Folgen und eigene Aufnahmen; zeitversetztes
+  Fernsehen bleibt aussen vor, weil das Archivfenster am Zugang des jeweiligen Geräts hängt.
 - **Prüfgerät: Geheimnis statt Zifferncode.** Das Prüfgerät zeigt jetzt ein Geheimnis wie `X4K9-2M7P-0ABC-DEFG`
   (80 Bit Zufall, Zeichen ohne Verwechslungsgefahr – kein I, L, O, U; Groß-/Kleinschreibung und Gruppenstriche sind
   beim Eintippen egal). **Warum:** Der 8-stellige Code war am Gerät gegen Durchprobieren gesperrt, aber eine einzige
