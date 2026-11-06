@@ -55,6 +55,9 @@ class SourceStats(private val store: StreamMemory.Store? = null, clock: () -> Lo
         if (!learned.add(eventId)) return
         store?.put(DONE + eventId, startMs.toString())
         guesses.forEach { g ->
+            // Hat eine Korrektur dieses Spiel für diese Quelle schon gewertet, zählt es nicht zweimal
+            // (die Quote bliebe sonst nicht „ein Spiel, eine Wertung“).
+            if (missKey(eventId, g.source, g.playlistId) in missed) return@forEach
             val key = rateKey(g.source, league, g.playlistId)
             val (hits, total) = counts[key] ?: (0 to 0)
             val next = (hits + if (g.hit) 1 else 0) to (total + 1)
@@ -78,7 +81,9 @@ class SourceStats(private val store: StreamMemory.Store? = null, clock: () -> Lo
      */
     @Synchronized
     fun learnMiss(eventId: String, league: String, source: MatchSource, playlistId: Long, atMs: Long) {
-        val marker = "$eventId$SEP${source.name}$SEP$playlistId"
+        // Ist das Spiel schon über einen Beweis gewertet, bleibt es dabei: der Beweis ist die bessere Auskunft.
+        if (eventId in learned) return
+        val marker = missKey(eventId, source, playlistId)
         if (!missed.add(marker)) return
         store?.put(WRONG + marker, atMs.toString())
         val key = rateKey(source, league, playlistId)
@@ -148,6 +153,8 @@ class SourceStats(private val store: StreamMemory.Store? = null, clock: () -> Lo
     }
 
     private fun rateKey(source: MatchSource, league: String, playlistId: Long) = "${source.name}$SEP$league$SEP$playlistId"
+
+    private fun missKey(eventId: String, source: MatchSource, playlistId: Long) = "$eventId$SEP${source.name}$SEP$playlistId"
 
     /**
      * „Wettbewerb · Wochentag · Uhrzeit“ in der Zeitzone des Wettbewerbs (dort liegen die Anstoßzeiten fest), die

@@ -137,7 +137,7 @@ class SourceStatsTest {
     }
 
     @Test
-    fun wrongChannelCountsAsAMissWithoutBlockingALaterProof() {
+    fun wrongChannelCountsAsAMissExactlyOncePerGame() {
         val store = MemStore()
         val stats = SourceStats(store)
         val source = MatchSource.KEYWORD
@@ -145,10 +145,15 @@ class SourceStatsTest {
         repeat(4) { stats.learnMiss("w$it", league, source, 1L, friday) }
         stats.learnMiss("w0", league, source, 1L, friday)
         assertEquals(0 to 4, stats.sample(source, league, 1L))
-        // Dasselbe Spiel wird später doch bewiesen: Die Wertung aus dem Beweis zählt trotzdem noch.
+        // Wird dasselbe Spiel später bewiesen, bleibt es bei einer Wertung: „ein Spiel, eine Wertung“.
         stats.learn("w0", league, friday, "sky", listOf(guess(source, true)))
-        assertEquals(1 to 5, stats.sample(source, league, 1L))
-        assertEquals(20, stats.ratePercent(source, league, 1L))
+        assertEquals(0 to 4, stats.sample(source, league, 1L))
+        // Eine andere Quelle desselben Spiels wird durch die Korrektur nicht blockiert.
+        stats.learn("w9", league, friday, "sky", listOf(guess(MatchSource.EPG, true)))
+        assertEquals(1 to 1, stats.sample(MatchSource.EPG, league, 1L))
+        // Umgekehrt: Was der Beweis schon gewertet hat, zaehlt eine spaetere Korrektur nicht nach.
+        stats.learnMiss("w9", league, MatchSource.EPG, 1L, friday)
+        assertEquals(1 to 1, stats.sample(MatchSource.EPG, league, 1L))
     }
 
     @Test

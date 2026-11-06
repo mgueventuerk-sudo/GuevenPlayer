@@ -339,6 +339,25 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] P5 Mit gesetzter PIN: Bearbeiten fragt zuerst nach der PIN.
 - [ ] P6 QR-Code im Bearbeiten-Bildschirm: Daten vom Handy landen im Formular (gespeichert wird erst mit „Prüfen & speichern“).
 
+## 16q. Neu in 3.57 – Pairing, ehrliche Quoten, nachvollziehbare Beweise
+
+- [ ] P1 Cube: „Dieses Gerät prüft im Hintergrund“ an → es erscheint ein Geheimnis in Vierergruppen (`X4K9-2M7P-0ABC-DEFG`),
+      keine acht Ziffern. Kein I, L, O oder U darin.
+- [ ] P2 Stick: Geheimnis **klein geschrieben und ohne Striche** eintragen (`x4k92m7p0abcdefg`) → Feld zeigt es in
+      Vierergruppen, und der Stick übernimmt nach ≤ 1 min die Beweise des Cube. (Vor 3.57 schlug das still fehl.)
+- [ ] P3 Ein Zeichen falsch eintragen → keine Beweise, und keine Fehlermeldung mit dem Geheimnis darin.
+- [ ] P4 Bestehendes Paar mit altem 8-stelligem Code, beide auf 3.57 → läuft weiter, ohne neu zu koppeln.
+- [ ] P5 Einstellungen → Sport: Bei jeder Quote steht die Stichprobe dabei („80 % (4 von 5 bewiesenen Spielen)“).
+- [ ] P6 Eine Quelle hat 0 von 5 → sie liefert meist keine Sender mehr, **aber** nicht bei jedem Spiel: über mehrere
+      Spieltage taucht sie gelegentlich wieder auf (Erkundung, jedes achte Spiel).
+- [ ] P7 „Falscher Sender“ bei einem Spiel → die Quote der betroffenen Quelle verschlechtert sich (Stichprobe wächst
+      um 1, Treffer nicht).
+- [ ] P8 Spiel um 20:30 bewiesen, nächste Woche Anpfiff 20:45 → gilt als dasselbe Zeitfenster („laut Zeitfenster“).
+- [ ] P9 „Letzte Prüfungen“ zeigt unter jedem Eintrag „gelesen: …“ mit dem erkannten Text (bei Platzhaltern „No Event“
+      bzw. „Standbild“).
+- [ ] P10 Prüfgerät mit absichtlich um 10 Minuten falsch gestellter Uhr → Stick bekommt nichts, und das Fehlerprotokoll
+      nennt „Anfrage mit abweichender Uhrzeit abgelehnt“ (vorher scheiterte es ohne Hinweis).
+
 ## 16p. Neu in 3.56 – Lernen aus Beweisen
 
 - [ ] K1 Nach mehreren bewiesenen Spielen: Einstellungen → Sport zeigt bei den Quellen „Vorhersage NN %“.
