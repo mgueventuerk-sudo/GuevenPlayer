@@ -276,6 +276,9 @@ internal fun sameSubnet(a: ByteArray, b: ByteArray, prefix: Int): Boolean {
 private const val HTTP_PAYLOAD_TOO_LARGE = 413
 private const val HTTP_BAD_REQUEST = 400
 
+/** Der Handler ist (noch) nicht bereit – z. B. das Prüfgerät ohne Schlüssel. */
+internal const val HTTP_UNAVAILABLE = 503
+
 /**
  * Schutz für die Seiten im Handy-Browser: Das Token steht in der Adresse – kein Referer an fremde Seiten,
  * keine fremden Skripte/Verbindungen (CSP), kein Einbetten in fremde Seiten, kein MIME-Raten.
@@ -297,6 +300,7 @@ private val REASON_PHRASES = mapOf(
     409 to "Conflict",
     HTTP_PAYLOAD_TOO_LARGE to "Payload Too Large",
     500 to "Internal Server Error",
+    HTTP_UNAVAILABLE to "Service Unavailable",
 )
 
 internal fun reasonPhrase(code: Int): String = REASON_PHRASES[code] ?: "Error"

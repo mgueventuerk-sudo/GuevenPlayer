@@ -66,7 +66,10 @@ class ProofHunter(
 
     /** Regel „Freie Playlist“ 4: Ein anderes Gerät braucht diesen Zugang – 2 Minuten nicht darüber prüfen. */
     fun release(account: String) {
-        released[account] = clock() + RELEASE_MS
+        val now = clock()
+        // Abgelaufene Einträge gleich mit weg: Sonst wächst die Tabelle mit jeder gemeldeten Kennung weiter.
+        released.entries.removeIf { it.value <= now }
+        released[account] = now + RELEASE_MS
     }
 
     /** Eine Runde zur Zeit (App im Vordergrund und Hintergrund-Dienst teilen sich den Sucher). */
@@ -160,8 +163,12 @@ class ProofHunter(
         // Score 0 = gefunden über die Suche in den Sport-Gruppen (Plan D): ein normaler Sport-Sender.
         val eventChannel = row.score in 1..SportChannelFinder.EVENT_CHANNEL + 1
         val key = if (eventChannel || wrongLogo) channel.id else GuideCatalog.nameKey(channel.name)
-        proofs.record(event.id, key, channel.name, verdict, BY_PICTURE)
-        if (verdict == ProofEvaluator.Verdict.PROVEN && !eventChannel) proofs.record(event.id, channel.id, channel.name, verdict, BY_PICTURE)
+        // Den gelesenen Text mitgeben: In der Diagnose steht dann nicht nur „bewiesen“, sondern woran (Plan M).
+        val evidence = seen.texts.joinToString(" · ") { it.trim() }.ifBlank { if (seen.staticPicture) "Standbild" else "" }
+        proofs.record(event.id, key, channel.name, verdict, BY_PICTURE, evidence)
+        if (verdict == ProofEvaluator.Verdict.PROVEN && !eventChannel) {
+            proofs.record(event.id, channel.id, channel.name, verdict, BY_PICTURE, evidence)
+        }
         AppLog.log("Sport", "Bildbeweis ${event.title} · ${channel.name}: $verdict${if (wrongLogo) " (fremdes Logo)" else ""} (${seen.texts.size} Textzeilen)")
         return verdict
     }

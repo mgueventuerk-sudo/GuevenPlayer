@@ -271,6 +271,32 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.57 (Spiel-Finder: Pairing, ehrliche Quoten, nachvollziehbare Beweise)
+
+- **Prüfgerät: Geheimnis statt Zifferncode.** Das Prüfgerät zeigt jetzt ein Geheimnis wie `X4K9-2M7P-0ABC-DEFG`
+  (80 Bit Zufall, Zeichen ohne Verwechslungsgefahr – kein I, L, O, U; Groß-/Kleinschreibung und Gruppenstriche sind
+  beim Eintippen egal). **Warum:** Der 8-stellige Code war am Gerät gegen Durchprobieren gesperrt, aber eine einzige
+  mitgeschnittene Anfrage ließ sich **ohne** das Prüfgerät durchprobieren – dort greift keine Sperre. 10⁸ Codes sind
+  auf einer Grafikkarte in einer Stunde erschöpft, und weil der Salzwert für alle Installationen derselbe war, hätte
+  eine einmal berechnete Tabelle für jedes Gerät gegolten. Mit 80 Bit ist das keine Frage der Rechenzeit mehr.
+  **Bestehende 8-stellige Codes funktionieren weiter**, bis man im Prüfgerät ein neues Geheimnis erzeugt.
+- **Neues Geheimnis auf Knopfdruck:** Einstellungen → Sport → „Neues Geheimnis erzeugen“ (mit Rückfrage). Nötig, weil
+  ein Geheimnis nur angelegt wird, wenn noch keines gespeichert ist – ein bestehendes Paar mit altem 8-stelligem Code
+  käme sonst nie an das stärkere Verfahren. Das Prüfgerät stellt sich sofort darauf um, ohne App-Neustart; an jedem
+  anderen Gerät muss das neue Geheimnis danach neu eingetragen werden.
+- **Quoten mit Stichprobe:** Statt „Vorhersage 80 %“ steht jetzt „Vorhersage 80 % (4 von 5 bewiesenen Spielen)“ –
+  4 von 5 bedeutet statistisch alles zwischen 38 % und 96 %, und das soll man sehen. Sortiert wird nach der
+  vorsichtigen Untergrenze, damit „1 von 1“ nicht über „17 von 20“ landet.
+- **Schwache Quellen erholen sich wieder:** Eine Quelle mit 0 von 5 wird übersprungen, aber jedes achte Spiel trotzdem
+  gefragt. Vorher war das eine Dauersperre: ohne Anfragen keine neuen Daten, also auch nach einer Programmumstellung
+  des Anbieters keine Rückkehr.
+- **„Falscher Sender“ zählt:** Eine Korrektur wird als Fehlschlag der Quelle gewertet, die den Sender genannt hatte.
+  Vorher entstanden die Quoten nur aus bewiesenen Spielen – aus Korrekturen lernte die App nichts.
+- **Anstoßzeiten im Viertelstunden-Raster** und in der Zeitzone des Wettbewerbs: Ein TV-Pick von 20:30 auf 20:45 ist
+  dasselbe Zeitfenster, und 15:00 am Samstag ist Premier-League-Zeit in London, nicht in Berlin.
+- **Beweis nachvollziehbar:** „Letzte Prüfungen“ zeigt den gelesenen Text (z. B. `BAY 2:1 DOR · 67'`), auf dem ein
+  Ergebnis beruht. Bleibt auf dem Gerät und wird nicht mit anderen Geräten geteilt.
+
 ## Neu in 3.56 (Spiel-Finder L5/L6: Selbstkalibrierung, Zeitfenster, Logo-Prüfung)
 
 - **Trefferquote je Quelle:** Jedes bewiesene Spiel zählt, ob eine Quelle (TV-Programm, Sendeliste, EPG …) den richtigen

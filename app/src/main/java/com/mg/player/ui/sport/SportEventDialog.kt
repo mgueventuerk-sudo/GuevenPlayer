@@ -74,7 +74,12 @@ fun SportEventDialog(item: MatchedEvent, onDismiss: () -> Unit) {
             // Herkunft immer nennen (Plan „Spiel-Finder“ A) – bei unsicheren Quellen ausdrücklich als Vermutung.
             append("\nQuelle: ${item.source.label}. ${item.source.detail}")
             if (item.guessed) append(" Sender nur vermutet.")
-            container.sport.stats.overallPercent(item.source)?.let { append(" Vorhersage dieser Quelle: $it %.") }
+            // Mit Stichprobe: Eine Prozentzahl ohne „von wie vielen“ behauptet mehr Genauigkeit, als die Daten tragen.
+            container.sport.stats.overallPercent(item.source)?.let { percent ->
+                val sample = container.sport.stats.overallSample(item.source)
+                    ?.let { (hits, total) -> " ($hits von $total)" }.orEmpty()
+                append(" Vorhersage dieser Quelle: $percent %$sample.")
+            }
             nowOnChannel?.let { append(" Dort läuft gerade „$it“.") }
         }
     }

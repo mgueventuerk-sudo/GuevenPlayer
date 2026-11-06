@@ -56,9 +56,13 @@ class ChannelEventMatcher(
         val stations = if (analysis == null) stationChannels(events) else emptyMap()
         val windows = HashMap<Long, List<EpgCandidateRow>>()
         val perEvent = LinkedHashMap<SportEvent, MutableList<Pair<ChannelKeyRow, Int>>>()
+        // Zeitfenster-Gedächtnis: Senderschlüssel → Kanäle einmal je Lauf, nicht je Spiel über den ganzen Sport-Index.
+        var slotRows: Map<String, List<ChannelKeyRow>>? = null
         for (event in events) {
             val found = candidates(event, stations, analysis, horizon, windows)
-            found += timeSlot(event).filter { slot -> found.none { it.first.id == slot.first.id } }
+            val slotKeys = stats?.slotStations(leagueOfEvent(event.id), event.startMs).orEmpty()
+            if (slotKeys.isNotEmpty() && slotRows == null) slotRows = sportRowsByKey()
+            found += timeSlot(slotKeys, slotRows.orEmpty()).filter { slot -> found.none { it.first.id == slot.first.id } }
             val outside = provenOutside(event, found)
             learn(event, found, outside)
             outside?.let { found += it }
@@ -113,27 +117,33 @@ class ChannelEventMatcher(
     }
 
     /**
-     * Fund verwerfen: Quelle abgeschaltet oder für diesen Wettbewerb und diese Playlist nachweislich nutzlos (0 von 5,
-     * Plan F). Ein bewiesener Sender bleibt immer.
+     * Fund verwerfen: Quelle abgeschaltet oder für diesen Wettbewerb und diese Playlist zu schwach (Plan F). Schwach
+     * heißt nicht für immer: [SourceStats.shouldSkip] lässt jedes achte Spiel durch, damit eine abgeschriebene Quelle
+     * nach einer Programmumstellung wieder Daten liefern kann. Ein bewiesener Sender bleibt immer.
      */
     private fun dropped(event: SportEvent, channel: ChannelKeyRow, score: Int, disabled: Set<MatchSource>): Boolean {
         val source = MatchSource.of(score)
         // Event-Kanäle sind ohne Bildbeweis ohnehin unsichtbar; verworfen würden sie nie mehr geprüft und nie bewiesen.
-        val useless = source != MatchSource.EVENT_NAME && stats?.isUseless(source, leagueOfEvent(event.id), channel.playlistId) == true
+        val useless = source != MatchSource.EVENT_NAME &&
+            stats?.shouldSkip(source, leagueOfEvent(event.id), channel.playlistId, event.id) == true
         if (source !in disabled && !useless) return false
         val keys = listOf(channel.id, GuideCatalog.nameKey(channel.name))
         return proofs?.verdictFor(event.id, keys) != ProofEvaluator.Verdict.PROVEN
     }
 
+    /**
+     * Sport-Sender je Senderschlüssel, je Playlist einer – Grundlage des Zeitfenster-Gedächtnisses (Plan G). Der
+     * Senderschlüssel ist teuer (Namen falten und zerlegen), darum einmal für den ganzen Index statt je Spiel.
+     */
+    private suspend fun sportRowsByKey(): Map<String, List<ChannelKeyRow>> =
+        finder?.index()?.rows.orEmpty()
+            .groupBy({ GuideCatalog.nameKey(it.name) }, { ChannelKeyRow(it.id, it.name, it.playlistId) })
+            .mapValues { (_, rows) -> rows.distinctBy { it.playlistId } }
+
     /** Zeitfenster-Gedächtnis (Plan G): Sender, die in diesem Zeitfenster schon mehrmals bewiesen wurden. */
-    private suspend fun timeSlot(event: SportEvent): List<Pair<ChannelKeyRow, Int>> {
-        val keys = stats?.slotStations(leagueOfEvent(event.id), event.startMs)?.toSet().orEmpty()
-        if (keys.isEmpty()) return emptyList()
-        val rows = finder?.index()?.rows.orEmpty().filter { GuideCatalog.nameKey(it.name) in keys }
+    private fun timeSlot(keys: List<String>, rowsByKey: Map<String, List<ChannelKeyRow>>): List<Pair<ChannelKeyRow, Int>> =
         // Je Playlist und Sender ein Kanal – mehrere bewährte Sender im selben Zeitfenster bleiben alle.
-        return rows.distinctBy { it.playlistId to GuideCatalog.nameKey(it.name) }
-            .map { ChannelKeyRow(it.id, it.name, it.playlistId) to MatchSource.TIMESLOT_SCORE }
-    }
+        keys.distinct().flatMap { key -> rowsByKey[key].orEmpty().map { it to MatchSource.TIMESLOT_SCORE } }
 
     /** Bewiesene Sender, die keine Quelle genannt hat (gefunden bei der Suche, Plan D) – als Kandidaten dazu. */
     private suspend fun provenOutside(event: SportEvent, found: List<Pair<ChannelKeyRow, Int>>): List<Pair<ChannelKeyRow, Int>>? {

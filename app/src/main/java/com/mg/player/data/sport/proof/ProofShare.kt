@@ -22,9 +22,10 @@ import kotlin.coroutines.resume
  *
  * Prüfgerät: stellt seine Beweise im Heimnetz bereit (GET /proofs) und nimmt „Ich brauche diese Playlist“ entgegen
  * (GET /release) – dann prüft es dort 2 Minuten nicht (Regel „Freie Playlist“ 4). Gefunden wird es per Netzwerkdienst
- * (NSD, „_guevenproof._tcp“), geschützt durch einen 8-stelligen Code, den man am anderen Gerät einträgt; der Code selbst
- * wird nie gesendet, Anfragen und Antworten sind damit signiert ([HubAuth]). Übertragen werden
- * nur Spiel-Kennung, Senderschlüssel und Ergebnis – keine Zugangsdaten. Event-Kanäle (gerätebezogene Kanal-IDs) nicht.
+ * (NSD, „_guevenproof._tcp“), geschützt durch das Geheimnis des Prüfgeräts, das man am anderen Gerät einträgt oder
+ * als QR-Code abliest; das Geheimnis selbst wird nie gesendet, Anfragen und Antworten sind damit signiert ([HubAuth]).
+ * Übertragen werden nur Spiel-Kennung, Senderschlüssel und Ergebnis – keine Zugangsdaten. Event-Kanäle
+ * (gerätebezogene Kanal-IDs) nicht.
  */
 class ProofShareServer(private val context: Context, private val proofs: ProofStore, private val release: (String) -> Unit) {
 
@@ -34,12 +35,31 @@ class ProofShareServer(private val context: Context, private val proofs: ProofSt
     @Volatile
     private var key: ByteArray? = null
 
-    /** Zufallswerte der letzten Anfragen (Zeitpunkt) – jede signierte Anfrage gilt nur einmal. */
+    /** Geheimnis des abgeleiteten Schlüssels – die Ableitung eines alten Zifferncodes ist teuer, darum gemerkt. */
+    @Volatile
+    private var keyFor: String? = null
+
+    /**
+     * Zufallswerte der letzten Anfragen (Zeitpunkt) – jede signierte Anfrage gilt nur einmal.
+     *
+     * Die Tabelle lebt nur im Arbeitsspeicher: Nach einem Neustart des Prüfgeräts ist eine kurz davor mitgeschnittene
+     * Anfrage im Zeitfenster noch einmal gültig. Das bleibt bewusst so, weil eine Wiederholung hier nichts einbringt:
+     * `/proofs` liefert nur dieselben Daten, die der Mitschnitt schon enthält, und `/release` verlängert bloß eine
+     * 2-Minuten-Pause, die derselbe Mitschnitt ohnehin ausgelöst hatte. Ein Riegel über den Startzeitpunkt würde die
+     * Lücke nicht schließen (die Anfrage liegt im Zeitfenster) und Geräte mit nachgehender Uhr abweisen.
+     */
     private val seen = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
-    fun start(code: String) {
-        if (server != null) return
-        key = HubAuth.key(code)
+    /**
+     * Prüfgerät bereitstellen. Läuft es schon mit einem **anderen** Geheimnis (der Nutzer hat in den Einstellungen ein
+     * neues erzeugt), wird es erst beendet und dann neu angemeldet: Sonst signierte es bis zum nächsten App-Start
+     * weiter mit dem alten Schlüssel, und das neue Geheimnis bliebe wirkungslos.
+     */
+    fun start(secret: String) {
+        if (server != null && keyFor == secret) return
+        if (server != null) stop()
+        key = HubAuth.key(secret)
+        keyFor = secret
         val http = MiniHttpServer(authorize = ::authorized) { request -> handle(request) }
         val base = http.start() ?: return
         server = http
@@ -66,6 +86,7 @@ class ProofShareServer(private val context: Context, private val proofs: ProofSt
         server?.stop()
         server = null
         key = null
+        keyFor = null
         seen.clear()
     }
 
@@ -75,9 +96,23 @@ class ProofShareServer(private val context: Context, private val proofs: ProofSt
         val nonce = query["n"]?.takeIf { it.length in NONCE_RANGE } ?: return false
         val ts = query["ts"]?.toLongOrNull()
         val now = System.currentTimeMillis()
-        if (!HubAuth.fresh(ts, now) || !HubAuth.verify(k, query["s"], path, nonce, ts.toString(), query["a"].orEmpty())) return false
-        seen.entries.removeIf { it.value < now - 2 * HubAuth.MAX_SKEW_MS }
+        if (!signed(k, path, query, nonce, ts)) return false
+        seen.entries.removeIf { it.value < now - KEEP_NONCE_SKEWS * HubAuth.MAX_SKEW_MS }
         return seen.putIfAbsent(nonce, now) == null
+    }
+
+    /** Uhrzeit im erlaubten Fenster und Signatur gültig. */
+    private fun signed(key: ByteArray, path: String, query: Map<String, String>, nonce: String, ts: Long?): Boolean {
+        if (!HubAuth.fresh(ts, System.currentTimeMillis())) {
+            // Häufigste Ursache ist keine Attacke, sondern eine abweichende Uhr: TV-Boxen ohne Zeitabgleich driften,
+            // und dann scheitert die Anmeldung ohne jeden Hinweis. Darum eigens vermerken.
+            AppLog.log(
+                "Sport",
+                "Prüfgerät: Anfrage mit abweichender Uhrzeit abgelehnt (erlaubt sind ${HubAuth.MAX_SKEW_MINUTES} Minuten)",
+            )
+            return false
+        }
+        return HubAuth.verify(key, query["s"], path, nonce, ts.toString(), query["a"].orEmpty())
     }
 
     private fun handle(request: MiniHttpServer.Request): MiniHttpServer.Response {
@@ -105,14 +140,17 @@ class ProofShareServer(private val context: Context, private val proofs: ProofSt
         const val SERVICE_TYPE = "_guevenproof._tcp."
         internal const val RESPONSE = "antwort"
         internal val NONCE_RANGE = 16..64
+
+        /** Zufallswerte so lange merken wie zwei Zeitfenster – danach kann die Anfrage ohnehin nicht mehr gelten. */
+        private const val KEEP_NONCE_SKEWS = 2
         private const val SERVICE_NAME = "GuevenPlayer-Pruefgeraet"
         private const val HTTP_OK = 200
         private const val HTTP_NOT_FOUND = 404
         private const val HTTP_UNAVAILABLE = 503
         private val ACCOUNT_KEY_RANGE = 8..64
 
-        /** Neuer Code für das Prüfgerät (8 Ziffern, am anderen Gerät einzutippen). */
-        fun newCode(): String = java.security.SecureRandom().let { random -> (1..CODE_LENGTH).map { random.nextInt(DIGITS) }.joinToString("") }
+        /** Neues Geheimnis für das Prüfgerät (siehe [HubAuth.newSecret]) – am anderen Gerät eintippen oder abscannen. */
+        fun newSecret(): String = HubAuth.newSecret()
 
         /** Kennung eines Zugangs, die auf allen Geräten gleich ist (Adresse + Benutzer, gehasht – keine Zugangsdaten). */
         fun accountKey(serverUrl: String, username: String): String {
@@ -120,8 +158,6 @@ class ProofShareServer(private val context: Context, private val proofs: ProofSt
             return digest.take(ACCOUNT_BYTES).joinToString("") { "%02x".format(it) }
         }
 
-        private const val CODE_LENGTH = 8
-        private const val DIGITS = 10
         private const val ACCOUNT_BYTES = 8
     }
 }
