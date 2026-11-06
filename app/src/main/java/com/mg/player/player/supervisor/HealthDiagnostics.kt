@@ -10,30 +10,36 @@ internal class HealthDiagnostics(private val intervalMs: Long = DEFAULT_INTERVAL
     private var lastEngine: PlayerEngineType? = null
 
     fun sample(engine: PlayerEngineType, current: HealthSnapshot, now: Long): String? {
-        if (lastEngine != engine) {
-            lastLoggedAt = Long.MIN_VALUE
-            lastLogged = null
-            lastEngine = engine
-        }
+        resetForEngine(engine)
         if (lastLoggedAt != Long.MIN_VALUE && now - lastLoggedAt < intervalMs) return null
         val previous = lastLogged
-        val positionDelta = previous?.let { current.positionMs - it.positionMs }
-        val frameDelta = delta(current.renderedFrames, previous?.renderedFrames)
-        val audioDelta = delta(current.audioUnits, previous?.audioUnits)
-        val byteDelta = delta(current.bytesLoaded, previous?.bytesLoaded)
+        lastLoggedAt = now
+        lastLogged = current
+        return diagnosticLine(engine, current, previous)
+    }
+
+    private fun resetForEngine(engine: PlayerEngineType) {
+        if (lastEngine == engine) return
+        lastLoggedAt = Long.MIN_VALUE
+        lastLogged = null
+        lastEngine = engine
+    }
+
+    private fun diagnosticLine(engine: PlayerEngineType, current: HealthSnapshot, previous: HealthSnapshot?): String {
+        val position = previous?.let { current.positionMs - it.positionMs }?.signedMs() ?: "Δ n/a"
+        val frames = delta(current.renderedFrames, previous?.renderedFrames)
+        val audio = delta(current.audioUnits, previous?.audioUnits)
+        val bytes = delta(current.bytesLoaded, previous?.bytesLoaded)
         val pictureMonitoring = when {
             current.hasVideoTrack == false -> "keine Videospur"
             current.renderedFrames == null -> "Standbildprüfung eingeschränkt"
             else -> "Standbildprüfung aktiv"
         }
-        lastLoggedAt = now
-        lastLogged = current
-
         return "Player-Zustand $engine: ${current.status}/${if (current.isPlaying) "spielt" else "pausiert"}; " +
-            "Position ${current.positionMs} ms (${positionDelta?.signedMs() ?: "Δ n/a"}); " +
-            "Videobilder ${current.renderedFrames?.toString() ?: "n/a"} (${frameDelta ?: "Δ n/a"}, $pictureMonitoring); " +
-            "Tonblöcke ${current.audioUnits?.toString() ?: "n/a"} (${audioDelta ?: "Δ n/a"}); " +
-            "Bytes ${current.bytesLoaded?.toString() ?: "n/a"} (${byteDelta ?: "Δ n/a"}); " +
+            "Position ${current.positionMs} ms ($position); " +
+            "Videobilder ${current.renderedFrames?.toString() ?: "n/a"} (${frames ?: "Δ n/a"}, $pictureMonitoring); " +
+            "Tonblöcke ${current.audioUnits?.toString() ?: "n/a"} (${audio ?: "Δ n/a"}); " +
+            "Bytes ${current.bytesLoaded?.toString() ?: "n/a"} (${bytes ?: "Δ n/a"}); " +
             "Videodecoder-Warnungen ${current.videoLagEvents?.toString() ?: "n/a"}"
     }
 
