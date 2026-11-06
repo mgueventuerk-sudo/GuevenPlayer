@@ -122,7 +122,9 @@ abstract class CombinedDao {
     abstract suspend fun categorySources(playlistId: Long): List<CategorySourceRow>
 
     @Query(
-        "SELECT substr(p.channelKey, 1, 512) AS channelKey, p.startMs, substr(p.title, 1, 2048) AS title FROM epg_programs p WHERE p.playlistId = :playlistId AND p.startMs >= :fromMs " +
+        "SELECT substr(p.channelKey, 1, 512) AS channelKey, p.startMs, " +
+            "substr(p.title, 1, 2048) AS title FROM epg_programs p " +
+            "WHERE p.playlistId = :playlistId AND p.startMs >= :fromMs " +
             "AND p.startMs < :toMs AND $ACTIVE_EPG ORDER BY p.channelKey, p.startMs",
     )
     abstract suspend fun epgSlots(playlistId: Long, fromMs: Long, toMs: Long): List<EpgSlot>
