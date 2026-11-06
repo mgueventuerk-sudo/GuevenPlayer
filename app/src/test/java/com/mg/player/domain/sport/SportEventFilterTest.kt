@@ -132,7 +132,10 @@ class SportEventFilterTest {
     fun countdownFormats() {
         assertEquals("jetzt", formatCountdown(now, now))
         assertEquals("in 23:05", formatCountdown(now + 23 * min + 5_000, now))
-        assertEquals("in 4 Std 12 Min", formatCountdown(now + 4 * hour + 12 * min, now))
-        assertEquals("in 2 T 14 Std 23 Min", formatCountdown(now + 2 * day + 14 * hour + 23 * min, now))
+        // Eine Einheit je Groessenordnung: Minuten nur, solange sie etwas aendern.
+        assertEquals("in 2 Std 12 Min", formatCountdown(now + 2 * hour + 12 * min, now))
+        assertEquals("in 4 Std", formatCountdown(now + 4 * hour + 12 * min, now))
+        assertEquals("in 1 Tag", formatCountdown(now + day + 3 * hour, now))
+        assertEquals("in 2 Tagen", formatCountdown(now + 2 * day + 14 * hour + 23 * min, now))
     }
 }

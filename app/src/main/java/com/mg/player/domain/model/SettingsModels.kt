@@ -146,15 +146,29 @@ data class AppSettings(
     /** App-Sperre: PIN beim Öffnen, Inhalt in „Zuletzt verwendet“ verdeckt. */
     val appLock: Boolean = false,
     /** Größere Schrift für den Fernseher aus der Entfernung. */
+    /**
+     * Kalte App-Starts. Daraus folgt [showHints]: Einfuehrungstexte verschwinden, sobald man die App kennt -
+     * vorher standen sie auf jedem Bildschirm dauerhaft im Weg.
+     */
+    val coldStarts: Int = 0,
     val largeText: Boolean = false,
     /** Ohne Glas-Verläufe und Hintergrundbilder: ruhiger und schneller auf schwachen TV-Sticks. */
     val reducedEffects: Boolean = false,
 ) {
     val tmdbActive: Boolean get() = onlineExtras && tmdbEnabled && tmdbApiKey.isNotBlank()
 
+    /**
+     * Einfuehrungstexte zeigen, solange die App neu ist. Danach verschwinden sie: Ein Hinweis, der nach dem
+     * zwanzigsten Start noch dasteht, erklaert nichts mehr, sondern nimmt nur Platz auf dem Bildschirm weg.
+     */
+    val showHints: Boolean get() = coldStarts < HINT_STARTS
+
     companion object {
         val INTRO_SKIP_OPTIONS = listOf(60, 85, 90)
         val NEXT_TRIGGER_OPTIONS = listOf(30, 45, 60)
+
+        /** So viele kalte Starts lang stehen die Einfuehrungstexte noch da. */
+        const val HINT_STARTS = 5
     }
 }
 

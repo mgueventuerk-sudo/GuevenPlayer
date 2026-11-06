@@ -103,6 +103,7 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         val DOH = booleanPreferencesKey("doh_fallback")
         val NO_HISTORY = booleanPreferencesKey("no_history")
         val APP_LOCK = booleanPreferencesKey("app_lock")
+        val COLD_STARTS = intPreferencesKey("cold_starts")
         val LARGE_TEXT = booleanPreferencesKey("large_text")
         val REDUCED_EFFECTS = booleanPreferencesKey("reduced_effects")
         val AUTOMATIC_OPTIMIZATION = booleanPreferencesKey("automatic_optimization")
@@ -171,6 +172,7 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
             dohFallback = this[Keys.DOH] ?: defaults.dohFallback,
             noHistory = this[Keys.NO_HISTORY] ?: defaults.noHistory,
             appLock = this[Keys.APP_LOCK] ?: defaults.appLock,
+            coldStarts = this[Keys.COLD_STARTS] ?: defaults.coldStarts,
             largeText = this[Keys.LARGE_TEXT] ?: defaults.largeText,
             reducedEffects = this[Keys.REDUCED_EFFECTS] ?: defaults.reducedEffects,
             automaticOptimization = this[Keys.AUTOMATIC_OPTIMIZATION] ?: defaults.automaticOptimization,
@@ -217,6 +219,7 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         this[Keys.DOH] = s.dohFallback
         this[Keys.NO_HISTORY] = s.noHistory
         this[Keys.APP_LOCK] = s.appLock
+        this[Keys.COLD_STARTS] = s.coldStarts
         this[Keys.LARGE_TEXT] = s.largeText
         this[Keys.REDUCED_EFFECTS] = s.reducedEffects
         this[Keys.SPORT_MANUAL] = s.sportManualChannels.mapTo(HashSet()) { (league, channel) -> "$league\t$channel" }

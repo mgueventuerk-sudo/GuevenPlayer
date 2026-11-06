@@ -30,6 +30,7 @@ import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import com.mg.player.core.util.CategoryName
 import com.mg.player.domain.model.Channel
 import com.mg.player.domain.model.EpgProgram
 import com.mg.player.domain.model.Recording
@@ -110,7 +111,7 @@ fun GuideScreen(modifier: Modifier = Modifier) {
         ) {
             items(categories, key = { it.id }, contentType = { "chip" }) { category ->
                 ChoiceChip(
-                    text = category.name,
+                    text = CategoryName.display(category.name),
                     selected = category.id == selected,
                     onClick = { gate.runIfAllowed(category) { vm.selectCategory(category) } },
                 )
