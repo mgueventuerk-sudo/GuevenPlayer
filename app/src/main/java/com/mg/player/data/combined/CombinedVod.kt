@@ -10,6 +10,7 @@ import com.mg.player.data.db.entity.MovieEntity
 import com.mg.player.data.db.entity.ProgressEntity
 import com.mg.player.data.db.entity.SeriesEntity
 import com.mg.player.domain.model.ContentType
+import kotlinx.coroutines.yield
 
 /** Filme, Serien und Folgen von „Alle Zugänge“. */
 internal object CombinedVod {
@@ -22,7 +23,18 @@ internal object CombinedVod {
         val generation = ctx.generation
         val dao = db.combinedDao()
         val type = if (isSeries) ContentType.SERIES.name else ContentType.MOVIE.name
-        val rows = ctx.ids.flatMap { if (isSeries) dao.seriesSources(it) else dao.movieSources(it) }
+        val rows = ArrayList<VodSourceRow>()
+        for (playlistId in ctx.ids) {
+            var afterRowId = 0L
+            while (true) {
+                val page = if (isSeries) dao.seriesSourcePage(playlistId, afterRowId, SOURCE_PAGE)
+                    else dao.movieSourcePage(playlistId, afterRowId, SOURCE_PAGE)
+                if (page.isEmpty()) break
+                rows.addAll(page)
+                afterRowId = page.last().rowId
+                yield()
+            }
+        }
         val clusters = VodClusterer.cluster(rows, isSeries, rules)
         val links = ArrayList<CombinedLinkEntity>(rows.size)
         val writer = VodWriter(db, isSeries, generation)
@@ -142,6 +154,7 @@ internal object CombinedVod {
     }
 
     private const val MAX_ARGS = 900
+    private const val SOURCE_PAGE = 400
 
     /** Filme/Folgen haben keinen Qualitätsrang beim Import; beim Abspielen zählt der aus dem Titel. */
     private const val NEUTRAL_QUALITY = 50

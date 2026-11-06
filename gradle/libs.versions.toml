@@ -3,9 +3,10 @@
 # WireGuard: 1.0.20251231 rief CompletableFuture.newIncompleteFuture() ungeschützt auf (erst ab Android 12) →
 # Absturz auf Android 9/11 (Fire TV). 1.0.20260102 sichert den Aufruf mit SDK_INT >= S ab (Upstream-Commit 3f30378c);
 # LibraryApiLevelTest führt ihn deshalb als „abgesichert“. Jede neue Version dort erneut prüfen.
-androidGradlePlugin = "9.5.0"
+# 9.5.0 konnte im Cloud-Build nicht aus Google Maven bezogen werden; 9.4.1 ist die getestete, lokal verfügbare stabile Linie.
+androidGradlePlugin = "9.4.1"
 kotlin = "2.4.21"
-ksp = "2.3.13"
+ksp = "2.3.12"
 coreKtx = "1.19.1"
 activityCompose = "1.13.0"
 lifecycle = "2.11.0"

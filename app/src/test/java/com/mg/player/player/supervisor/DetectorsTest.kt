@@ -160,6 +160,35 @@ class DetectorsTest {
         assertTrue(findings.isEmpty())
     }
 
+    @Test
+    fun videoTrackThatNeverRendersItsFirstFrameIsDetected() {
+        val findings = feed(FrozenPictureDetector(), 12_000) { t ->
+            playing(t, frames = 0, audio = t / 20, video = true)
+        }
+        assertEquals(Symptom.FROZEN_PICTURE, findings.single().symptom)
+        assertTrue(findings.single().evidence.startsWith("kein erstes Bild"))
+    }
+
+    @Test
+    fun audioOnlyChannelDoesNotTriggerFrozenPicture() {
+        val findings = feed(FrozenPictureDetector(), 120_000) { t ->
+            playing(t, frames = 0, audio = t / 20, video = false)
+        }
+        assertTrue(findings.isEmpty())
+    }
+
+    @Test
+    fun rendererCounterResetStartsANewFreezeWindow() {
+        val detector = FrozenPictureDetector()
+        feed(detector, 4_000) { t -> playing(t, frames = 100 + t / 500) }
+        feed(detector, 5_000, from = 4_000) { t -> playing(t, frames = 100 + t / 500) }
+        // Renderer wurde um 9 s zurückgesetzt; der alte Zählerstand darf den neuen Abschnitt nicht sofort auslösen.
+        val afterReset = feed(detector, 7_500, from = 9_000) { t -> playing(t, frames = (t - 9_000) / 500) }
+        assertTrue(afterReset.isEmpty())
+        val later = feed(detector, 9_000, from = 16_500) { playing(0, frames = 0) }
+        assertEquals(Symptom.FROZEN_PICTURE, later.single().symptom)
+    }
+
     /** Häufung von Ausgabefehlern ohne Tonzähler (Ton-Durchreichen): echter Tonausfall. */
     @Test
     fun repeatedAudioOutputErrorsAreDetected() {

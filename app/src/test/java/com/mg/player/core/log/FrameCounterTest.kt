@@ -51,7 +51,8 @@ class FrameCounterTest {
         counter.addMs(10, times = 190)
         counter.addMs(20, times = 10)
         val line = counter.summary("live", debugBuild = true)!!
-        assertTrue(line, line.startsWith("Bildzeiten live: 200 Bilder, 5,0 % verpasst (> 16 ms), 0,0 % ruckelig (> 33 ms)"))
+        assertTrue(line, line.startsWith("UI-Framezeiten live: 200 Frames, 5,0 % verpasst (> 16 ms), 0,0 % ruckelig (> 33 ms)"))
+        assertTrue(line, line.contains("lange UI-Frames (> 700 ms)"))
         assertTrue(line, line.endsWith("[Debug-Build: langsamer als Release]"))
     }
 

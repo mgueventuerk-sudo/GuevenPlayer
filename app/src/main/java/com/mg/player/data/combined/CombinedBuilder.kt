@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 
 /**
  * Baut „Alle Zugänge“ neu auf – nach jeder Aktualisierung, jedem gelöschten Zugang und jeder geänderten Einstellung
@@ -157,7 +158,7 @@ class CombinedBuilder(
         val rank = ctx.rank
         val categories = ctx.categories
         val generation = ctx.generation
-        val rows = ids.flatMap { db.combinedDao().channelSources(it) }
+        val rows = readChannelSources(ids)
         val prints = EpgFingerprints.of(db, ids, rows, clock())
         val catalog = catalog()
         stats.catalogSize = catalog.size
@@ -190,6 +191,23 @@ class CombinedBuilder(
         return clusters.size
     }
 
+    /** Cursor-Fenster klein halten, damit Anbieter mit auffällig langen Namen/Logos keine SQLiteBlobTooBigException auslösen. */
+    private suspend fun readChannelSources(ids: List<Long>): List<ChannelSourceRow> {
+        val dao = db.combinedDao()
+        val rows = ArrayList<ChannelSourceRow>()
+        for (playlistId in ids) {
+            var afterRowId = 0L
+            while (true) {
+                val page = dao.channelSourcePage(playlistId, afterRowId, SOURCE_PAGE)
+                if (page.isEmpty()) break
+                rows.addAll(page)
+                afterRowId = page.last().rowId
+                yield()
+            }
+        }
+        return rows
+    }
+
     /** Kombination entfernen (weniger als zwei Zugänge). */
     private suspend fun clear() {
         db.categoryDao().deleteForPlaylist(Combined.ID)
@@ -210,6 +228,7 @@ class CombinedBuilder(
         private const val DEBOUNCE_MS = 3_000L
         private const val SYNC_POLL_MS = 2_000L
         internal const val CHUNK = 500
+        private const val SOURCE_PAGE = 400
     }
 }
 

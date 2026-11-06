@@ -10,7 +10,7 @@ import java.util.Locale
 import kotlin.math.ceil
 
 /**
- * Ruckel-Messung im Alltag (Baseline für „Janky Frames < 5 %“): Bildzeiten je Bildschirm über FrameMetrics – dieselbe
+ * UI-Ruckel-Messung im Alltag (Baseline für „Janky Frames < 5 %“): UI-Framezeiten je Bildschirm über FrameMetrics – dieselbe
  * Quelle wie JankStats, ohne Zusatzbibliothek und ohne Daten nach außen. Beim Wechsel des Bildschirms und beim
  * Verlassen der App steht eine Zeile im Fehlerprotokoll, z. B.
  * „Bildzeiten live: 1 840 Bilder, 3,2 % verpasst (> 16 ms), 0,9 % ruckelig (> 33 ms), p50 9 ms, p90 14 ms, p99 41 ms“.
@@ -106,9 +106,9 @@ internal class FrameCounter(private val budgetNs: Long) {
         if (frames < MIN_FRAMES) return null
         val budgetMs = budgetNs / NS_PER_MS
         val build = if (debugBuild) " [Debug-Build: langsamer als Release]" else ""
-        return "Bildzeiten $label: $frames Bilder, ${percent(missed)} % verpasst (> $budgetMs ms), " +
+        return "UI-Framezeiten $label: $frames Frames, ${percent(missed)} % verpasst (> $budgetMs ms), " +
             "${percent(janky)} % ruckelig (> ${budgetNs * JANK_FACTOR / NS_PER_MS} ms), p50 ${percentileMs(P50)} ms, " +
-            "p90 ${percentileMs(P90)} ms, p99 ${percentileMs(P99)} ms, $frozen eingefroren (> 700 ms)$build"
+            "p90 ${percentileMs(P90)} ms, p99 ${percentileMs(P99)} ms, $frozen lange UI-Frames (> 700 ms)$build"
     }
 
     private fun percent(count: Int) = String.format(Locale.GERMANY, "%.1f", count * PERCENT / frames)

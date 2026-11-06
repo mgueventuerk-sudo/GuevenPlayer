@@ -12,6 +12,7 @@ import com.mg.player.domain.model.playlistIdOf
 import com.mg.player.player.engine.EngineState
 import com.mg.player.player.engine.VideoPlayerEngine
 import com.mg.player.player.supervisor.PlaybackSupervisor
+import com.mg.player.player.supervisor.HealthDiagnostics
 import com.mg.player.player.supervisor.RecoveryStep
 import com.mg.player.player.supervisor.SessionInfo
 import com.mg.player.player.supervisor.StartHint
@@ -35,6 +36,7 @@ internal class SupervisorGuard(private val vm: PlayerViewModel) : PlaybackGuard 
         clock = System::currentTimeMillis,
         log = { AppLog.log("Player", it) },
     )
+    private val healthDiagnostics = HealthDiagnostics()
 
     /** Nach einem Quellenwechsel durch den Wächter: diese Variante merken, sobald sie läuft (nur bei echten Quellenfehlern). */
     private var rememberVariantOnPlay = false
@@ -122,7 +124,14 @@ internal class SupervisorGuard(private val vm: PlayerViewModel) : PlaybackGuard 
         supervisor.onEngineState(state)
     }
 
-    override fun onTick(engine: VideoPlayerEngine) = supervisor.onTick(engine.health())
+    override fun onTick(engine: VideoPlayerEngine) {
+        val health = engine.health()
+        health?.let { snapshot ->
+            healthDiagnostics.sample(vm.uiState.value.engineType, snapshot, System.currentTimeMillis())
+                ?.let { AppLog.log("Messung", it) }
+        }
+        supervisor.onTick(health)
+    }
 
     override fun onVariantSwitched(playable: Playable) = supervisor.updateSession(session(playable))
 

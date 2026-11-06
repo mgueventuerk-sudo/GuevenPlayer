@@ -174,7 +174,11 @@ internal class ProgressTracker {
     fun update(value: Long?, now: Long): Boolean {
         if (value == null) return false
         val moved = last in 0 until value
-        if (moved) {
+        if (last < 0 || value < last) {
+            // Decoderzähler können nach einem Renderer-Neustart zurückspringen. Das ist ein neuer Messabschnitt,
+            // kein Beleg dafür, dass ein Standbild bereits läuft.
+            stillSince = now
+        } else if (moved) {
             movedAt = now
             if (firstMoveAt < 0) firstMoveAt = now
             stillSince = -1L
@@ -202,29 +206,35 @@ class FrozenPictureDetector : Detector {
     private val frames = ProgressTracker()
     private val audio = ProgressTracker()
     private var fired = false
+    private var playingSince = -1L
 
     override fun check(s: HealthSnapshot, now: Long, ctx: DetectContext): Finding? {
-        if (s.renderedFrames == null || !s.playing) {
+        if (!s.playing || s.hasVideoTrack == false || s.renderedFrames == null) {
             reset()
             return null
         }
+        if (playingSince < 0) playingSince = now
         if (frames.update(s.renderedFrames, now)) fired = false
         audio.update(s.audioUnits, now)
-        val still = frames.stillFor(now)
-        if (fired || !frames.hasMoved || still < ctx.config.frozenPicture) return null
+        // Auch „READY, aber nie ein erstes Bild gerendert“ erkennen. Media3 wird erst nach einem READY-Status
+        // geprüft; ein Sender ohne Videospur wird durch hasVideoTrack=false ausgeschlossen.
+        val still = if (frames.hasMoved) frames.stillFor(now) else now - playingSince
+        if (fired || still < ctx.config.frozenPicture) return null
         fired = true
         val sound = when {
             s.audioUnits == null -> "Ton unbekannt"
             audio.movingRecently(now) -> "Ton läuft"
             else -> "Ton steht auch"
         }
-        return Finding(Symptom.FROZEN_PICTURE, "kein neues Bild seit $still ms, $sound")
+        val picture = if (frames.hasMoved) "kein neues Bild" else "kein erstes Bild"
+        return Finding(Symptom.FROZEN_PICTURE, "$picture seit $still ms, $sound")
     }
 
     override fun reset() {
         frames.reset()
         audio.reset()
         fired = false
+        playingSince = -1L
     }
 }
 

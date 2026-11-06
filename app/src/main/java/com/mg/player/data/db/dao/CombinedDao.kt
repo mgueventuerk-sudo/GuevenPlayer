@@ -21,6 +21,8 @@ data class ChannelSourceRow(
     val qualityRank: Int,
     val sortIndex: Int,
     val catchupDays: Int,
+    /** Interner Cursor-Schlüssel für begrenzte Seiten beim Zusammenführen großer Playlists. */
+    val rowId: Long = 0,
 )
 
 /** Schlanke Zeile eines Films oder einer Serie für den Aufbau. */
@@ -35,6 +37,8 @@ data class VodSourceRow(
     val posterUrl: String?,
     val rating: Float?,
     val durationSec: Int?,
+    /** Interner Cursor-Schlüssel für begrenzte Seiten beim Zusammenführen großer Playlists. */
+    val rowId: Long = 0,
 )
 
 /** Eine Sendung für den Programm-Fingerabdruck. */
@@ -58,19 +62,55 @@ data class LinkedSource(
 abstract class CombinedDao {
 
     @Query(
-        "SELECT c.id, c.playlistId, c.categoryId, c.name, c.logoUrl, c.epgChannelId, c.epgKey, c.groupKey, c.qualityRank, c.sortIndex, c.catchupDays " +
+        "SELECT c.rowid AS rowId, c.id, c.playlistId, substr(c.categoryId, 1, 512) AS categoryId, " +
+            "substr(c.name, 1, 2048) AS name, substr(c.logoUrl, 1, 4096) AS logoUrl, " +
+            "substr(c.epgChannelId, 1, 512) AS epgChannelId, substr(c.epgKey, 1, 512) AS epgKey, " +
+            "substr(c.groupKey, 1, 1024) AS groupKey, c.qualityRank, c.sortIndex, c.catchupDays " +
+            "FROM channels c WHERE c.playlistId = :playlistId AND c.rowid > :afterRowId AND $EXCLUDE_RESTRICTED " +
+            "ORDER BY c.rowid LIMIT :limit",
+    )
+    abstract suspend fun channelSourcePage(playlistId: Long, afterRowId: Long, limit: Int): List<ChannelSourceRow>
+
+    /** Vollständige, aber begrenzte Projektion für kleine Hilfsabfragen und bestehende Tests. */
+    @Query(
+        "SELECT c.rowid AS rowId, c.id, c.playlistId, substr(c.categoryId, 1, 512) AS categoryId, " +
+            "substr(c.name, 1, 2048) AS name, substr(c.logoUrl, 1, 4096) AS logoUrl, " +
+            "substr(c.epgChannelId, 1, 512) AS epgChannelId, substr(c.epgKey, 1, 512) AS epgKey, " +
+            "substr(c.groupKey, 1, 1024) AS groupKey, c.qualityRank, c.sortIndex, c.catchupDays " +
             "FROM channels c WHERE c.playlistId = :playlistId AND $EXCLUDE_RESTRICTED",
     )
     abstract suspend fun channelSources(playlistId: Long): List<ChannelSourceRow>
 
     @Query(
-        "SELECT c.id, c.playlistId, c.categoryId, c.name, c.year, c.tmdbId, c.sortIndex, c.posterUrl, c.rating, c.durationSec FROM movies c " +
+        "SELECT c.rowid AS rowId, c.id, c.playlistId, substr(c.categoryId, 1, 512) AS categoryId, " +
+            "substr(c.name, 1, 2048) AS name, substr(c.year, 1, 32) AS year, substr(c.tmdbId, 1, 128) AS tmdbId, " +
+            "c.sortIndex, substr(c.posterUrl, 1, 4096) AS posterUrl, c.rating, c.durationSec FROM movies c " +
+            "WHERE c.playlistId = :playlistId AND c.rowid > :afterRowId AND $EXCLUDE_RESTRICTED " +
+            "ORDER BY c.rowid LIMIT :limit",
+    )
+    abstract suspend fun movieSourcePage(playlistId: Long, afterRowId: Long, limit: Int): List<VodSourceRow>
+
+    @Query(
+        "SELECT c.rowid AS rowId, c.id, c.playlistId, substr(c.categoryId, 1, 512) AS categoryId, " +
+            "substr(c.name, 1, 2048) AS name, substr(c.year, 1, 32) AS year, substr(c.tmdbId, 1, 128) AS tmdbId, " +
+            "c.sortIndex, substr(c.posterUrl, 1, 4096) AS posterUrl, c.rating, c.durationSec FROM movies c " +
             "WHERE c.playlistId = :playlistId AND $EXCLUDE_RESTRICTED",
     )
     abstract suspend fun movieSources(playlistId: Long): List<VodSourceRow>
 
     @Query(
-        "SELECT c.id, c.playlistId, c.categoryId, c.name, c.year, c.tmdbId, c.sortIndex, c.posterUrl, c.rating, NULL AS durationSec FROM series c " +
+        "SELECT c.rowid AS rowId, c.id, c.playlistId, substr(c.categoryId, 1, 512) AS categoryId, " +
+            "substr(c.name, 1, 2048) AS name, substr(c.year, 1, 32) AS year, substr(c.tmdbId, 1, 128) AS tmdbId, " +
+            "c.sortIndex, substr(c.posterUrl, 1, 4096) AS posterUrl, c.rating, NULL AS durationSec FROM series c " +
+            "WHERE c.playlistId = :playlistId AND c.rowid > :afterRowId AND $EXCLUDE_RESTRICTED " +
+            "ORDER BY c.rowid LIMIT :limit",
+    )
+    abstract suspend fun seriesSourcePage(playlistId: Long, afterRowId: Long, limit: Int): List<VodSourceRow>
+
+    @Query(
+        "SELECT c.rowid AS rowId, c.id, c.playlistId, substr(c.categoryId, 1, 512) AS categoryId, " +
+            "substr(c.name, 1, 2048) AS name, substr(c.year, 1, 32) AS year, substr(c.tmdbId, 1, 128) AS tmdbId, " +
+            "c.sortIndex, substr(c.posterUrl, 1, 4096) AS posterUrl, c.rating, NULL AS durationSec FROM series c " +
             "WHERE c.playlistId = :playlistId AND $EXCLUDE_RESTRICTED",
     )
     abstract suspend fun seriesSources(playlistId: Long): List<VodSourceRow>
@@ -82,7 +122,7 @@ abstract class CombinedDao {
     abstract suspend fun categorySources(playlistId: Long): List<CategorySourceRow>
 
     @Query(
-        "SELECT p.channelKey, p.startMs, p.title FROM epg_programs p WHERE p.playlistId = :playlistId AND p.startMs >= :fromMs " +
+        "SELECT substr(p.channelKey, 1, 512) AS channelKey, p.startMs, substr(p.title, 1, 2048) AS title FROM epg_programs p WHERE p.playlistId = :playlistId AND p.startMs >= :fromMs " +
             "AND p.startMs < :toMs AND $ACTIVE_EPG ORDER BY p.channelKey, p.startMs",
     )
     abstract suspend fun epgSlots(playlistId: Long, fromMs: Long, toMs: Long): List<EpgSlot>
