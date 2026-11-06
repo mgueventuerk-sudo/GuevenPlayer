@@ -2,13 +2,23 @@ name: Gerätetests (Emulator)
 
 # Rauchtests auf echtem Android: Start, SQLite, native Bibliotheken (LibVLC, FFmpeg, WireGuard), Media3.
 # Android 7 (API 24, ältestes unterstütztes), Android 9 (API 28, Fire TV/viele TV-Boxen) und Android 14 (API 34).
+# Der Default-Branch dieses Repos heisst nicht "main", sondern ccr-088667a5-xnf5zn. Mit "branches: [ main ]"
+# hat dieser Workflow nie ausgeloest - GitHub kannte ihn gar nicht, und die Rauchtests auf echtem Android
+# (LibVLC, FFmpeg, WireGuard laden nativ) liefen seit ihrer Einfuehrung kein einziges Mal.
 on:
   push:
-    branches: [ main ]
+    branches: [ main, 'ccr-*' ]
   workflow_dispatch:
 
 permissions:
   contents: read
+
+# Wie beim Build-Workflow: Ein neuer Push bricht den laufenden ab. Ohne das lief die Matrix weiter, waehrend
+# der Build desselben Stands schon abgebrochen war - bei jedem Push stapelten sich bis zu drei
+# 60-Minuten-Emulatoren fuer einen Stand, den niemand mehr braucht.
+concurrency:
+  group: device-tests-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   device-tests:
@@ -31,6 +41,18 @@ jobs:
       - name: Gradle einrichten
         uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
+      # Der erste echte Lauf scheiterte hier: "Not enough space to create userdata partition.
+      # Available: 7149.41 MB, need 7372.80 MB". Der Build davor baut mit vier ABIs
+      # (-PbenchmarkEmulator=true) und LibVLC bringt ~86 MB native Bibliotheken mit - danach fehlen dem
+      # Emulator gut 200 MB. Die vorinstallierten Toolchains des Runners braucht dieser Build nicht.
+      - name: Platz auf dem Runner schaffen
+        run: |
+          df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android/sdk/ndk /opt/ghc \
+            /usr/local/share/boost /usr/local/lib/node_modules /opt/hostedtoolcache/CodeQL || true
+          sudo docker image prune --all --force > /dev/null 2>&1 || true
+          df -h / | tail -1
+
       - name: KVM freischalten
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -49,6 +71,7 @@ jobs:
           arch: x86_64
           target: ${{ matrix.api-level == 34 && 'google_apis' || 'default' }}
           disable-animations: true
+          disk-size: 6144M
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: ./gradlew :app:connectedDebugAndroidTest -PbenchmarkEmulator=true --stacktrace
 
@@ -58,4 +81,77 @@ jobs:
         with:
           name: Geraetetests-API-${{ matrix.api-level }}
           path: app/build/reports/androidTests/
+          if-no-files-found: ignore
+
+  # Baseline-Profil auf einem Emulator erzeugen (Plan B): Das eingecheckte Profil ist von Hand geschrieben
+  # (23 Regeln, Stand 3.39) - ein gemessenes deckt die Pfade ab, die wirklich laufen, statt der vermuteten.
+  # Laeuft nur von Hand bzw. auf dem Default-Branch, weil ein Emulator-Lauf teuer ist. Das Ergebnis kommt als
+  # Artefakt heraus und wird bewusst nicht automatisch committet: Ein Profil, das niemand angesehen hat,
+  # gehoert nicht ungeprueft in die App.
+  baseline-profile:
+    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'ccr-088667a5-xnf5zn'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Code auschecken
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: JDK 17 einrichten
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle einrichten
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+
+      # Der erste echte Lauf scheiterte hier: "Not enough space to create userdata partition.
+      # Available: 7149.41 MB, need 7372.80 MB". Der Build davor baut mit vier ABIs
+      # (-PbenchmarkEmulator=true) und LibVLC bringt ~86 MB native Bibliotheken mit - danach fehlen dem
+      # Emulator gut 200 MB. Die vorinstallierten Toolchains des Runners braucht dieser Build nicht.
+      - name: Platz auf dem Runner schaffen
+        run: |
+          df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android/sdk/ndk /opt/ghc \
+            /usr/local/share/boost /usr/local/lib/node_modules /opt/hostedtoolcache/CodeQL || true
+          sudo docker image prune --all --force > /dev/null 2>&1 || true
+          df -h / | tail -1
+
+      - name: KVM freischalten
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # API 34 mit Google-APIs: BaselineProfileRule braucht einen Emulator mit Root-Zugriff auf die Profildatei.
+      - name: Profil sammeln
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          disk-size: 6144M
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            chmod +x gradlew
+            ./gradlew :benchmark:connectedReleaseAndroidTest -PbenchmarkEmulator=true \
+              -Pandroid.testInstrumentationRunnerArguments.class=com.mg.player.benchmark.BaselineProfileGenerator \
+              --stacktrace
+
+      - name: Profil hochladen
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Baseline-Profil
+          path: |
+            benchmark/build/outputs/managed_device_android_test_additional_output/**/*.txt
+            benchmark/build/outputs/connected_android_test_additional_output/**/*.txt
+          if-no-files-found: warn
+
+      - name: Berichte hochladen (bei Fehlern)
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Baseline-Profil-Berichte
+          path: benchmark/build/reports/
           if-no-files-found: ignore

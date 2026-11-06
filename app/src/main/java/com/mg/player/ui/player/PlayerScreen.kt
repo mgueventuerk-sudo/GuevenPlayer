@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntRect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mg.player.data.handoff.HandoffRequest
 import com.mg.player.domain.model.Category
 import com.mg.player.domain.model.PlayRequest
 import com.mg.player.domain.model.PlayerEngineType
@@ -204,7 +205,8 @@ fun PlayerScreen(request: PlayRequest) {
 
         if (s.moreOpen) {
             MorePanel(
-                sections = moreSections(ui, sleep.buttonLabel),
+                // Uebergabe nur am Handy anbieten: Von dort gibt man ab, nicht umgekehrt.
+                sections = moreSections(ui, sleep.buttonLabel, handoffPossible = isTouch && HandoffRequest.isSupported(vm.request)),
                 focusKey = s.moreFocus,
                 onFocusKey = { s.moreFocus = it },
                 onAction = { s.onMoreAction(it.action) },

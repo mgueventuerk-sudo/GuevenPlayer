@@ -135,6 +135,11 @@ internal class PlayerScreenState(
                 toast = "Aufnahme gestoppt – zu finden unter „Aufnahmen“"
             }
             OverlayAction.CHANNEL_LIST -> openList(null)
+            OverlayAction.HANDOFF -> {
+                moreOpen = false
+                vm.handoffToTv()
+            }
+
             OverlayAction.HISTORY -> openList(Category.RECENT)
             OverlayAction.CLOSE -> close()
             else -> Unit

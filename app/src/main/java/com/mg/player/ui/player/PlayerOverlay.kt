@@ -82,6 +82,9 @@ enum class OverlayAction {
     TRACKS,
     MORE,
 
+    /** „Auf dem Fernseher weiterschauen“: laufenden Inhalt an das Geraet im Heimnetz geben (nur am Handy). */
+    HANDOFF,
+
     /** Nur am Handy: Zurück-Knopf oben links. */
     CLOSE,
 }

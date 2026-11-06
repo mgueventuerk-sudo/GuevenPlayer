@@ -47,6 +47,14 @@ object LaunchRequest {
         _requests.tryEmit(PlayRequest.Live(channelId, Category.ALL))
     }
 
+    /**
+     * Beliebiger Wunsch von aussen - etwa die Uebergabe vom Handy ("Auf dem Fernseher weiterschauen").
+     * Die Oberflaeche startet ihn mit Kindersicherung und Zugangs-Pruefung wie jeden anderen Start.
+     */
+    fun play(request: PlayRequest) {
+        _requests.tryEmit(request)
+    }
+
     /** Erledigt: nicht beim nächsten Abonnieren erneut ausliefern. */
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun consumed() = _requests.resetReplayCache()

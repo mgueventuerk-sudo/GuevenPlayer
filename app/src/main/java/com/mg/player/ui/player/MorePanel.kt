@@ -40,7 +40,7 @@ internal data class MoreEntry(val key: String, val label: String, val icon: AppI
 internal data class MoreSection(val title: String, val entries: List<MoreEntry>)
 
 /** Inhalt des „Mehr“-Panels: alles, was nicht in die feste Reihe gehört, nach Themen gegliedert. Nicht Verfügbares bleibt ausgegraut stehen. */
-internal fun moreSections(ui: PlayerUiState, sleepLabel: String): List<MoreSection> {
+internal fun moreSections(ui: PlayerUiState, sleepLabel: String, handoffPossible: Boolean = false): List<MoreSection> {
     val playable = ui.playable ?: return emptyList()
     val archive = playable.channel?.hasArchive == true
     val live = playable.isLive
@@ -71,11 +71,19 @@ internal fun moreSections(ui: PlayerUiState, sleepLabel: String): List<MoreSecti
     } else {
         emptyList()
     }
+    // Nur am Handy: Von dort gibt man ab, nicht umgekehrt. Ob ein Fernseher da ist, zeigt sich erst beim Senden -
+    // eine Suche im Heimnetz nur zum Ausgrauen des Eintrags waere teurer als der Versuch.
+    val handoff = if (handoffPossible) {
+        listOf(MoreEntry("HANDOFF", "Auf dem Fernseher weiterschauen", AppIcons.Phone, OverlayAction.HANDOFF))
+    } else {
+        emptyList()
+    }
     val info = listOf(MoreEntry("INFO", "Stream-Info", AppIcons.Info, OverlayAction.INFO))
     return listOf(
         MoreSection("Bild & Ton", picture),
         MoreSection("Wiedergabe", playback),
         MoreSection("Sender", channel),
+        MoreSection("Auf anderem Gerät", handoff),
         MoreSection("Info", info),
     ).filter { it.entries.isNotEmpty() }
 }

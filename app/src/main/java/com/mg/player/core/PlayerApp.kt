@@ -65,6 +65,8 @@ open class PlayerApp :
                     .collect { ProofAlarm.scheduleNext(this@PlayerApp) }
             }
             container.appScope.launch(Dispatchers.IO) { container.sport.shareLoop() }
+            // "Auf dem Fernseher weiterschauen": lauschen, sobald der Schalter an ist.
+            container.appScope.launch(Dispatchers.IO) { container.handoffLoop() }
             // Kalte Starts zaehlen: Daraus folgt, ob die Einfuehrungstexte noch gezeigt werden (AppSettings.showHints).
             runCatching { container.settingsRepository.update { it.copy(coldStarts = (it.coldStarts + 1).coerceAtMost(HINT_CAP)) } }
                 .onFailure { AppLog.log("Start", "Startzaehler nicht erhoeht: ${it.javaClass.simpleName}") }
