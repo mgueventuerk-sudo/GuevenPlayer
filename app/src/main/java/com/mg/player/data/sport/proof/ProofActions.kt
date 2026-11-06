@@ -4,13 +4,19 @@ import com.mg.player.data.db.dao.SportDao
 import com.mg.player.data.sport.SportRepository
 import com.mg.player.data.sport.guide.GuideCatalog
 import com.mg.player.data.sport.leagueOfEvent
+import com.mg.player.domain.model.MatchSource
 import com.mg.player.domain.model.SportEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
 /** Beweise aus deiner Bedienung (Plan „Spiel-Finder“ H): Zuschauen, Wahl im Mosaik, „Falscher Sender“. */
-class ProofActions(private val repository: SportRepository, private val dao: SportDao, private val proofs: ProofStore) {
+class ProofActions(
+    private val repository: SportRepository,
+    private val dao: SportDao,
+    private val proofs: ProofStore,
+    private val stats: SourceStats? = null,
+) {
 
     /**
      * Du schaust einen Sender seit 5 Minuten bzw. hast ihn im Mosaik gewählt: Für jedes laufende Spiel, für das er Kandidat
@@ -48,9 +54,17 @@ class ProofActions(private val repository: SportRepository, private val dao: Spo
     /** „Falscher Sender“ im Spiel-Dialog: für dieses Spiel widerlegt und für den Wettbewerb gesperrt. */
     suspend fun markWrong(event: SportEvent, channelId: String, channelName: String) = withContext(Dispatchers.IO) {
         val key = GuideCatalog.nameKey(channelName)
+        val league = leagueOfEvent(event.id)
         proofs.record(event.id, channelId, channelName, ProofEvaluator.Verdict.OTHER, ProofHunter.BY_WRONG)
-        proofs.block(leagueOfEvent(event.id), channelId)
-        proofs.block(leagueOfEvent(event.id), key)
+        proofs.block(league, channelId)
+        proofs.block(league, key)
+        // Aus der Korrektur lernen: Die Quelle, die diesen Sender genannt hat, hat sich geirrt. Ohne das zählt eine
+        // Korrektur nirgends – die Trefferquoten entstehen sonst nur aus bewiesenen Spielen.
+        stats?.let { s ->
+            dao.matchesFor(listOf(event.id)).firstOrNull { it.channelId == channelId }?.let { row ->
+                s.learnMiss(event.id, league, MatchSource.of(row.score), row.playlistId, System.currentTimeMillis())
+            }
+        }
         repository.rematch(listOf(event))
     }
 }

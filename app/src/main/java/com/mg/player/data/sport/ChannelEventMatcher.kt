@@ -117,13 +117,15 @@ class ChannelEventMatcher(
     }
 
     /**
-     * Fund verwerfen: Quelle abgeschaltet oder für diesen Wettbewerb und diese Playlist nachweislich nutzlos (0 von 5,
-     * Plan F). Ein bewiesener Sender bleibt immer.
+     * Fund verwerfen: Quelle abgeschaltet oder für diesen Wettbewerb und diese Playlist zu schwach (Plan F). Schwach
+     * heißt nicht für immer: [SourceStats.shouldSkip] lässt jedes achte Spiel durch, damit eine abgeschriebene Quelle
+     * nach einer Programmumstellung wieder Daten liefern kann. Ein bewiesener Sender bleibt immer.
      */
     private fun dropped(event: SportEvent, channel: ChannelKeyRow, score: Int, disabled: Set<MatchSource>): Boolean {
         val source = MatchSource.of(score)
         // Event-Kanäle sind ohne Bildbeweis ohnehin unsichtbar; verworfen würden sie nie mehr geprüft und nie bewiesen.
-        val useless = source != MatchSource.EVENT_NAME && stats?.isUseless(source, leagueOfEvent(event.id), channel.playlistId) == true
+        val useless = source != MatchSource.EVENT_NAME &&
+            stats?.shouldSkip(source, leagueOfEvent(event.id), channel.playlistId, event.id) == true
         if (source !in disabled && !useless) return false
         val keys = listOf(channel.id, GuideCatalog.nameKey(channel.name))
         return proofs?.verdictFor(event.id, keys) != ProofEvaluator.Verdict.PROVEN

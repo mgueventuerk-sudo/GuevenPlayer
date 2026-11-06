@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mg.player.core.util.TimeUtils
+import com.mg.player.data.sport.proof.HubAuth
 import com.mg.player.data.sport.proof.ProofEvaluator
 import com.mg.player.domain.model.MatchSource
 import com.mg.player.domain.sport.SportBoard
@@ -67,17 +68,18 @@ private fun GroupBuilder.proofDeviceRows(c: SettingsContext) {
     if (c.s.sportProofDevice) {
         row("sport-hub-code") {
             ActionRow(
-                "Code für andere Geräte",
+                "Geheimnis für andere Geräte",
                 {},
-                c.s.sportHubCode.ifBlank { "wird erzeugt …" } + " – auf Stick/Handy unter „Code des Prüfgeräts“ eintragen",
+                c.s.sportHubCode.ifBlank { "wird erzeugt …" } + " – auf Stick/Handy unter „Geheimnis des Prüfgeräts“ eintragen",
                 icon = AppIcons.Lock,
                 chevron = false,
             )
         }
     } else {
         row("sport-hub-join", contentType = "text-field") {
-            SecretKeyField(c.s.sportHubJoinCode, "Code des Prüfgeräts (z. B. Fire TV Cube)") { code ->
-                c.vm.update { it.copy(sportHubJoinCode = code.filter(Char::isDigit)) }
+            // Buchstaben und Ziffern annehmen (alte 8-stellige Codes laufen weiter) und in die Gruppenform bringen.
+            SecretKeyField(c.s.sportHubJoinCode, "Geheimnis des Prüfgeräts (z. B. Fire TV Cube)") { entered ->
+                c.vm.update { it.copy(sportHubJoinCode = HubAuth.normalize(entered)) }
             }
         }
     }
@@ -87,7 +89,12 @@ private fun GroupBuilder.proofDeviceRows(c: SettingsContext) {
 private fun sourceCountText(source: MatchSource): String {
     val board by LocalAppContainer.current.sport.repository.board.collectAsStateWithLifecycle()
     val count = board?.let { sourceCounts(it)[source] } ?: 0
-    val rate = LocalAppContainer.current.sport.stats.overallPercent(source)?.let { " Vorhersage $it % (an bewiesenen Spielen gemessen)." }.orEmpty()
+    val stats = LocalAppContainer.current.sport.stats
+    // Die Stichprobe gehört neben die Prozentzahl: „80 %“ aus 4 von 5 Spielen kann alles zwischen 38 % und 96 % sein.
+    val rate = stats.overallPercent(source)?.let { percent ->
+        val sample = stats.overallSample(source)?.let { (hits, total) -> " ($hits von $total bewiesenen Spielen)" }.orEmpty()
+        " Vorhersage $percent %$sample."
+    }.orEmpty()
     return "${source.detail} Gerade $count ${if (count == 1) "Spiel" else "Spiele"}.$rate"
 }
 
@@ -105,7 +112,9 @@ private fun ProofHistoryRow() {
     val proofs = LocalAppContainer.current.sport.proofs
     // Ohne remember: Die Liste wächst während der Einstellungen weiter (gemerkt bliebe der Stand beim Öffnen stehen).
     val text = proofs.recent().take(MAX_HISTORY_SHOWN).joinToString("\n") { r ->
-        "${TimeUtils.formatClock(r.atMs)} · ${r.channel}: ${verdictLabel(r.verdict)} (${r.by})"
+        // Den gelesenen Text mitzeigen: „bewiesen“ allein ist eine Behauptung, mit dem Text ist es nachvollziehbar.
+        val evidence = r.evidence.takeIf { it.isNotBlank() }?.let { "\n    gelesen: $it" }.orEmpty()
+        "${TimeUtils.formatClock(r.atMs)} · ${r.channel}: ${verdictLabel(r.verdict)} (${r.by})$evidence"
     }.ifBlank { "Noch keine Prüfung – sie läuft bei Spielen, die gerade laufen, über freie Playlists." }
     ActionRow("Letzte Prüfungen", {}, text, icon = AppIcons.Shield, chevron = false)
 }

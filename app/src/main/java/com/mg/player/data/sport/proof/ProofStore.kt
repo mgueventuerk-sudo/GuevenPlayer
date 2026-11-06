@@ -14,8 +14,20 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class ProofStore(private val store: StreamMemory.Store? = null, private val clock: () -> Long = System::currentTimeMillis) {
 
-    /** Ein Eintrag der Diagnose: wann, welches Spiel, welcher Sender, mit welchem Ergebnis und woher. */
-    data class Record(val atMs: Long, val eventId: String, val channel: String, val verdict: Verdict, val by: String, val key: String = "")
+    /**
+     * Ein Eintrag der Diagnose: wann, welches Spiel, welcher Sender, mit welchem Ergebnis und woher – dazu [evidence]:
+     * der gelesene Text, auf dem das Ergebnis beruht. Ohne ihn behauptet die App nur „bewiesen“; mit ihm lässt sich
+     * nachsehen, warum. Bleibt auf dem Gerat und wird nicht geteilt ([shareable] gibt ihn nicht heraus).
+     */
+    data class Record(
+        val atMs: Long,
+        val eventId: String,
+        val channel: String,
+        val verdict: Verdict,
+        val by: String,
+        val key: String = "",
+        val evidence: String = "",
+    )
 
     private val verdicts = ConcurrentHashMap<String, Pair<Verdict, Long>>()
     private val blocked = ConcurrentHashMap<String, Long>()
@@ -65,12 +77,12 @@ class ProofStore(private val store: StreamMemory.Store? = null, private val cloc
     fun hasProof(eventId: String): Boolean = verdicts.any { (key, value) -> key.startsWith("$eventId$SEP") && value.first == Verdict.PROVEN }
 
     /** Ergebnis merken. UNKNOWN wird nicht gespeichert (nächste Prüfung versucht es erneut). [by]: „Bild“, „Zuschauen“, „Mosaik“ … */
-    fun record(eventId: String, key: String, channelName: String, verdict: Verdict, by: String) {
+    fun record(eventId: String, key: String, channelName: String, verdict: Verdict, by: String, evidence: String = "") {
         if (verdict == Verdict.UNKNOWN) return
         val now = clock()
         verdicts[proofKey(eventId, key)] = verdict to now
         store?.put(PROOF + proofKey(eventId, key), "${verdict.name}|$now")
-        val record = Record(now, eventId, channelName, verdict, by, key)
+        val record = Record(now, eventId, channelName, verdict, by, key, evidence.take(MAX_EVIDENCE))
         val isNew = synchronized(history) {
             val repeat = history.any { it.eventId == eventId && it.key == key && it.verdict == verdict }
             if (!repeat) history.addFirst(record)
@@ -111,6 +123,9 @@ class ProofStore(private val store: StreamMemory.Store? = null, private val cloc
         private const val PROOF = "p:"
         private const val BLOCK = "b:"
         private const val MAX_HISTORY = 20
+
+        /** Nur ein Ausschnitt des gelesenen Textes: Die Diagnose soll den Beweis zeigen, nicht das Bild abschreiben. */
+        private const val MAX_EVIDENCE = 80
         private const val FOUND_BUFFER = 8
         private const val MAX_AGE_MS = 24 * 3_600_000L
     }

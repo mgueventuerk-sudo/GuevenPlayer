@@ -69,6 +69,30 @@ class ThemeTest {
         }
     }
 
+    /**
+     * Nicht nur der Text im Fokus muss lesbar sein, sondern der Fokus selbst **sichtbar**: Auf dem Fernseher, drei
+     * Meter entfernt und mit der Fernbedienung bedient, ist „wo bin ich gerade“ die wichtigste Information auf dem
+     * Bildschirm. WCAG 1.4.11 verlangt 3:1 für solche Flächen.
+     *
+     * Geprüft wird die Farbe des Fokus-Rahmens ([Palette.focusFill], in `FocusSurface` als 3-dp-Rahmen gezeichnet,
+     * sobald „weniger Effekte“ an ist) gegen **jede** Fläche, auf der sie liegen kann – Seitenhintergrund, Glas und
+     * erhöhtes Glas. Die reine Füllfarbe einer fokussierten Kachel wird bewusst nicht geprüft: Der Fokus trägt immer
+     * einen Hinweis außerhalb der Farbe (1,08-fache Skalierung, dazu Glow bzw. der Rahmen), und auf diese Differenz
+     * allein verlässt sich das Design nicht.
+     */
+    @Test
+    fun theFocusIndicatorIsVisibleOnEverySurfaceItIsDrawnOn() {
+        for (dark in listOf(true, false)) {
+            for (accent in AccentColor.entries) {
+                val p = paletteFor(dark, accent)
+                val name = "${if (dark) "dunkel" else "hell"}/$accent"
+                assertContrast("$name Fokusrahmen/Hintergrund", p.focusFill, p.background, 3.0)
+                assertContrast("$name Fokusrahmen/Glas", p.focusFill, p.glass.compositeOver(p.background), 3.0)
+                assertContrast("$name Fokusrahmen/Glas erhöht", p.focusFill, p.glassRaised.compositeOver(p.background), 3.0)
+            }
+        }
+    }
+
     @Test
     fun panelsAreNearlyOpaqueForDialogs() {
         AppColors.apply(dark = true, accent = AccentColor.BLUE)

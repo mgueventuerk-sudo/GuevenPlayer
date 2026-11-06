@@ -101,7 +101,7 @@ class SportModule(private val container: AppContainer) {
     val stats: SourceStats by lazy { SourceStats(PrefsStreamStore(container.appContext, "sport_stats")) }
 
     /** Beweise aus deiner Bedienung (Zuschauen, Mosaik, „Falscher Sender“). */
-    val proofActions: ProofActions by lazy { ProofActions(repository, container.database.sportDao(), proofs) }
+    val proofActions: ProofActions by lazy { ProofActions(repository, container.database.sportDao(), proofs, stats) }
 
     /** Ein Blick in einen Sender (stumm, unsichtbar); auf schwachen Geräten ohne Texterkennung (nur Standbild-Prüfung). */
     private val probe: ProofProbe by lazy {
@@ -151,11 +151,11 @@ class SportModule(private val container: AppContainer) {
             try {
                 val s = container.settingsRepository.current()
                 if (s.sportProofDevice) {
-                    val code = s.sportHubCode.ifBlank {
-                        ProofShareServer.newCode().also { c -> container.settingsRepository.update { it.copy(sportHubCode = c) } }
+                    val secret = s.sportHubCode.ifBlank {
+                        ProofShareServer.newSecret().also { c -> container.settingsRepository.update { it.copy(sportHubCode = c) } }
                     }
-                    // Schlüsselableitung (absichtlich langsam), Socket und Netzwerkdienst gehören nicht in den Haupt-Thread.
-                    withContext(Dispatchers.IO) { shareServer.start(code) }
+                    // Schlüsselableitung, Socket und Netzwerkdienst gehören nicht in den Haupt-Thread.
+                    withContext(Dispatchers.IO) { shareServer.start(secret) }
                 } else {
                     withContext(Dispatchers.IO) { shareServer.stop() }
                     pullFromHub(s.sportHubJoinCode)
