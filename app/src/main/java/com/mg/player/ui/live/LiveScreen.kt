@@ -200,7 +200,9 @@ fun LiveScreen(modifier: Modifier = Modifier) {
                         val channel = channels[index]
                         if (channel != null) {
                             val isRestoreTarget = channel.id == restoreChannelId
-                            val isFirstFocusTarget = index == 0 && firstChannelFocusCategory == selectedCategory
+                            // Der Requester muss nach dem Fokuswechsel angehängt bleiben. Entfernt man ihn mit
+                            // dem erledigten Auftrag, kann Compose den gerade gesetzten Fokus wieder verlieren.
+                            val isFirstFocusTarget = index == 0
                             if (isRestoreTarget) {
                                 LaunchedEffect(restoreChannelId, channel.id) {
                                     // Wie beim Kaltstart: erst die tatsächliche Fokusmeldung quittiert Restore.
