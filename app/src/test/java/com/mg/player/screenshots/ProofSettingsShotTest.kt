@@ -1,15 +1,19 @@
 package com.mg.player.screenshots
 
-import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.performScrollToNode
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.requestFocus
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mg.player.core.PlayerApp
 import com.mg.player.data.sport.proof.ProofEvaluator
 import com.mg.player.data.sport.proof.ProofHunter
+import com.mg.player.ui.settings.SettingsPage
 import com.mg.player.ui.settings.SettingsScreen
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -19,9 +23,10 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Sport → „Quellen der Sender“ in den beiden Zuständen, die der Einstellungs-Rundgang nicht trifft: als Prüfgerät
- * (Geheimnis für die anderen Geräte) und als Stick/Handy (Eingabefeld). Dazu die Prüf-Historie mit dem gelesenen
- * Text, auf dem ein Ergebnis beruht. Ablage: build/outputs/roborazzi/build/screenshots (Namen mit „pruefgeraet“).
+ * Sport → „Quellen der Sender“ in den Zuständen, die der Einstellungs-Rundgang nicht trifft: als Prüfgerät (Geheimnis
+ * für die anderen Geräte) und als Stick/Handy (Eingabefeld), dazu die Prüf-Historie mit dem gelesenen Text, auf dem ein
+ * Ergebnis beruht. Bedient wird wie am Fernseher: „Runter“ bis zum Bereich Sport, „Rechts“ in den Inhalt, dann weiter
+ * „Runter“, bis die Zeile sichtbar ist. Ablage: build/outputs/roborazzi/build/screenshots (Namen mit „pruefgeraet“).
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -29,12 +34,14 @@ import org.robolectric.annotation.GraphicsMode
 class ProofSettingsShotTest {
 
     @get:Rule
-    val compose = createComposeRule()
+    val compose = createAndroidComposeRule<ComponentActivity>()
 
+    private val server = ShowcaseServer()
     private val container get() = ApplicationProvider.getApplicationContext<PlayerApp>().container
 
     @Before
     fun setUp() {
+        Showcase.prepare(server, container)
         runBlocking {
             // Drei Prüfungen mit Ergebnis und gelesenem Text – so sieht die Diagnose nach einem Spieltag aus.
             container.sport.proofs.record(
@@ -52,38 +59,57 @@ class ProofSettingsShotTest {
         }
     }
 
-    private fun openSportSources() {
+    @After
+    fun tearDown() = server.shutdown()
+
+    private fun visible(text: String) = compose.onAllNodesWithText(text, substring = true).fetchSemanticsNodes().isNotEmpty()
+
+    /** Bereich Sport öffnen und im Inhalt nach unten, bis [text] auf dem Bildschirm steht. */
+    private fun scrollTo(text: String) {
         compose.setContent { TvHost(container) { SettingsScreen() } }
-        compose.waitForText("Quellen der Sender")
-        compose.onNode(hasText("Quellen der Sender")).performScrollToNode(hasText("Letzte Prüfungen"))
+        compose.waitForText(SettingsPage.ACCOUNTS.lead)
+        compose.onAllNodesWithText(SettingsPage.ACCOUNTS.label)[0].requestFocus()
+        compose.settle(500)
+        // Linke Spalte: „Runter“ bis zum Bereich Sport.
+        repeat(SettingsPage.entries.indexOf(SettingsPage.SPORT)) { compose.remote(Key.DirectionDown) }
+        compose.waitForText(SettingsPage.SPORT.lead)
+        // „Rechts“ in die Inhaltsspalte, dann weiter nach unten, bis die gesuchte Zeile zusammengesetzt ist.
+        compose.remote(Key.DirectionRight)
+        var steps = 0
+        while (!visible(text) && steps < MAX_STEPS) {
+            compose.remote(Key.DirectionDown)
+            steps++
+        }
+        assertTrue("„$text“ nach $steps Schritten nicht erreicht", visible(text))
         compose.settle()
     }
 
     @Test
     fun hubDeviceShowsItsSecret() {
         runBlocking { container.settingsRepository.update { it.copy(sportProofDevice = true) } }
-        openSportSources()
-        compose.waitForText("Geheimnis für andere Geräte")
+        scrollTo("Geheimnis für andere Geräte")
         compose.shootBothThemes("pruefgeraet_1_geheimnis")
-        // Das angezeigte Geheimnis ist das starke Format, nicht mehr acht Ziffern.
+        // Angezeigt wird das starke Format in Vierergruppen – oder ein alter 8-stelliger Code, der weiterläuft.
         val secret = runBlocking { container.settingsRepository.current().sportHubCode }
-        assertTrue("angezeigt: $secret", secret.isBlank() || secret.contains('-') || secret.length == 8)
+        assertTrue("angezeigt: $secret", secret.isBlank() || secret.contains('-') || secret.length == LEGACY_CODE)
     }
 
     @Test
     fun otherDevicesGetAnEntryField() {
         runBlocking { container.settingsRepository.update { it.copy(sportProofDevice = false) } }
-        openSportSources()
-        compose.waitForText("Geheimnis des Prüfgeräts")
+        scrollTo("Geheimnis des Prüfgeräts")
         compose.shootBothThemes("pruefgeraet_2_eintragen")
     }
 
     @Test
     fun theProofHistoryShowsWhatWasRead() {
-        openSportSources()
-        compose.waitForText("Letzte Prüfungen")
         // Der gelesene Text steht in der Diagnose – daran lässt sich ein Ergebnis nachvollziehen.
-        compose.waitForText("BAY 2:1 DOR")
+        scrollTo("BAY 2:1 DOR")
         compose.shootBothThemes("pruefgeraet_3_historie")
+    }
+
+    private companion object {
+        const val MAX_STEPS = 40
+        const val LEGACY_CODE = 8
     }
 }
