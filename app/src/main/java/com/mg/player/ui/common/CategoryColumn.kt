@@ -63,8 +63,8 @@ fun CategoryColumn(
     selectedId: String,
     onFocused: (Category) -> Unit,
     onClick: (Category) -> Unit,
-    onMoveRight: ((Category) -> Unit)? = null,
     modifier: Modifier = Modifier,
+    onMoveRight: ((Category) -> Unit)? = null,
     width: Dp = 260.dp,
 ) {
     val listState = rememberLazyListState()
