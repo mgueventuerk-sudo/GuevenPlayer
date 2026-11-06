@@ -94,7 +94,7 @@ class SportShotTest {
 
     /**
      * Mehrere Sportarten: je Abschnitt Unterüberschriften „Fußball“, „Kampfsport“. Spiele auf Sendern, die der Zugang nicht
-     * hat, stehen unten mit „läuft auf … – nicht in deinem Zugang“ bzw. „Sender unbekannt“; dazu die Korrekturliste.
+     * hat, stehen unten mit „läuft auf … – nicht in deinem Zugang“ bzw. „OK: Sender suchen“; dazu die Korrekturliste.
      */
     @Test
     fun tvSportBySportWithHintsAndCorrections() {
@@ -115,7 +115,7 @@ class SportShotTest {
         // Ganz nach unten: „Ohne Sender“ – erst Fußball, dann Kampfsport.
         compose.onNodeWithTag(LIST_TAG).performScrollToNode(hasText("läuft auf DAZN 1", substring = true))
         compose.settle()
-        compose.waitForText("Sender unbekannt")
+        compose.waitForText("OK: Sender suchen")
         compose.waitForText("läuft auf DAZN 1 – nicht in deinem Zugang")
         compose.shootBothThemes("02f_sport_nicht_im_zugang")
     }
@@ -136,12 +136,12 @@ class SportShotTest {
         compose.setContent { TvHost(container) { SportLeaguesScreen() } }
         compose.waitForText("Champions League")
         compose.shootBothThemes("02d_sport_ligen")
-        // 2. Bundesliga ist voreingestellt: abwählen wird gespeichert, der Rest bleibt.
-        compose.onNodeWithText("2. Bundesliga").pressOk()
+        // Bundesliga ist voreingestellt: abwählen wird gespeichert, der Rest bleibt.
+        compose.onNodeWithText("Bundesliga").pressOk()
         compose.settle()
         val followed = runBlocking { container.sport.repository.followed(container.settingsRepository.current()) }
-        assertFalse("espn:soccer/ger.2" in followed)
-        assertTrue("espn:soccer/ger.1" in followed)
+        assertFalse("espn:soccer/ger.1" in followed)
+        assertTrue("espn:soccer/uefa.champions" in followed)
     }
 
     @Test
