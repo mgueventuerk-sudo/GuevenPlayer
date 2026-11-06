@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -91,10 +92,30 @@ fun LiveScreen(modifier: Modifier = Modifier) {
     // Nach „Zurück“ aus dem Vollbild: auf den zuletzt gesehenen Sender (auch nach dem Umschalten dort).
     val restoreTarget by vm.restoreTarget.collectAsStateWithLifecycle()
     val restoreRequester = remember { FocusRequester() }
+    val firstChannelRequester = remember { FocusRequester() }
+    var firstChannelFocusRequest by remember { mutableIntStateOf(0) }
+    var firstChannelFocusCategory by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     val focusTarget = liveFocusTarget(restoreTarget)
     val restoreChannelId = (focusTarget as? LiveFocusTarget.Restore)?.channelId
     LaunchedEffect(Unit) { vm.onListShown() }
+    LaunchedEffect(firstChannelFocusRequest, firstChannelFocusCategory, selectedCategory, channels.itemCount, channels.loadState.refresh) {
+        val targetCategory = firstChannelFocusCategory ?: return@LaunchedEffect
+        if (selectedCategory != targetCategory || channels.loadState.refresh is androidx.paging.LoadState.Loading) return@LaunchedEffect
+        if (channels.itemCount == 0) {
+            firstChannelFocusCategory = null
+            return@LaunchedEffect
+        }
+        listState.scrollToItem(0)
+        repeat(40) {
+            if (runCatching { firstChannelRequester.requestFocus() }.getOrDefault(false)) {
+                firstChannelFocusCategory = null
+                return@LaunchedEffect
+            }
+            delay(50)
+        }
+        firstChannelFocusCategory = null
+    }
 
     fun openChannel(channel: Channel) {
         vm.onOpenChannel(channel, withPreview = true)
@@ -119,6 +140,13 @@ fun LiveScreen(modifier: Modifier = Modifier) {
             selectedId = selectedCategory,
             onFocused = vm::onCategoryFocused,
             onClick = vm::onCategoryClicked,
+            onMoveRight = { category ->
+                vm.onCategoryClicked(category)
+                // Eine bewusste Gruppenwahl beendet die Vollbild-Rücksprungmarke.
+                vm.clearRestoreTarget()
+                firstChannelFocusCategory = category.id
+                firstChannelFocusRequest++
+            },
             modifier = Modifier.focusRequester(categoryRequester),
             width = 236.dp,
         )
@@ -172,6 +200,7 @@ fun LiveScreen(modifier: Modifier = Modifier) {
                         val channel = channels[index]
                         if (channel != null) {
                             val isRestoreTarget = channel.id == restoreChannelId
+                            val isFirstFocusTarget = index == 0 && firstChannelFocusCategory == selectedCategory
                             if (isRestoreTarget) {
                                 LaunchedEffect(restoreChannelId, channel.id) {
                                     // Wie beim Kaltstart: erst die tatsächliche Fokusmeldung quittiert Restore.
@@ -214,6 +243,7 @@ fun LiveScreen(modifier: Modifier = Modifier) {
                                 },
                                 modifier = Modifier
                                     .padding(vertical = 3.dp)
+                                    .then(if (isFirstFocusTarget) Modifier.focusRequester(firstChannelRequester) else Modifier)
                                     .then(if (isRestoreTarget) Modifier.focusRequester(restoreRequester) else Modifier)
                                     .onFocusChanged {
                                         if (it.isFocused) {

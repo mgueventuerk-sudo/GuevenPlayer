@@ -4,10 +4,12 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isFocused
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -139,6 +141,50 @@ class HomeNavigationTest {
         compose.waitForText("Alle Serien")
         compose.remote(Key.DirectionDown)
         compose.onNode(isFocused() and hasText("Alle Serien")).assertExists()
+    }
+
+    @Test
+    fun movingRightFromGroupsStartsAtFirstLiveChannelAndPoster() {
+        compose.setContent { TvHost(container) { HomeScreen() } }
+        compose.waitForText("ZDF")
+        compose.settle()
+
+        compose.remote(Key.DirectionDown)
+        compose.onNode(isFocused() and hasText("Alle Sender")).assertExists()
+        compose.remote(Key.DirectionRight)
+        compose.onNode(isFocused() and hasText("DE: ZDF HD")).assertExists()
+        compose.remote(Key.DirectionDown, times = 6)
+        back()
+        compose.onNode(isFocused() and hasText("Alle Sender")).assertExists()
+        compose.remote(Key.DirectionRight)
+        compose.onNode(isFocused() and hasText("DE: ZDF HD")).assertExists()
+
+        compose.clickable("Filme").pressOk()
+        compose.waitForText("Alle Filme")
+        compose.settle()
+        compose.remote(Key.DirectionRight)
+        compose.onNode(isFocused() and hasText("DE - Nordlicht (2023) [4K]")).assertExists()
+        compose.remote(Key.DirectionDown, times = 10)
+        back()
+        compose.onNode(isFocused() and hasText("Alle Filme")).assertExists()
+        compose.remote(Key.DirectionRight)
+        compose.onNode(isFocused() and hasText("DE - Nordlicht (2023) [4K]")).assertExists()
+    }
+
+    @Test
+    fun enteringAnotherSettingsPageStartsAtItsFirstControl() {
+        compose.setContent { TvHost(container) { HomeScreen() } }
+        compose.waitForText("Quellen")
+        compose.clickable("Einstellungen").pressOk()
+        compose.waitForText("Zugänge")
+        compose.settle()
+
+        compose.onNode(hasText("Zugänge") and hasClickAction()).performSemanticsAction(SemanticsActions.RequestFocus)
+        compose.onNode(isFocused() and hasText("Zugänge")).assertExists()
+        compose.remote(Key.DirectionDown)
+        compose.onNode(isFocused() and hasText("Wiedergabe")).assertExists()
+        compose.remote(Key.DirectionRight)
+        compose.onNode(isFocused() and hasText("Automatisch optimieren")).assertExists()
     }
 
     @Test

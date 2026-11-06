@@ -24,6 +24,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -58,6 +61,7 @@ fun CategoryColumn(
     selectedId: String,
     onFocused: (Category) -> Unit,
     onClick: (Category) -> Unit,
+    onMoveRight: ((Category) -> Unit)? = null,
     modifier: Modifier = Modifier,
     width: Dp = 260.dp,
 ) {
@@ -137,7 +141,15 @@ fun CategoryColumn(
                     .fillMaxWidth()
                     .then(if (category.id == Category.ALL && allCategoryFocus != null) Modifier.focusRequester(allCategoryFocus) else Modifier)
                     .then(if (selected) Modifier.focusRequester(selectedRequester) else Modifier)
-                    .onFocusChanged { if (it.isFocused) onFocused(category) },
+                    .onFocusChanged { if (it.isFocused) onFocused(category) }
+                    .onPreviewKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionRight && onMoveRight != null) {
+                            gate.runIfAllowed(category) { onMoveRight(category) }
+                            true
+                        } else {
+                            false
+                        }
+                    },
             ) {
                 Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     MarqueeText(

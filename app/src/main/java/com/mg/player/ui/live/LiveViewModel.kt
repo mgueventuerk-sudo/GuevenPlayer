@@ -273,6 +273,13 @@ class LiveViewModel(private val container: AppContainer) : ViewModel() {
         _restoreTarget.value = null
     }
 
+    /** Eine bewusste Navigation in der Gruppenliste verwirft den Rücksprung zum vorherigen Vollbild-Sender. */
+    fun clearRestoreTarget() {
+        awaitingReturn = false
+        returnTarget = null
+        _restoreTarget.value = null
+    }
+
     private suspend fun followPlayer(channelId: String, categoryId: String?) {
         val playlist = playlistId.value ?: return
         val category = categoryId?.takeIf { canReopen(it) } ?: _selectedCategoryId.value

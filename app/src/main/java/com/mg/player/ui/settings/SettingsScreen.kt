@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -165,6 +166,7 @@ private fun TvSettings(nav: SettingsNav, c: SettingsContext, status: String?, vp
     val navRequester = remember { FocusRequester() }
     val contentRequester = remember { FocusRequester() }
     var contentFocused by remember { mutableStateOf(false) }
+    val contentEntryRequest = remember { mutableIntStateOf(0) }
     CloseGoneAccount(nav, c)
     BackHandler(enabled = nav.sub != null) { nav.close() }
     BackHandler(enabled = nav.sub == null && contentFocused) { runCatching { navRequester.requestFocus() } }
@@ -172,6 +174,15 @@ private fun TvSettings(nav: SettingsNav, c: SettingsContext, status: String?, vp
     LaunchedEffect(nav.sub) {
         delay(FOCUS_SETTLE_MS)
         if (nav.sub != null) runCatching { contentRequester.requestFocus() } else nav.restoreFocus()
+    }
+    LaunchedEffect(nav.page, contentEntryRequest.intValue) {
+        if (contentEntryRequest.intValue == 0) return@LaunchedEffect
+        nav.listState(nav.page).scrollToItem(0)
+        delay(FOCUS_SETTLE_MS)
+        repeat(20) {
+            if (runCatching { contentRequester.requestFocus() }.getOrDefault(false)) return@LaunchedEffect
+            delay(50)
+        }
     }
     Row(Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
         Column(Modifier.width(NAV_WIDTH).fillMaxHeight()) {
@@ -190,15 +201,16 @@ private fun TvSettings(nav: SettingsNav, c: SettingsContext, status: String?, vp
                         onFocused = { nav.select(p) },
                         onClick = {
                             nav.select(p)
-                            runCatching { contentRequester.requestFocus() }
+                            contentEntryRequest.intValue++
                         },
+                        onMoveRight = { contentEntryRequest.intValue++ },
                     )
                 }
             }
         }
         // Je Bereich bzw. Unterseite eine eigene Liste; die Bereichsliste behält ihre Position beim Zurückkehren.
         val sub = nav.sub
-        key(nav.page, sub?.code) {
+        key(nav.page, sub?.code, contentEntryRequest.intValue) {
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
@@ -270,6 +282,7 @@ internal class SettingsNav(
 
     fun select(p: SettingsPage) {
         if (p == pageState.value) return
+        states.remove(p)
         pageState.value = p
         subState.value = null
         returnState.value = null

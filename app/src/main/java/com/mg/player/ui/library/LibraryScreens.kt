@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -88,6 +89,7 @@ private fun <T : Any> LibraryLayout(
     val scope = rememberCoroutineScope()
     // Zurück im Poster-Raster: erst zu den Kategorien (wie bei Live-TV), dann zur Navigationsleiste.
     val categoryRequester = remember { FocusRequester() }
+    var firstPosterFocusRequest by remember { mutableIntStateOf(0) }
     var gridFocused by remember { mutableStateOf(false) }
     BackHandler(enabled = gridFocused) { runCatching { categoryRequester.requestFocus() } }
     Row(modifier.fillMaxSize().padding(start = Dimens.ScreenPadding)) {
@@ -96,6 +98,10 @@ private fun <T : Any> LibraryLayout(
             selectedId = selected,
             onFocused = vm::onCategoryFocused,
             onClick = vm::onCategoryClicked,
+            onMoveRight = { category ->
+                vm.onCategoryClicked(category)
+                firstPosterFocusRequest++
+            },
             modifier = Modifier.focusRequester(categoryRequester).padding(bottom = 24.dp),
             width = 220.dp,
         )
@@ -119,6 +125,7 @@ private fun <T : Any> LibraryLayout(
                 else -> emptyIcon
             },
             restoreKey = restoreKey,
+            focusFirstRequest = firstPosterFocusRequest,
             // Leere Favoriten/Weiterschauen: direkter Weg zu allen Titeln statt Sackgasse.
             emptyActionLabel = "Alle anzeigen".takeIf { selected == Category.FAVORITES || selected == Category.CONTINUE },
             onEmptyAction = vm::showAll,

@@ -19,6 +19,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
@@ -33,11 +36,28 @@ import com.mg.player.ui.theme.AppIcons
 
 /** Eintrag der Bereichsliste (TV): Symbol, Name und Zustand; ausgewählt in der Akzentfarbe, mit Fokus hell. */
 @Composable
-internal fun SettingsNavItem(page: SettingsPage, status: String, selected: Boolean, onFocused: () -> Unit, onClick: () -> Unit) {
+internal fun SettingsNavItem(
+    page: SettingsPage,
+    status: String,
+    selected: Boolean,
+    onFocused: () -> Unit,
+    onClick: () -> Unit,
+    onMoveRight: () -> Unit,
+) {
     ListSurface(
         onClick = onClick,
         selected = selected,
-        modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) onFocused() },
+        modifier = Modifier
+            .fillMaxWidth()
+            .onFocusChanged { if (it.isFocused) onFocused() }
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionRight) {
+                    onMoveRight()
+                    true
+                } else {
+                    false
+                }
+            },
     ) {
         Row(Modifier.padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             NavIcon(page, selected)

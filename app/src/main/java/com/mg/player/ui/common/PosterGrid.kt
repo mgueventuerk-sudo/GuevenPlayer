@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -177,12 +178,37 @@ fun <T : Any> PagingPosterGrid(
     emptyActionLabel: String? = null,
     onEmptyAction: (() -> Unit)? = null,
     restoreKey: String? = null,
+    focusFirstRequest: Int = 0,
     onLongClick: ((T) -> Unit)? = null,
     emptyIcon: AppIcon? = null,
     minCellWidth: Dp = 104.dp,
     contentPadding: PaddingValues = PaddingValues(start = 12.dp, end = Dimens.ScreenPadding, top = 14.dp, bottom = 28.dp),
     spacing: Dp = 18.dp,
 ) {
+    val gridState = rememberLazyGridState()
+    val restoreRequester = remember { FocusRequester() }
+    val firstPosterRequester = remember { FocusRequester() }
+    var restorePending by remember { mutableStateOf(restoreKey != null) }
+    var firstFocusPending by remember { mutableStateOf(false) }
+    var handledFirstFocusRequest by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(focusFirstRequest, items.itemCount, items.loadState.refresh) {
+        if (focusFirstRequest == 0 || focusFirstRequest == handledFirstFocusRequest || items.itemCount == 0) return@LaunchedEffect
+        if (items.loadState.refresh is androidx.paging.LoadState.Loading) return@LaunchedEffect
+        handledFirstFocusRequest = focusFirstRequest
+        restorePending = false
+        firstFocusPending = true
+        gridState.scrollToItem(0)
+        repeat(40) {
+            if (runCatching { firstPosterRequester.requestFocus() }.getOrDefault(false)) {
+                firstFocusPending = false
+                return@LaunchedEffect
+            }
+            delay(50)
+        }
+        firstFocusPending = false
+    }
+
     if (items.itemCount == 0) {
         val loading = items.loadState.refresh is androidx.paging.LoadState.Loading
         CenteredMessage(
@@ -196,10 +222,7 @@ fun <T : Any> PagingPosterGrid(
         return
     }
     val backdrop = LocalBackdrop.current
-    val gridState = rememberLazyGridState()
     // Nach "Zurück" aus der Detailseite: Fokus wieder auf das zuletzt gewählte Poster.
-    val restoreRequester = remember { FocusRequester() }
-    var restorePending by remember { mutableStateOf(restoreKey != null) }
     LazyVerticalGrid(
         // Schlanke Kacheln: ca. 104–150 dp breit, je nach Bildschirm 5–7 Spalten.
         columns = GridCells.Adaptive(minSize = minCellWidth),
@@ -219,12 +242,17 @@ fun <T : Any> PagingPosterGrid(
             if (item != null) {
                 val poster = remember(item) { toPoster(item) }
                 val isRestoreTarget = restorePending && key(item) == restoreKey
+                val isFirstFocusTarget = firstFocusPending && index == 0
                 PosterCard(
                     poster,
                     onClick = { onClick(item) },
                     onLongClick = onLongClick?.let { handler -> { handler(item) } },
                     onFocused = { backdrop.url = poster.imageUrl },
-                    modifier = if (isRestoreTarget) Modifier.focusRequester(restoreRequester) else Modifier,
+                    modifier = when {
+                        isFirstFocusTarget -> Modifier.focusRequester(firstPosterRequester)
+                        isRestoreTarget -> Modifier.focusRequester(restoreRequester)
+                        else -> Modifier
+                    },
                 )
                 if (isRestoreTarget) {
                     LaunchedEffect(Unit) {
