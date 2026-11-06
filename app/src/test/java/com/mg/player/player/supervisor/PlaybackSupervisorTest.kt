@@ -253,7 +253,8 @@ class PlaybackSupervisorTest {
         h.error(ErrorKind.AUTH, 403)
         assertEquals(Symptom.AUTH, h.supervisor.status.value.failedSymptom)
 
-        h.run(5_500) { t -> playing(t, frames = t / 40, audio = t / 20) }
+        // Erste Momentaufnahme ist nur die Basis; Stabilität beginnt mit dem ersten gemessenen Fortschritt.
+        h.run(6_000) { t -> playing(t, frames = t / 40, audio = t / 20) }
 
         assertNull(h.supervisor.status.value.failure)
         assertTrue(h.log.any { it.contains("Überwachung nach stabiler Wiedergabe fortgesetzt") })

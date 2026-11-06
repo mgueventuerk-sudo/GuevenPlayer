@@ -276,27 +276,28 @@ class PlaybackSupervisor(
             current.isLive -> config.stallLive
             else -> config.stallVod
         }
-        return updatePositionProgress(health.positionMs, now, positionLimit) &&
-            updateVideoProgress(health, now) &&
-            updateAudioProgress(health, now)
+        val positionProgress = updatePositionProgress(health.positionMs, now, positionLimit)
+        val videoProgress = updateVideoProgress(health, now)
+        val audioProgress = updateAudioProgress(health, now)
+        return positionProgress && videoProgress && audioProgress
     }
 
     private fun updatePositionProgress(positionMs: Long, now: Long, limitMs: Long): Boolean {
-        if (lastStablePosition == null || positionMs != lastStablePosition) stablePositionAt = now
+        if (lastStablePosition != null && positionMs != lastStablePosition) stablePositionAt = now
         lastStablePosition = positionMs
         return stablePositionAt >= 0 && now - stablePositionAt <= limitMs
     }
 
     private fun updateVideoProgress(health: HealthSnapshot, now: Long): Boolean {
         val frames = health.renderedFrames?.takeIf { health.hasVideoTrack != false } ?: return true
-        if (lastStableFrames == null || frames != lastStableFrames) stableFrameAt = now
+        if (lastStableFrames != null && frames != lastStableFrames) stableFrameAt = now
         lastStableFrames = frames
         return stableFrameAt >= 0 && now - stableFrameAt <= config.frozenPicture
     }
 
     private fun updateAudioProgress(health: HealthSnapshot, now: Long): Boolean {
         val audio = health.audioUnits?.takeIf { health.hasAudioTrack != false } ?: return true
-        if (lastStableAudio == null || audio != lastStableAudio) stableAudioAt = now
+        if (lastStableAudio != null && audio != lastStableAudio) stableAudioAt = now
         lastStableAudio = audio
         return stableAudioAt >= 0 && now - stableAudioAt <= config.frozenPicture
     }
