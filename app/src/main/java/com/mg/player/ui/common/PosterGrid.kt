@@ -49,6 +49,7 @@ import com.mg.player.ui.theme.AppIcons
 import com.mg.player.ui.theme.CardSize
 import com.mg.player.ui.theme.Dimens
 import com.mg.player.ui.theme.StaticIcon
+import kotlinx.coroutines.delay
 
 /** Gemeinsame Darstellung für Film- und Serien-Poster. */
 @Immutable

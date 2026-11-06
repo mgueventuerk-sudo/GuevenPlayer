@@ -165,6 +165,7 @@ private fun CloseGoneAccount(nav: SettingsNav, c: SettingsContext) {
 private fun TvSettings(nav: SettingsNav, c: SettingsContext, status: String?, vpnLine: String) {
     val navRequester = remember { FocusRequester() }
     val contentRequester = remember { FocusRequester() }
+    val contentListState = nav.listState(nav.page)
     var contentFocused by remember { mutableStateOf(false) }
     val contentEntryRequest = remember { mutableIntStateOf(0) }
     CloseGoneAccount(nav, c)
@@ -177,7 +178,7 @@ private fun TvSettings(nav: SettingsNav, c: SettingsContext, status: String?, vp
     }
     LaunchedEffect(nav.page, contentEntryRequest.intValue) {
         if (contentEntryRequest.intValue == 0) return@LaunchedEffect
-        nav.listState(nav.page).scrollToItem(0)
+        contentListState.scrollToItem(0)
         delay(FOCUS_SETTLE_MS)
         repeat(20) {
             if (runCatching { contentRequester.requestFocus() }.getOrDefault(false)) return@LaunchedEffect
@@ -218,7 +219,7 @@ private fun TvSettings(nav: SettingsNav, c: SettingsContext, status: String?, vp
                     .focusRequester(contentRequester)
                     .focusRestorer(FocusRequester.Default)
                     .onFocusChanged { contentFocused = it.hasFocus },
-                state = if (sub != null) rememberLazyListState() else nav.listState(nav.page),
+                state = if (sub != null) rememberLazyListState() else contentListState,
                 contentPadding = PaddingValues(top = 8.dp, bottom = 48.dp, end = 4.dp),
             ) { if (sub != null) settingsSubPage(sub, c) else settingsPage(nav.page, c) }
         }
