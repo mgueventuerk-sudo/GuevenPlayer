@@ -152,6 +152,9 @@ class HomeNavigationTest {
         compose.remote(Key.DirectionDown)
         compose.onNode(isFocused() and hasText("Alle Sender")).assertExists()
         compose.remote(Key.DirectionRight)
+        compose.onAllNodes(isFocused(), useUnmergedTree = true).fetchSemanticsNodes().forEach {
+            println("FOCUSED AFTER GROUP RIGHT: ${it.config}")
+        }
         compose.onNode(isFocused() and hasText("DE: ZDF FHD")).assertExists()
         compose.remote(Key.DirectionDown, times = 6)
         back()
