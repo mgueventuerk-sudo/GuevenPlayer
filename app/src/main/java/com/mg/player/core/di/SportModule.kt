@@ -30,8 +30,10 @@ import com.mg.player.player.engine.StreamRequest
 import com.mg.player.player.proof.ProofProbe
 import com.mg.player.core.log.AppLog
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import java.io.File
 
 /** Teil-Container Sport (aus [AppContainer] herausgelöst): Quellen, Zuordnung zu Sendern, öffentliches Programm. */
@@ -85,7 +87,8 @@ class SportModule(private val container: AppContainer) {
         val dao = container.database.sportDao()
         val matched = dao.matchesFor(listOf(event.id)).sortedByDescending { it.score }.map { it.channelId }
         val families = SportRights.familiesFor(event, container.settingsRepository.current().sportCountries)
-        val sport = finder.index().rows.filter { families.isNotEmpty() && SportRights.familyOf(it.name) in families }.map { it.id }
+        // Ohne Rechte-Eintrag gibt es keine Familie, nach der sich suchen ließe – dann gar nicht über den Index laufen.
+        val sport = if (families.isEmpty()) emptyList() else finder.index().rows.filter { SportRights.familyOf(it.name) in families }.map { it.id }
         val ids = (matched + sport).distinct().take(limit)
         val rows = dao.channelsByIds(ids).associateBy { it.id }
         return ids.mapNotNull(rows::get)
@@ -151,9 +154,10 @@ class SportModule(private val container: AppContainer) {
                     val code = s.sportHubCode.ifBlank {
                         ProofShareServer.newCode().also { c -> container.settingsRepository.update { it.copy(sportHubCode = c) } }
                     }
-                    shareServer.start(code)
+                    // Schlüsselableitung (absichtlich langsam), Socket und Netzwerkdienst gehören nicht in den Haupt-Thread.
+                    withContext(Dispatchers.IO) { shareServer.start(code) }
                 } else {
-                    shareServer.stop()
+                    withContext(Dispatchers.IO) { shareServer.stop() }
                     pullFromHub(s.sportHubJoinCode)
                 }
             } catch (e: CancellationException) {

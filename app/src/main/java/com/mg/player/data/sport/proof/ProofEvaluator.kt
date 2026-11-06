@@ -29,7 +29,7 @@ object ProofEvaluator {
         val text = fold(texts.joinToString("\n"))
         if (staticPicture || PLACEHOLDER.containsMatchIn(text)) return Verdict.PLACEHOLDER
         if (minuteMatches(text, game.minute) == false) return Verdict.OTHER
-        return judge(teamHits(text, game), game.goals?.let { scoreSeen(text, it) } == true, SCORE.containsMatchIn(text) && looksLikeScoreBug(text))
+        return judge(teamHits(text, game), game.goals?.let { scoreSeen(text, it) } == true, looksLikeScoreBug(text))
     }
 
     /** Wie viele der beiden Teams im Text vorkommen (0–2). */

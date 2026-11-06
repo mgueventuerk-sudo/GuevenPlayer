@@ -60,9 +60,10 @@ class ReminderManager(private val context: Context, private val clock: () -> Lon
      */
     fun retarget(title: String, startMs: Long, channelId: String, channelName: String) {
         val old = _items.value.firstOrNull { it.title == title && it.startMs == startMs && it.channelId != channelId } ?: return
+        // Anpfiff vorbei: nicht umlenken – aber auch nicht löschen, sonst verschwindet die Erinnerung ohne Ersatz.
+        if (old.startMs <= clock()) return
         remove(old.id)
         val moved = old.copy(channelId = channelId, channelName = channelName)
-        if (moved.startMs <= clock()) return
         _items.update { (it + moved).sortedBy { r -> r.startMs } }
         save()
         schedule(moved)

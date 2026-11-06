@@ -3,7 +3,6 @@ package com.mg.player.ui.settings
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mg.player.core.util.TimeUtils
 import com.mg.player.data.sport.proof.ProofEvaluator
@@ -104,11 +103,10 @@ private fun SourceSummaryRow() {
 @Composable
 private fun ProofHistoryRow() {
     val proofs = LocalAppContainer.current.sport.proofs
-    val text = remember {
-        proofs.recent().take(MAX_HISTORY_SHOWN).joinToString("\n") { r ->
-            "${TimeUtils.formatClock(r.atMs)} · ${r.channel}: ${verdictLabel(r.verdict)} (${r.by})"
-        }.ifBlank { "Noch keine Prüfung – sie läuft bei Spielen, die gerade laufen, über freie Playlists." }
-    }
+    // Ohne remember: Die Liste wächst während der Einstellungen weiter (gemerkt bliebe der Stand beim Öffnen stehen).
+    val text = proofs.recent().take(MAX_HISTORY_SHOWN).joinToString("\n") { r ->
+        "${TimeUtils.formatClock(r.atMs)} · ${r.channel}: ${verdictLabel(r.verdict)} (${r.by})"
+    }.ifBlank { "Noch keine Prüfung – sie läuft bei Spielen, die gerade laufen, über freie Playlists." }
     ActionRow("Letzte Prüfungen", {}, text, icon = AppIcons.Shield, chevron = false)
 }
 

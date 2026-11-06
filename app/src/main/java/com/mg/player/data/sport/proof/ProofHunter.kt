@@ -66,7 +66,10 @@ class ProofHunter(
 
     /** Regel „Freie Playlist“ 4: Ein anderes Gerät braucht diesen Zugang – 2 Minuten nicht darüber prüfen. */
     fun release(account: String) {
-        released[account] = clock() + RELEASE_MS
+        val now = clock()
+        // Abgelaufene Einträge gleich mit weg: Sonst wächst die Tabelle mit jeder gemeldeten Kennung weiter.
+        released.entries.removeIf { it.value <= now }
+        released[account] = now + RELEASE_MS
     }
 
     /** Eine Runde zur Zeit (App im Vordergrund und Hintergrund-Dienst teilen sich den Sucher). */

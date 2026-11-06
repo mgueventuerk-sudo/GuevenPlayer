@@ -23,6 +23,7 @@ import com.mg.player.core.security.SecretCipher
 import com.mg.player.data.sport.proof.ProofAlarm
 import com.mg.player.data.sync.AutoRefreshWork
 import com.mg.player.data.sync.AutoRefresher
+import com.mg.player.domain.model.MatchSource
 import com.wireguard.android.backend.GoBackend
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -58,11 +59,15 @@ open class PlayerApp :
                 .onFailure { AppLog.log("EPG", "Zeitverschiebung nicht übertragen: ${it.javaClass.simpleName}") }
             // Spiel-Finder: Wecker für die Beweissuche im Hintergrund (nur auf dem Prüfgerät) und Austausch im Heimnetz.
             // Wecker neu stellen, sobald „Dieses Gerät prüft im Hintergrund“ umgeschaltet wird (auch beim Start).
-            container.appScope.launch {
+            // Beides im Hintergrund: Der App-Bereich läuft sonst im Haupt-Thread (Schlüsselableitung, Socket, Netzwerkdienst).
+            container.appScope.launch(Dispatchers.IO) {
                 container.settingsRepository.settings.map { it.sportProofDevice }.distinctUntilChanged()
                     .collect { ProofAlarm.scheduleNext(this@PlayerApp) }
             }
-            container.appScope.launch { container.sport.shareLoop() }
+            container.appScope.launch(Dispatchers.IO) { container.sport.shareLoop() }
+            // Beweise und Trefferquoten (kleine Einstellungsdateien) hier lesen, nicht beim ersten Aufbau der Oberfläche.
+            container.sport.proofs.recent()
+            container.sport.stats.overallPercent(MatchSource.STATION)
             // Gedächtnis des Wächters (bis 2 000 Quellen) hier lesen, nicht beim ersten Öffnen des Players im Haupt-Thread.
             container.playback.sourceHealth.penalty("")
             // Aufnahmen: Unterbrochene markieren und geplante Aufnahmen wieder einplanen.

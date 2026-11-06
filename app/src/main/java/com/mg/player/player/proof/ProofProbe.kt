@@ -36,18 +36,18 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
     suspend fun look(request: StreamRequest): ProofLook? = withContext(Dispatchers.Main) {
         val engine = engines.create(PlayerEngineType.MEDIA3) as? Media3Engine ?: return@withContext null
         val reader = ImageReader.newInstance(WIDTH, HEIGHT, PixelFormat.RGBA_8888, MAX_IMAGES)
+        val frames = ArrayList<Bitmap>()
         try {
             engine.setMuted(true)
             engine.prepare(request.copy(isLive = true, liveCushionMs = 0, autoPlay = true))
             engine.setOffscreenSurface(reader.surface)
             if (!awaitPlaying(engine)) return@withContext null
-            val frames = ArrayList<Bitmap>()
             repeat(FRAMES) {
                 delay(GAP_MS)
                 grab(reader)?.let(frames::add)
             }
             if (frames.isEmpty()) return@withContext null
-            val grays = frames.map { FrameDiff.gray(pixels(it.scale(DIFF_W, DIFF_H))) }
+            val grays = frames.map { frame -> frame.scale(DIFF_W, DIFF_H).let { small -> FrameDiff.gray(pixels(small)).also { small.recycle() } } }
             // Mit Frist: Hängt die Texterkennung, bliebe sonst die Verbindung des Zugangs (und die Suchrunde) belegt.
             val texts = if (readText) withTimeoutOrNull(OCR_TIMEOUT_MS) { recognize(frames.last()) }.orEmpty() else emptyList()
             ProofLook(texts, FrameDiff.isStatic(grays))
@@ -55,6 +55,9 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
             engine.setOffscreenSurface(null)
             engine.release()
             reader.close()
+            // Aufnahmen freigeben: 960×540 sind je 2 MB – sonst bleiben je Blick 6 MB für den Sammler liegen. Die letzte
+            // ging an die Texterkennung: Nach einer Zeitüberschreitung kann ML Kit sie noch lesen, die bleibt dem Sammler.
+            (if (readText) frames.dropLast(1) else frames).forEach { it.recycle() }
         }
     }
 
@@ -80,7 +83,8 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
             val rowPadding = plane.rowStride - plane.pixelStride * it.width
             val padded = createBitmap(it.width + rowPadding / plane.pixelStride, it.height)
             padded.copyPixelsFromBuffer(plane.buffer)
-            Bitmap.createBitmap(padded, 0, 0, it.width, it.height)
+            // Ohne Zeilenabstand liefert createBitmap dasselbe Bild zurück – nur eine echte Kopie darf das Original freigeben.
+            Bitmap.createBitmap(padded, 0, 0, it.width, it.height).also { cropped -> if (cropped !== padded) padded.recycle() }
         }
     }
 
