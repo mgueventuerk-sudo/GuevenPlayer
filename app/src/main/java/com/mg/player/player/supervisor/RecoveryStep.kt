@@ -90,7 +90,7 @@ object Ladders {
         Symptom.NETWORK to listOf(RecoveryStep.Reload(SHORT), RecoveryStep.Reload(MEDIUM), VARIANT, RecoveryStep.Reload(LONG), RecoveryStep.Reload(LONGER)),
         Symptom.DECODER to listOf(RecoveryStep.SafeDecoder, VARIANT, LIBVLC),
         Symptom.FORMAT to listOf(VARIANT, LIBVLC),
-        Symptom.DEVICE_PRESSURE to listOf(VARIANT, RecoveryStep.Hint("Das Gerät ist ausgelastet – Vorschau oder andere Apps schließen hilft.")),
+        Symptom.DEVICE_PRESSURE to listOf(RecoveryStep.Hint("Das Gerät ist ausgelastet – Vorschau oder andere Apps schließen hilft.")),
         Symptom.RADIO_ONLY to listOf(RecoveryStep.Hint("Nur Ton – dieser Sender sendet kein Bild.")),
         Symptom.NO_AUDIO_TRACK to listOf(RecoveryStep.Hint("Dieser Sender sendet keinen Ton.")),
     )

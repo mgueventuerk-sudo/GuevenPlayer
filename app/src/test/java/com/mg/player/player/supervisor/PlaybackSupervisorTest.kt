@@ -351,6 +351,15 @@ class PlaybackSupervisorTest {
     }
 
     @Test
+    fun devicePressureDoesNotSwitchToAnUnmeasuredAlternateQuality() {
+        val h = Harness(alternative = true)
+
+        h.supervisor.onDevicePressure()
+
+        assertTrue(h.steps.single().second is RecoveryStep.Hint)
+    }
+
+    @Test
     fun providerBreakerStopsAfterThreeChannelsFailWithinTwoMinutes() {
         val breaker = ProviderBreaker()
         listOf("a", "b").forEach { content ->

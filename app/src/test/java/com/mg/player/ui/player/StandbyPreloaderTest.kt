@@ -1,5 +1,6 @@
 package com.mg.player.ui.player
 
+import com.mg.player.core.device.DeviceTier
 import com.mg.player.domain.model.ConnectionStatus
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -7,6 +8,13 @@ import org.junit.Test
 
 /** Ersatz-Variante auf Vorrat nur mit nachweislich freiem Platz – sonst droht „Zugang belegt“. */
 class StandbyPreloaderTest {
+
+    @Test
+    fun standbyPlaybackIsReservedForHighTierDevices() {
+        assertFalse(StandbyPreloader.supportsStandbyPreload(DeviceTier.LOW))
+        assertFalse(StandbyPreloader.supportsStandbyPreload(DeviceTier.NORMAL))
+        assertTrue(StandbyPreloader.supportsStandbyPreload(DeviceTier.HIGH))
+    }
 
     @Test
     fun onlyWithAKnownFreeSlot() {

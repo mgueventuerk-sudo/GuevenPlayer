@@ -49,7 +49,10 @@ internal class SupervisorGuard(private val vm: PlayerViewModel) : PlaybackGuard 
         override fun onTrimMemory(level: Int) {
             @Suppress("DEPRECATION")
             if (level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW || level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL) {
-                vm.scope.launch { supervisor.onDevicePressure() }
+                vm.scope.launch {
+                    vm.standby.releaseForDevicePressure()
+                    supervisor.onDevicePressure()
+                }
             }
         }
 
@@ -61,7 +64,12 @@ internal class SupervisorGuard(private val vm: PlayerViewModel) : PlaybackGuard 
 
     private val thermalListener: Any? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
         PowerManager.OnThermalStatusChangedListener { status ->
-            if (status >= PowerManager.THERMAL_STATUS_SEVERE) vm.scope.launch { supervisor.onDevicePressure() }
+            if (status >= PowerManager.THERMAL_STATUS_SEVERE) {
+                vm.scope.launch {
+                    vm.standby.releaseForDevicePressure()
+                    supervisor.onDevicePressure()
+                }
+            }
         }
     } else {
         null

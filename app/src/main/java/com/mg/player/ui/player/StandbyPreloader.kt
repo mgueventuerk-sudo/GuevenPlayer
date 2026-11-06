@@ -9,6 +9,7 @@ import com.mg.player.player.engine.PlaybackStatus
 import com.mg.player.player.engine.VideoPlayerEngine
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -26,8 +27,8 @@ internal class StandbyPreloader(private val vm: PlayerViewModel) {
     private var loading: Job? = null
     private var played = false
 
-    /** Schwache Geräte (≈1 GB RAM): zwei Player-Puffer gleichzeitig wären ein Speicherrisiko – dort kein Vorrat. */
-    private val allowed = DeviceTier.of(vm.container.appContext) != DeviceTier.LOW
+    /** Eine zweite Engine samt Decoder und Puffer bleibt Geräten der höchsten Leistungsklasse vorbehalten. */
+    private val allowed = supportsStandbyPreload(DeviceTier.of(vm.container.appContext))
 
     /** Neue Quelle startet: Vorrat der alten verwerfen. */
     fun onPrepared() {
@@ -68,6 +69,11 @@ internal class StandbyPreloader(private val vm: PlayerViewModel) {
         forItemId = null
     }
 
+    fun releaseForDevicePressure() {
+        if (engine != null || loading?.isActive == true) AppLog.log("Player", "Ersatz-Player bei Gerätebelastung freigegeben")
+        release()
+    }
+
     /** Index der Variante, die sich vorladen lässt – oder null (schon geladen, kein Live, anderer Player, kein Platz). */
     private fun candidate(playable: Playable): Int? {
         val idle = allowed && engine == null && loading?.isActive != true && !vm.stoppedByLifecycle
@@ -81,6 +87,14 @@ internal class StandbyPreloader(private val vm: PlayerViewModel) {
         val next = candidate(playable) ?: return
         loading = vm.scope.launch {
             try {
+                delay(PRELOAD_CONFIRM_MS)
+                val current = vm.uiState.value.playable
+                val currentEngine = vm.engineHolder.value
+                val sameStream = current?.isSameStream(playable) == true
+                val stillBuffering = currentEngine?.state?.value?.status == PlaybackStatus.BUFFERING
+                if (vm.stoppedByLifecycle || !sameStream || !stillBuffering) {
+                    return@launch
+                }
                 val resolved = vm.resolver.variant(playable, next) ?: return@launch
                 val standby = vm.container.playback.engineFactory.create(PlayerEngineType.MEDIA3)
                 standby.setMuted(true)
@@ -97,7 +111,11 @@ internal class StandbyPreloader(private val vm: PlayerViewModel) {
     }
 
     companion object {
+        /** Auf mittleren Geräten und TV-Sticks kann ein zusätzlicher Decoder/Puffer den laufenden Stream destabilisieren. */
+        fun supportsStandbyPreload(tier: DeviceTier): Boolean = tier == DeviceTier.HIGH
+
         /** Nur mit bekannter Grenze und mindestens einem freien Platz (die laufende Verbindung zählt schon mit). */
         fun hasFreeSlot(status: ConnectionStatus?): Boolean = status != null && status.max > 0 && status.max - status.active >= 1
+        private const val PRELOAD_CONFIRM_MS = 1_000L
     }
 }
