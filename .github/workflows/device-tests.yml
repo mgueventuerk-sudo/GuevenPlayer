@@ -135,9 +135,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
             chmod +x gradlew
-            ./gradlew :benchmark:connectedReleaseAndroidTest -PbenchmarkEmulator=true \
-              -Pandroid.testInstrumentationRunnerArguments.class=com.mg.player.benchmark.BaselineProfileGenerator \
-              --stacktrace
+            ./gradlew :benchmark:connectedReleaseAndroidTest -PbenchmarkEmulator=true -Pandroid.testInstrumentationRunnerArguments.class=com.mg.player.benchmark.BaselineProfileGenerator --stacktrace
 
       - name: Profil hochladen
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
