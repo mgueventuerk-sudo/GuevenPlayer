@@ -13,6 +13,13 @@ on:
 permissions:
   contents: read
 
+# Wie beim Build-Workflow: Ein neuer Push bricht den laufenden ab. Ohne das lief die Matrix weiter, waehrend
+# der Build desselben Stands schon abgebrochen war - bei jedem Push stapelten sich bis zu drei
+# 60-Minuten-Emulatoren fuer einen Stand, den niemand mehr braucht.
+concurrency:
+  group: device-tests-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   device-tests:
     runs-on: ubuntu-latest
