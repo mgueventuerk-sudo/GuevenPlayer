@@ -65,6 +65,9 @@ open class PlayerApp :
                     .collect { ProofAlarm.scheduleNext(this@PlayerApp) }
             }
             container.appScope.launch(Dispatchers.IO) { container.sport.shareLoop() }
+            // Kalte Starts zaehlen: Daraus folgt, ob die Einfuehrungstexte noch gezeigt werden (AppSettings.showHints).
+            runCatching { container.settingsRepository.update { it.copy(coldStarts = (it.coldStarts + 1).coerceAtMost(HINT_CAP)) } }
+                .onFailure { AppLog.log("Start", "Startzaehler nicht erhoeht: ${it.javaClass.simpleName}") }
             // Beweise und Trefferquoten (kleine Einstellungsdateien) hier lesen, nicht beim ersten Aufbau der Oberfläche.
             container.sport.proofs.recent()
             container.sport.stats.overallPercent(MatchSource.STATION)
@@ -139,3 +142,6 @@ open class PlayerApp :
         .crossfade(false)
         .build()
 }
+
+/** Deckel fuer den Startzaehler: Mehr als die Schwelle muss nicht gespeichert werden. */
+private const val HINT_CAP = 99

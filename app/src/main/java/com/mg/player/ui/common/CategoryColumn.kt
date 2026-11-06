@@ -12,6 +12,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
@@ -28,11 +30,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import com.mg.player.core.util.CategoryName
 import com.mg.player.domain.model.Category
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
 import com.mg.player.ui.theme.StaticIcon
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
@@ -63,6 +67,8 @@ fun CategoryColumn(
     val toast = LocalToast.current
     val contextMenu = LocalContextMenu.current
     val scope = rememberCoroutineScope()
+    // Einfuehrungstext nur, solange die App neu ist - sonst steht er dauerhaft in der Seitenleiste.
+    val showHints by remember(container) { container.settingsRepository.settings.map { it.showHints } }.collectAsState(true)
     val allCategoryFocus = LocalAllCategoryFocus.current
     // Die gewählte Gruppe (beim Start „Alle …“) muss sichtbar sein, sobald die Gruppen geladen sind – sonst ist ihr
     // FocusRequester nicht angehängt und der Fokus fällt auf irgendeine gerade sichtbare Gruppe. Am Fire TV stellte
@@ -114,7 +120,7 @@ fun CategoryColumn(
                 } else {
                     {
                         contextMenu.show(
-                            title = category.name,
+                            title = CategoryName.display(category.name),
                             actions = listOf(
                                 ContextAction("Öffnen", AppIcons.ChevronRight) { gate.runIfAllowed(category) { onClick(category) } },
                                 ContextAction(
@@ -135,7 +141,7 @@ fun CategoryColumn(
             ) {
                 Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     MarqueeText(
-                        text = category.name,
+                        text = CategoryName.display(category.name),
                         modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
@@ -153,7 +159,8 @@ fun CategoryColumn(
                 }
             }
         }
-        item(key = "hint", contentType = "hint") {
+        // Nur solange die App neu ist: Der Tipp stand sonst dauerhaft in der Seitenleiste (AppSettings.showHints).
+        if (showHints) item(key = "hint", contentType = "hint") {
             Text(
                 "Tipp: OK gedrückt halten markiert einen Titel als Favorit oder heftet eine Gruppe oben an.",
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 16.dp),

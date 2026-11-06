@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import com.mg.player.core.util.CategoryName
 import com.mg.player.domain.model.Category
 import com.mg.player.ui.common.ChoiceChip
 import com.mg.player.ui.common.LocalAppContainer
@@ -164,7 +165,7 @@ fun CategoryChipRow(categories: List<Category>, selectedId: String, onSelect: (C
     ) {
         items(categories, key = { it.id }, contentType = { "chip" }) { category ->
             ChoiceChip(
-                text = (if (category.pinned) "★ " else "") + (if (category.locked) "🔒 " else "") + category.name,
+                text = (if (category.pinned) "★ " else "") + (if (category.locked) "🔒 " else "") + CategoryName.display(category.name),
                 selected = category.id == selectedId,
                 onClick = { gate.runIfAllowed(category) { onSelect(category) } },
                 onLongClick = if (category.isVirtual) {

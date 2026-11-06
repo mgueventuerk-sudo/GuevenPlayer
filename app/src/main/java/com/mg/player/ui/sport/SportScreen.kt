@@ -25,6 +25,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -84,10 +87,12 @@ fun SportScreen(modifier: Modifier = Modifier) {
     val activeFlow = remember(container) { container.settingsRepository.settings.map { it.activePlaylistId }.distinctUntilChanged() }
     val activeId by activeFlow.collectAsStateWithLifecycle(null)
     val otherAccounts = remember(playlists, activeId) { playlists.filter { it.id != activeId }.associate { it.id to it.name } }
+    val showHints by remember { container.settingsRepository.settings.map { it.showHints } }.collectAsStateWithLifecycle(true)
 
     Column(modifier.fillMaxSize().padding(start = edgePadding, end = edgePadding, top = 4.dp)) {
         ScreenTitle("Sport")
-        Text(
+        // Einfuehrungstext nur, solange die App neu ist (AppSettings.showHints).
+        if (showHints) Text(
             if (isTouch) {
                 "Laufendes Spiel antippen: Der Sender startet. Bei kommenden Spielen kannst du eine Erinnerung setzen."
             } else {
@@ -247,9 +252,14 @@ private fun EventRow(
                     maxLines = if (touch) 2 else 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                // Der Sender ist die Antwort, auf die es ankommt - er steht vorn und traegt Gewicht. Wettbewerb,
+                // Anstoss und Herkunft bleiben daneben, aber gedaempft: vorher hatten alle vier dasselbe Gewicht.
                 Text(
-                    "${event.league} · ${kickoff(event.startMs)} · ${item.channelName} · ${item.source.label}" +
-                        (playlistIdOf(item.channelId)?.let(otherAccounts::get)?.let { " (Zugang $it)" } ?: ""),
+                    buildAnnotatedString {
+                        withStyle(SpanStyle(color = RowColors.primary, fontWeight = FontWeight.Medium)) { append(item.channelName) }
+                        append(" · ${event.league} · ${kickoff(event.startMs)} · ${item.source.label}")
+                        playlistIdOf(item.channelId)?.let(otherAccounts::get)?.let { append(" (Zugang $it)") }
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = RowColors.secondary,
                     maxLines = if (touch) 2 else 1,

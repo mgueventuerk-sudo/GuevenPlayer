@@ -110,6 +110,8 @@ object SportEventFilter {
 }
 
 /** „in 2 T 14 Std 23 Min“ · „in 4 Std 12 Min“ · unter 1 h sekundengenau „in 23:05“ · danach „jetzt“. */
+private const val COARSE_HOURS = 3
+
 fun formatCountdown(startMs: Long, nowMs: Long): String {
     val left = startMs - nowMs
     if (left <= 0) return "jetzt"
@@ -117,8 +119,11 @@ fun formatCountdown(startMs: Long, nowMs: Long): String {
     val days = totalMin / (24 * 60)
     val hours = (totalMin / 60) % 24
     val minutes = totalMin % 60
+    // Eine Einheit je Groessenordnung: "in 3 T 23 Std 55 Min" behauptet eine Genauigkeit, die niemandem nutzt -
+    // das genaue Datum steht ohnehin in derselben Zeile. Minutengenau wird es erst, wenn es darauf ankommt.
     return when {
-        days > 0 -> "in $days T $hours Std $minutes Min"
+        days > 0 -> if (days == 1L) "in 1 Tag" else "in $days Tagen"
+        hours >= COARSE_HOURS -> "in $hours Std"
         hours > 0 -> "in $hours Std $minutes Min"
         else -> String.format(Locale.ROOT, "in %d:%02d", left / 60_000, (left / 1_000) % 60)
     }
