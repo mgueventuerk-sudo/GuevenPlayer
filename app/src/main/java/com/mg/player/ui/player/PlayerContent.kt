@@ -1,5 +1,6 @@
 package com.mg.player.ui.player
 
+import android.os.SystemClock
 import com.mg.player.core.device.DeviceTier
 import com.mg.player.core.log.AppLog
 import com.mg.player.core.util.runCatchingCancellable
@@ -22,6 +23,8 @@ import kotlinx.coroutines.launch
 private const val ACTIVE_TICK_MS = 500L
 private const val STEADY_TICK_MS = 1_000L
 private const val OWN_USE_HEARTBEAT_MS = 30_000L
+private const val SLOW_TICK_DIAGNOSTIC_MS = 2_000L
+private const val TICK_LOG_INTERVAL_MS = 30_000L
 
 /** Einstellungen laden, Inhalt auflösen, Engine wählen (ggf. aus der Vorschau übernehmen), starten; danach Takt. */
 /**
@@ -58,10 +61,32 @@ internal fun PlayerViewModel.startPlayer() {
             return@launch
         }
         var ownUseMarkedAt = 0L
+        var lastTickAt = SystemClock.elapsedRealtime()
+        var lastTickDelayLoggedAt = -TICK_LOG_INTERVAL_MS
+        var lastTickErrorLoggedAt = -TICK_LOG_INTERVAL_MS
         while (true) {
-            ownUseMarkedAt = refreshOwnUse(ownUseMarkedAt)
-            delay(tickDelayMs())
-            tick()
+            try {
+                ownUseMarkedAt = refreshOwnUse(ownUseMarkedAt)
+                delay(tickDelayMs())
+                val now = SystemClock.elapsedRealtime()
+                val tickDelay = now - lastTickAt
+                if (tickDelay >= SLOW_TICK_DIAGNOSTIC_MS && now - lastTickDelayLoggedAt >= TICK_LOG_INTERVAL_MS) {
+                    AppLog.log("Player", "Prüftakt verspätet: ${tickDelay} ms")
+                    lastTickDelayLoggedAt = now
+                }
+                lastTickAt = now
+                tick()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastTickErrorLoggedAt >= TICK_LOG_INTERVAL_MS) {
+                    AppLog.error("Player", "Prüftakt fehlgeschlagen – Überwachung versucht es erneut", e)
+                    lastTickErrorLoggedAt = now
+                }
+                lastTickAt = now
+                delay(STEADY_TICK_MS)
+            }
         }
     }
     // VPN steht (wieder): Stream neu verbinden, damit er durch den Tunnel läuft statt über die normale Leitung.

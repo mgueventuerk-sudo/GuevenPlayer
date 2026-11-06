@@ -24,6 +24,7 @@ class PlaybackSupervisorTest {
         content: String = "c1",
         breaker: ProviderBreaker = ProviderBreaker(),
         val memory: InMemoryRecoveryMemory = InMemoryRecoveryMemory(),
+        config: SupervisorConfig = SupervisorConfig(),
         private val refuse: Set<Class<out RecoveryStep>> = emptySet(),
     ) {
         var now = 0L
@@ -42,6 +43,7 @@ class PlaybackSupervisorTest {
             },
             memory = memory,
             breaker = breaker,
+            config = config,
             clock = { now },
             log = { log += it },
         )
@@ -241,6 +243,111 @@ class PlaybackSupervisorTest {
         h.run(31_000) { t -> playing(t, frames = t / 40, audio = t / 20) }
         assertEquals(StartHint(safeAudio = true), h.memory.hintFor("c1"))
         assertTrue(h.log.any { it.contains("behoben") })
+    }
+
+    @Test
+    fun stablePlaybackRearmsMonitoringAfterTheSupervisorGaveUp() {
+        val h = Harness(config = SupervisorConfig(maxActionsPerSession = 1, stablePlayback = 5_000))
+        h.error(ErrorKind.AUTH, 403)
+        h.run(2_000) { null }
+        h.error(ErrorKind.AUTH, 403)
+        assertEquals(Symptom.AUTH, h.supervisor.status.value.failedSymptom)
+
+        h.run(5_500) { t -> playing(t, frames = t / 40, audio = t / 20) }
+
+        assertNull(h.supervisor.status.value.failure)
+        assertTrue(h.log.any { it.contains("Überwachung nach stabiler Wiedergabe fortgesetzt") })
+        h.error(ErrorKind.AUTH, 403)
+        assertTrue("Wächter muss nach stabiler Erholung wieder reagieren", h.supervisor.status.value.reconnecting)
+        h.run(2_000) { null }
+        assertEquals(2, h.steps.size)
+    }
+
+    @Test
+    fun frozenVideoDoesNotCountAsStableRecoveryEvenWhenPositionAdvances() {
+        val h = Harness(config = SupervisorConfig(maxActionsPerSession = 0, stablePlayback = 5_000, frozenPicture = 2_000))
+        h.error(ErrorKind.AUTH, 403)
+
+        h.run(10_000) { t ->
+            HealthSnapshot(
+                status = PlaybackStatus.READY,
+                isPlaying = true,
+                positionMs = t,
+                renderedFrames = 0,
+                audioUnits = t / 20,
+                hasVideoTrack = true,
+            )
+        }
+
+        assertEquals(Symptom.AUTH, h.supervisor.status.value.failedSymptom)
+        assertTrue(h.log.none { it.contains("Überwachung nach stabiler Wiedergabe fortgesetzt") })
+    }
+
+    @Test
+    fun repeatedFailureAfterGivingUpIsLoggedOnceWithoutRetrying() {
+        val h = Harness(config = SupervisorConfig(maxActionsPerSession = 0))
+        h.error(ErrorKind.AUTH, 403)
+
+        repeat(3) { h.error(ErrorKind.AUTH, 403) }
+
+        assertEquals(0, h.steps.size)
+        assertEquals(1, h.log.count { it.contains("erneute Störung") })
+    }
+
+    @Test
+    fun userInterruptRearmsStallDetectionForTheSameStream() {
+        val h = Harness(config = SupervisorConfig(maxActionsPerSession = 0, frozenPicture = 1_000))
+        val frozen = HealthSnapshot(PlaybackStatus.READY, true, 1_000, renderedFrames = 0, hasVideoTrack = true)
+        h.run(2_000) { frozen }
+        assertEquals(Symptom.FROZEN_PICTURE, h.supervisor.status.value.failedSymptom)
+
+        h.supervisor.onUserInterrupt()
+        h.run(2_000) { frozen }
+
+        assertEquals(2, h.log.count { it.contains("Wächter: S4 Standbild") })
+    }
+
+    @Test
+    fun readyStateDoesNotClaimRecoveryUntilPlaybackProgressIsMeasured() {
+        val h = Harness(config = SupervisorConfig(recoveryConfirmation = 2_000))
+        h.error(ErrorKind.NETWORK)
+        h.run(1_500) { null }
+        h.supervisor.onEngineState(EngineState(status = PlaybackStatus.READY, isPlaying = true))
+
+        assertTrue(h.log.none { it.contains("behoben") })
+
+        h.run(3_000) { t -> playing(t, frames = t / 40, audio = t / 20) }
+
+        assertTrue(h.log.any { it.contains("behoben") })
+    }
+
+    @Test
+    fun videoProgressAloneDoesNotConfirmRecoveryWhileAudioCounterIsAvailable() {
+        val h = Harness(config = SupervisorConfig(recoveryConfirmation = 1_000))
+        h.error(ErrorKind.NETWORK)
+        h.run(1_500) { null }
+        h.run(2_000) { t -> playing(t, frames = t / 40, audio = 0) }
+
+        assertTrue(h.log.none { it.contains("behoben") })
+
+        h.run(2_000) { t -> playing(t + 2_000, frames = t / 40 + 100, audio = t / 20) }
+
+        assertTrue(h.log.any { it.contains("behoben") })
+    }
+
+    @Test
+    fun playbackMonitoringCanRestartAfterItsSessionWasStopped() {
+        val h = Harness(
+            alternative = true,
+            config = SupervisorConfig(stallWithAlternative = 1_000, stallWithAlternativeMax = 1_000),
+        )
+        h.supervisor.stop()
+        h.supervisor.start(h.session)
+        h.prepared()
+        h.run(1_000) { t -> playing(t, frames = t / 40, audio = t / 20) }
+        h.run(2_000) { HealthSnapshot(PlaybackStatus.BUFFERING, false, 1_000, bytesLoaded = 1_000) }
+
+        assertEquals(RecoveryStep.SwitchVariant, h.steps.single().second)
     }
 
     @Test

@@ -154,10 +154,34 @@ class DetectorsTest {
 
     @Test
     fun unknownCountersNeverGuess() {
-        val findings = listOf(FrozenPictureDetector(), AvPresenceDetector(), JudderDetector()).flatMap { detector ->
+        val findings = listOf(FrozenPictureDetector(), AvPresenceDetector(), JudderDetector(), DecoderLagDetector()).flatMap { detector ->
             feed(detector, 120_000) { t -> playing(t, frames = null, audio = null, video = null, sound = null, dropped = null) }
         }
         assertTrue(findings.isEmpty())
+    }
+
+    @Test
+    fun repeatedNativeVideoDecoderLagEventsAreDetectedWithoutPretendingToHaveFrameCounts() {
+        val detector = DecoderLagDetector()
+        fun sample(count: Int) = HealthSnapshot(PlaybackStatus.READY, true, 1_000, videoLagEvents = count)
+
+        assertNull(detector.check(sample(0), 0, ctx(engine = PlayerEngineType.NATIVE)))
+        assertNull(detector.check(sample(1), 1_000, ctx(engine = PlayerEngineType.NATIVE)))
+        val finding = detector.check(sample(2), 2_000, ctx(engine = PlayerEngineType.NATIVE))
+
+        assertEquals(Symptom.DECODER, finding?.symptom)
+        assertTrue(finding?.evidence?.contains("Videodecoder-Warnungen") == true)
+    }
+
+    @Test
+    fun isolatedNativeDecoderLagEventsDoNotTriggerRecovery() {
+        val detector = DecoderLagDetector()
+        val context = ctx(engine = PlayerEngineType.NATIVE)
+        fun sample(count: Int) = HealthSnapshot(PlaybackStatus.READY, true, 1_000, videoLagEvents = count)
+
+        assertNull(detector.check(sample(0), 0, context))
+        assertNull(detector.check(sample(1), 1_000, context))
+        assertNull(detector.check(sample(2), 9_001, context))
     }
 
     @Test

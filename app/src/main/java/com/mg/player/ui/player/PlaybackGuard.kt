@@ -17,6 +17,9 @@ internal interface PlaybackGuard {
     /** Neuer Inhalt (Sender, Film, Folge), bevor er startet. */
     fun onContentStarted(playable: Playable)
 
+    /** Wiedergabe-Sitzung nach Freigabe der Engine im Hintergrund wieder anlegen. */
+    fun onPlaybackSessionRestored(playable: Playable) = onContentStarted(playable)
+
     /** Die Wiedergabe des Inhalts beginnt (nach [onContentStarted] oder nach Rückkehr in den Vordergrund). */
     fun onPlaybackBegun(playable: Playable)
 

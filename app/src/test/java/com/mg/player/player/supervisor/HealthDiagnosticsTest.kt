@@ -39,7 +39,23 @@ class HealthDiagnosticsTest {
         ).orEmpty()
 
         assertTrue(line.contains("Videobilder n/a (Δ n/a)"))
+        assertTrue(line.contains("Standbildprüfung eingeschränkt"))
         assertTrue(line.contains("Tonblöcke n/a (Δ n/a)"))
         assertTrue(line.contains("Bytes n/a (Δ n/a)"))
+        assertTrue(line.contains("Videodecoder-Warnungen n/a"))
+    }
+
+    @Test
+    fun engineSwitchLogsAnImmediateSampleWithoutComparingUnrelatedCounters() {
+        val diagnostics = HealthDiagnostics(intervalMs = 30_000)
+        val media3 = HealthSnapshot(PlaybackStatus.READY, true, 10_000, renderedFrames = 500)
+        val native = HealthSnapshot(PlaybackStatus.READY, true, 5_000)
+
+        diagnostics.sample(PlayerEngineType.MEDIA3, media3, 0)
+        val switched = diagnostics.sample(PlayerEngineType.NATIVE, native, 100).orEmpty()
+
+        assertTrue(switched.contains("Player-Zustand NATIVE"))
+        assertTrue(switched.contains("Position 5000 ms (Δ n/a)"))
+        assertTrue(switched.contains("Videobilder n/a (Δ n/a"))
     }
 }

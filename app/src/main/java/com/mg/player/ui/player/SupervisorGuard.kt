@@ -10,9 +10,11 @@ import com.mg.player.domain.model.HwDecoding
 import com.mg.player.domain.model.PlayerEngineType
 import com.mg.player.domain.model.playlistIdOf
 import com.mg.player.player.engine.EngineState
+import com.mg.player.player.engine.HealthSnapshot
 import com.mg.player.player.engine.VideoPlayerEngine
-import com.mg.player.player.supervisor.PlaybackSupervisor
+import com.mg.player.player.supervisor.EngineHealthSampler
 import com.mg.player.player.supervisor.HealthDiagnostics
+import com.mg.player.player.supervisor.PlaybackSupervisor
 import com.mg.player.player.supervisor.RecoveryStep
 import com.mg.player.player.supervisor.SessionInfo
 import com.mg.player.player.supervisor.StartHint
@@ -37,6 +39,7 @@ internal class SupervisorGuard(private val vm: PlayerViewModel) : PlaybackGuard 
         log = { AppLog.log("Player", it) },
     )
     private val healthDiagnostics = HealthDiagnostics()
+    private val healthSampler = EngineHealthSampler { AppLog.log("Player", it) }
 
     /** Nach einem Quellenwechsel durch den Wächter: diese Variante merken, sobald sie läuft (nur bei echten Quellenfehlern). */
     private var rememberVariantOnPlay = false
@@ -95,6 +98,7 @@ internal class SupervisorGuard(private val vm: PlayerViewModel) : PlaybackGuard 
 
     override fun onContentStarted(playable: Playable) {
         rememberVariantOnPlay = false
+        healthDiagnostics.reset()
         val key = contentKey(playable)
         val hint = supervisor.hintFor(key)?.takeUnless { it.isEmpty } ?: StartHint()
         vm.decoderOverride = StartHint(safeDecoder = hint.safeDecoder, safeAudio = hint.safeAudio)
@@ -106,9 +110,18 @@ internal class SupervisorGuard(private val vm: PlayerViewModel) : PlaybackGuard 
         supervisor.start(session(playable), hint)
     }
 
+    override fun onPlaybackSessionRestored(playable: Playable) {
+        rememberVariantOnPlay = false
+        healthDiagnostics.reset()
+        supervisor.start(session(playable), vm.decoderOverride)
+    }
+
     override fun onPlaybackBegun(playable: Playable) = Unit
 
-    override fun onEnginePrepared() = supervisor.onPrepared()
+    override fun onEnginePrepared() {
+        healthDiagnostics.reset()
+        supervisor.onPrepared()
+    }
 
     override suspend fun onEngineState(engine: VideoPlayerEngine, state: EngineState, playable: Playable?) {
         if (rememberVariantOnPlay && state.isPlaying && playable != null) {
@@ -125,7 +138,18 @@ internal class SupervisorGuard(private val vm: PlayerViewModel) : PlaybackGuard 
     }
 
     override fun onTick(engine: VideoPlayerEngine) {
-        val health = engine.health()
+        val health = healthSampler.sample(
+            readHealth = { engine.health() },
+            readFallback = {
+                val state = runCatching { engine.state.value }.getOrNull()
+                val position = runCatching { engine.positionMs }.getOrNull()
+                if (state == null || position == null) null else HealthSnapshot(
+                    status = state.status,
+                    isPlaying = state.isPlaying,
+                    positionMs = position.coerceAtLeast(0),
+                )
+            },
+        )
         health?.let { snapshot ->
             healthDiagnostics.sample(vm.uiState.value.engineType, snapshot, System.currentTimeMillis())
                 ?.let { AppLog.log("Messung", it) }
@@ -133,9 +157,13 @@ internal class SupervisorGuard(private val vm: PlayerViewModel) : PlaybackGuard 
         supervisor.onTick(health)
     }
 
-    override fun onVariantSwitched(playable: Playable) = supervisor.updateSession(session(playable))
+    override fun onVariantSwitched(playable: Playable) {
+        healthDiagnostics.reset()
+        supervisor.updateSession(session(playable))
+    }
 
     override fun onEngineSwitched(type: PlayerEngineType) {
+        healthDiagnostics.reset()
         vm.uiState.value.playable?.let { supervisor.updateSession(session(it)) }
     }
 

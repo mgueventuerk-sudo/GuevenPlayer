@@ -1,6 +1,7 @@
 package com.mg.player.player.supervisor
 
 import com.mg.player.player.engine.HealthSnapshot
+import com.mg.player.player.engine.PlaybackStatus
 import kotlin.math.abs
 
 private const val PERCENT = 100
@@ -95,12 +96,47 @@ class LiveDriftDetector : Detector {
     }
 }
 
+/** Native MediaPlayer exposes no frame counter, but Android reports repeated video decoder lag events. */
+internal class DecoderLagDetector : Detector {
+    private val eventTimes = ArrayDeque<Long>()
+    private var lastCount: Int? = null
+    private var fired = false
+
+    override fun check(s: HealthSnapshot, now: Long, ctx: DetectContext): Finding? {
+        val count = s.videoLagEvents
+        if (s.status != PlaybackStatus.READY || !s.isPlaying || count == null) {
+            reset()
+            return null
+        }
+        val previous = lastCount
+        lastCount = count
+        if (previous == null || count < previous) return null
+        repeat((count - previous).coerceAtMost(ctx.config.videoLagEventThreshold)) {
+            eventTimes.addLast(now)
+        }
+        while (eventTimes.isNotEmpty() && now - eventTimes.first() > ctx.config.videoLagWindow) {
+            eventTimes.removeFirst()
+        }
+        if (fired || eventTimes.size < ctx.config.videoLagEventThreshold) return null
+        fired = true
+        return Finding(Symptom.DECODER, "${eventTimes.size} Videodecoder-Warnungen in ${now - eventTimes.first()} ms")
+    }
+
+    override fun reset() {
+        eventTimes.clear()
+        lastCount = null
+        fired = false
+    }
+}
+
 /** Alle Detektoren des Wächters. Die Start-Erkennung beginnt erst bei onPrepared neu, die übrigen nach jeder Maßnahme. */
 internal class DetectorSet {
     private val start = StartDetector()
     private val av = AvPresenceDetector()
     private val judder = JudderDetector()
-    private val followUp: List<Detector> = listOf(StallDetector(), FrozenPictureDetector(), av, DesyncDetector(), judder, LiveDriftDetector())
+    private val followUp: List<Detector> = listOf(
+        StallDetector(), FrozenPictureDetector(), av, DesyncDetector(), judder, LiveDriftDetector(), DecoderLagDetector(),
+    )
 
     /** Neuer Inhalt: auch die „einmal je Inhalt“-Hinweise wieder erlauben. */
     fun resetSession() {

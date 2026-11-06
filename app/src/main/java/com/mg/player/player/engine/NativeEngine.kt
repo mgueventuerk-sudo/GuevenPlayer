@@ -35,6 +35,7 @@ class NativeEngine(context: Context) : VideoPlayerEngine {
     private var aspectLayout: AspectRatioFrameLayout? = null
     private var prepared = false
     private var muted = false
+    private var videoLagEvents = 0
 
     override val positionMs: Long get() = if (prepared) player?.currentPosition?.toLong() ?: 0 else 0
     override val durationMs: Long get() = if (prepared) player?.duration?.toLong()?.coerceAtLeast(0) ?: 0 else 0
@@ -95,6 +96,7 @@ class NativeEngine(context: Context) : VideoPlayerEngine {
         _state.update { it.copy(status = PlaybackStatus.BUFFERING, isPlaying = false, errorMessage = null) }
         val mp = MediaPlayer()
         player = mp
+        videoLagEvents = 0
         mp.setAudioAttributes(
             AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_MEDIA)
@@ -117,6 +119,7 @@ class NativeEngine(context: Context) : VideoPlayerEngine {
             when (what) {
                 MediaPlayer.MEDIA_INFO_BUFFERING_START -> _state.update { it.copy(status = PlaybackStatus.BUFFERING) }
                 MediaPlayer.MEDIA_INFO_BUFFERING_END -> _state.update { it.copy(status = PlaybackStatus.READY) }
+                MediaPlayer.MEDIA_INFO_VIDEO_TRACK_LAGGING -> videoLagEvents++
             }
             false
         }
@@ -183,11 +186,11 @@ class NativeEngine(context: Context) : VideoPlayerEngine {
 
     override fun chapters(): List<ChapterInfo> = emptyList()
 
-    /** Der System-Player meldet weder Bytes noch Bilder – nur Status und Position (Start- und Hänger-Erkennung). */
+    /** Der System-Player meldet weder Bytes noch Bilder – nur Decoder-Lag-Ereignisse, Status und Position. */
     override fun health(): HealthSnapshot? {
         val mp = player ?: return null
         val playing = prepared && runCatching { mp.isPlaying }.getOrDefault(false)
-        return HealthSnapshot(status = _state.value.status, isPlaying = playing, positionMs = positionMs)
+        return HealthSnapshot(status = _state.value.status, isPlaying = playing, positionMs = positionMs, videoLagEvents = videoLagEvents)
     }
 
     override fun stats(): StreamStats? {

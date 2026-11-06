@@ -25,4 +25,6 @@ data class HealthSnapshot(
     val avOffsetMs: Long? = null,
     /** Abstand zum Live-Rand. */
     val liveOffsetMs: Long? = null,
+    /** Vom System-Player gemeldete Ereignisse „Video track lagging“ (steigend). */
+    val videoLagEvents: Int? = null,
 )

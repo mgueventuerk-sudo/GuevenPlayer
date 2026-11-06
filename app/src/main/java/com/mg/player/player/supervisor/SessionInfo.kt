@@ -34,6 +34,9 @@ data class SupervisorConfig(
     val stallLive: Long = 20_000,
     val stallVod: Long = 30_000,
     val frozenPicture: Long = 8_000,
+    /** System-Player: wiederholte Android-Meldungen zu stockendem Video gelten als Decoderproblem. */
+    val videoLagWindow: Long = 8_000,
+    val videoLagEventThreshold: Int = 2,
     /** So viele Ton-Ausgabefehler in Folge gelten als echter Tonausfall (einer allein ist ein Ausrutscher). */
     val audioErrorBurst: Int = 3,
     val audioWithoutVideo: Long = 6_000,
@@ -52,7 +55,9 @@ data class SupervisorConfig(
     val cooldownWithAlternative: Long = 3_000,
     val maxActionsPerSession: Int = 6,
     val maxActionsPerMinute: Int = 3,
-    /** So lange stabile Wiedergabe setzt Zähler zurück und merkt, was geholfen hat. */
+    /** So lange stabile Position und verfügbare Bild-/Tonfortschritte setzen Zähler zurück und merken die Hilfe. */
     val stablePlayback: Long = 30_000,
+    /** READY allein reicht nicht: erst messbarer Fortschritt bestätigt eine erfolgreiche Wiederherstellung. */
+    val recoveryConfirmation: Long = 3_000,
     val networkSettle: Long = 1_500,
 )

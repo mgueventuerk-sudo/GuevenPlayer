@@ -49,11 +49,19 @@ class PlaybackSupervisor(
     private var gaveUp: Symptom? = null
     private var stableSince = -1L
     private var stableHandled = false
+    private var stablePositionAt = -1L
+    private var stableFrameAt = -1L
+    private var stableAudioAt = -1L
+    private var recoverySince = -1L
+    private var lastStablePosition: Long? = null
+    private var lastStableFrames: Long? = null
+    private var lastStableAudio: Long? = null
     private var activeFix = StartHint()
     private var lastProblem: Symptom? = null
     private var problemSince = -1L
     private var formatHandledForPrepare = false
     private val reportedOncePerSession = HashSet<Symptom>()
+    private val reportedWhileGivenUp = HashSet<Symptom>()
 
     /** Anzahl der Maßnahmen im aktuellen Inhalt (für Statuszeile und Tests). */
     val actionCount: Int get() = actionsThisSession
@@ -68,10 +76,14 @@ class PlaybackSupervisor(
         pending = null
         gaveUp = null
         waitingForNetwork = false
+        stableSince = -1L
         stableHandled = false
+        recoverySince = -1L
+        resetStableProgress()
         lastProblem = null
         problemSince = -1L
         reportedOncePerSession.clear()
+        reportedWhileGivenUp.clear()
         detectors.resetSession()
         publish(SupervisorStatus())
     }
@@ -88,6 +100,8 @@ class PlaybackSupervisor(
     fun onPrepared() {
         preparedAt = clock()
         stableSince = -1L
+        recoverySince = -1L
+        resetStableProgress()
         formatHandledForPrepare = false
         detectors.resetAll()
     }
@@ -95,10 +109,11 @@ class PlaybackSupervisor(
     fun onEngineState(state: EngineState) {
         val now = clock()
         when {
-            state.status == PlaybackStatus.READY && state.isPlaying -> onPlaying(now)
+            state.status == PlaybackStatus.READY && state.isPlaying -> onPlaying()
 
             state.status == PlaybackStatus.ERROR -> {
                 stableSince = -1L
+                resetStableProgress()
                 onFailure(
                     SupervisorRules.symptomOf(state),
                     SupervisorRules.describe(state),
@@ -109,7 +124,11 @@ class PlaybackSupervisor(
 
             state.status == PlaybackStatus.ENDED && session?.isLive == true -> onFailure(Symptom.LIVE_ENDED, "Server hat den Stream beendet", null)
 
-            state.status == PlaybackStatus.BUFFERING -> stableSince = -1L
+            state.status == PlaybackStatus.BUFFERING -> {
+                stableSince = -1L
+                recoverySince = -1L
+                resetStableProgress()
+            }
 
             else -> Unit
         }
@@ -129,9 +148,37 @@ class PlaybackSupervisor(
             schedule(Pending(now + budget.waitMs(now), RecoveryStep.Reload(), Symptom.NETWORK, counted = false))
         }
         val current = session ?: return
-        if (health == null || gaveUp != null || waitingForNetwork) return
+        if (health == null || waitingForNetwork) return
+        if (gaveUp != null) {
+            detect(current, health, now)
+            resumeMonitoringAfterStablePlayback(health, now)
+            return
+        }
         trackStability(health, now)
         if (pending == null && now >= cooldownUntil) detect(current, health, now)
+    }
+
+    /** Nach einer stabilen Erholung wird der Wächter für weitere Hänger desselben Senders wieder scharf geschaltet. */
+    private fun resumeMonitoringAfterStablePlayback(health: HealthSnapshot, now: Long) {
+        if (!hasStableProgress(health, now)) {
+            stableSince = -1L
+            return
+        }
+        if (stableSince < 0) stableSince = now
+        if (now - stableSince < config.stablePlayback) return
+
+        val recovered = gaveUp ?: return
+        gaveUp = null
+        ladderPosition.clear()
+        actionsThisSession = 0
+        stableHandled = true
+        cooldownUntil = now
+        detectors.resetFollowUp()
+        reportedWhileGivenUp.clear()
+        confirmProblemRecovered(now)
+        resetStableProgress()
+        publish(SupervisorStatus())
+        log("Wächter: Überwachung nach stabiler Wiedergabe fortgesetzt (${recovered.code})")
     }
 
     private fun networkBackFor(now: Long): Boolean = waitingForNetwork && online && onlineSince >= 0 && now - onlineSince >= config.networkSettle
@@ -157,6 +204,7 @@ class PlaybackSupervisor(
             gaveUp = null
             ladderPosition.clear()
             actionsThisSession = 0
+            reportedWhileGivenUp.clear()
             pending = Pending(now + maxOf(config.networkSettle, budget.waitMs(now)), RecoveryStep.Reload(), Symptom.NETWORK, counted = false)
             publish(SupervisorStatus(reconnecting = true, text = "Netz geändert – verbinde neu"))
         }
@@ -172,9 +220,14 @@ class PlaybackSupervisor(
         pending = null
         gaveUp = null
         waitingForNetwork = false
+        stableSince = -1L
+        recoverySince = -1L
+        resetStableProgress()
         ladderPosition.clear()
         actionsThisSession = 0
         budget.clear()
+        reportedWhileGivenUp.clear()
+        detectors.resetFollowUp()
         publish(SupervisorStatus())
     }
 
@@ -182,24 +235,26 @@ class PlaybackSupervisor(
         pending = null
         session = null
         waitingForNetwork = false
+        reportedWhileGivenUp.clear()
         publish(SupervisorStatus())
     }
 
-    private fun onPlaying(now: Long) {
-        if (stableSince < 0) stableSince = now
+    private fun onPlaying() {
         breaker.recordSuccess(session?.providerKey)
-        val problem = lastProblem
-        if (problem != null && problemSince >= 0) {
-            log("Wächter: ${problem.code} ${problem.label} behoben nach ${formatSeconds(now - problemSince)} s")
-            memory.count(problem, fixed = true)
-            lastProblem = null
-            problemSince = -1L
-        }
-        if (isIdle() && mutableStatus.value != SupervisorStatus()) publish(SupervisorStatus())
+        if (lastProblem == null && isIdle() && mutableStatus.value != SupervisorStatus()) publish(SupervisorStatus())
     }
 
     private fun trackStability(health: HealthSnapshot, now: Long) {
-        if (health.status != PlaybackStatus.READY || !health.isPlaying) return
+        if (!hasStableProgress(health, now)) {
+            stableSince = -1L
+            stableHandled = false
+            recoverySince = -1L
+            return
+        }
+        if (lastProblem != null) {
+            if (recoverySince < 0) recoverySince = now
+            if (now - recoverySince >= config.recoveryConfirmation) confirmProblemRecovered(now)
+        }
         if (stableSince < 0) stableSince = now
         if (stableHandled || now - stableSince < config.stablePlayback) return
         stableHandled = true
@@ -209,13 +264,82 @@ class PlaybackSupervisor(
         if (activeFix.isEmpty) memory.forget(key) else memory.remember(key, activeFix)
     }
 
+    /** Stable playback requires real progress; READY alone can stay true while a picture is frozen. */
+    private fun hasStableProgress(health: HealthSnapshot, now: Long): Boolean {
+        if (health.status != PlaybackStatus.READY || !health.isPlaying) {
+            resetStableProgress()
+            return false
+        }
+        val previousPosition = lastStablePosition
+        if (previousPosition == null || health.positionMs != previousPosition) stablePositionAt = now
+        lastStablePosition = health.positionMs
+        val current = session ?: return false
+        val positionLimit = when {
+            current.isLive && current.canSwitchVariant -> config.stallWithAlternativeMax
+            current.isLive -> config.stallLive
+            else -> config.stallVod
+        }
+        if (stablePositionAt < 0 || now - stablePositionAt > positionLimit) return false
+
+        if (health.hasVideoTrack != false && health.renderedFrames != null) {
+            val previousFrames = lastStableFrames
+            if (previousFrames == null || health.renderedFrames != previousFrames) stableFrameAt = now
+            lastStableFrames = health.renderedFrames
+            if (stableFrameAt < 0 || now - stableFrameAt > config.frozenPicture) return false
+        }
+        if (health.hasAudioTrack != false && health.audioUnits != null) {
+            val previousAudio = lastStableAudio
+            if (previousAudio == null || health.audioUnits != previousAudio) stableAudioAt = now
+            lastStableAudio = health.audioUnits
+            if (stableAudioAt < 0 || now - stableAudioAt > config.frozenPicture) return false
+        }
+        return true
+    }
+
+    private fun resetStableProgress() {
+        stablePositionAt = -1L
+        stableFrameAt = -1L
+        stableAudioAt = -1L
+        lastStablePosition = null
+        lastStableFrames = null
+        lastStableAudio = null
+    }
+
+    /** READY/isPlaying can return before a picture or timeline actually resumes. */
+    private fun confirmProblemRecovered(now: Long) {
+        val problem = lastProblem ?: return
+        if (problemSince >= 0) {
+            log("Wächter: ${problem.code} ${problem.label} behoben nach ${formatSeconds(now - problemSince)} s")
+            memory.count(problem, fixed = true)
+        }
+        lastProblem = null
+        problemSince = -1L
+        recoverySince = -1L
+        if (isIdle() && mutableStatus.value != SupervisorStatus()) publish(SupervisorStatus())
+    }
+
     private fun isIdle() = pending == null && gaveUp == null && !waitingForNetwork
 
     private fun onFailure(symptom: Symptom, evidence: String, httpCode: Int?, retryAfterMs: Long? = null) {
         val current = session ?: return
+        if (symptom.informational) {
+            reportInfo(symptom, evidence)
+            return
+        }
+        if (gaveUp != null) {
+            stableSince = -1L
+            recoverySince = -1L
+            resetStableProgress()
+            if (reportedWhileGivenUp.add(symptom)) {
+                log("Wächter: erneute Störung ${symptom.code} ${symptom.label} ($evidence) – keine weitere automatische Maßnahme nach Aufgeben")
+            }
+            return
+        }
+        stableSince = -1L
+        stableHandled = false
+        recoverySince = -1L
+        resetStableProgress()
         when {
-            gaveUp != null -> Unit
-            symptom.informational -> reportInfo(symptom, evidence)
             SupervisorRules.isNetworkSymptom(symptom) && !online -> enterNetworkWait()
             pending == null -> react(current, Failure(symptom, evidence, httpCode, retryAfterMs))
         }
@@ -334,6 +458,7 @@ class PlaybackSupervisor(
 
     private fun giveUp(symptom: Symptom, httpCode: Int?, message: String = Ladders.failureMessage(symptom, httpCode)) {
         gaveUp = symptom
+        reportedWhileGivenUp.clear()
         pending = null
         log("Wächter: ${symptom.code} ${symptom.label} – aufgegeben nach $actionsThisSession Maßnahmen")
         publish(SupervisorStatus(failure = message, failedSymptom = symptom))

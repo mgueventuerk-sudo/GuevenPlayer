@@ -44,10 +44,10 @@ internal fun PlayerViewModel.releaseAfterStop() {
     pendingRelease = null
     if (!stoppedByLifecycle) return
     guard?.stop()
+    engineReleasedByStop = true
     val engine = engineHolder.value ?: return
     engineStateJob?.cancel()
     engine.release()
-    engineReleasedByStop = true
 }
 
 /** Zurück im Vordergrund: innerhalb der Haltezeit weiterspielen, sonst neue Engine (Live von vorn, Filme an der Stelle). */
@@ -65,10 +65,16 @@ fun PlayerViewModel.onLifecycleStart() {
         return
     }
     pausedByLifecycle = false
-    if (engineReleasedByStop) createEngine(uiState.value.engineType)
+    val restartEngine = engineReleasedByStop
+    if (restartEngine) createEngine(uiState.value.engineType)
     // Noch kein Inhalt aufgelöst: Der laufende Start spielt dann selbst ab.
     val playable = uiState.value.playable ?: return
-    guard?.onUserInterrupt()
+    if (restartEngine) {
+        guard?.onPlaybackSessionRestored(playable)
+        AppLog.log("Player", "Wiedergabeüberwachung nach Hintergrundfreigabe neu gestartet")
+    } else {
+        guard?.onUserInterrupt()
+    }
     beginPlayback(playable, if (playable.isLive) 0 else lastKnownPosition)
 }
 
