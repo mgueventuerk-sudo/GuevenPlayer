@@ -192,6 +192,10 @@ class SourceStats(private val store: StreamMemory.Store? = null, clock: () -> Lo
         /** 95-%-Intervall (z = 1,96). */
         private const val Z = 1.96
 
+        /** Feste Nenner der Wilson-Formel: z²/(2n) im Mittelpunkt, z²/(4n²) unter der Wurzel. */
+        private const val HALF_CORRECTION = 2.0
+        private const val QUARTER_CORRECTION = 4.0
+
         /** Zeitzonen der Wettbewerbe nach dem Länderkürzel in der Kennung („espn:soccer/eng.1“ → London). */
         private val ZONES = mapOf(
             "eng" to "Europe/London", "sco" to "Europe/London", "esp" to "Europe/Madrid", "ita" to "Europe/Rome",
@@ -222,8 +226,8 @@ class SourceStats(private val store: StreamMemory.Store? = null, clock: () -> Lo
             val p = hits / n
             val z2 = Z * Z
             val denominator = 1 + z2 / n
-            val center = (p + z2 / (2 * n)) / denominator
-            val margin = Z / denominator * sqrt(p * (1 - p) / n + z2 / (4 * n * n))
+            val center = (p + z2 / (HALF_CORRECTION * n)) / denominator
+            val margin = Z / denominator * sqrt(p * (1 - p) / n + z2 / (QUARTER_CORRECTION * n * n))
             return (center + side * margin).coerceIn(0.0, 1.0)
         }
 

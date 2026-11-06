@@ -35,7 +35,8 @@ object HubAuth {
     private const val ALGORITHM = "HmacSHA256"
 
     /** Höchste erlaubte Abweichung der Uhren beider Geräte (und Gültigkeit einer Anfrage). */
-    const val MAX_SKEW_MS = 5 * 60_000L
+    const val MAX_SKEW_MINUTES = 5L
+    const val MAX_SKEW_MS = MAX_SKEW_MINUTES * 60_000L
 
     /** Zufall im Geheimnis: 80 Bit (16 Zeichen à 5 Bit) – nicht durchprobierbar und noch tippbar. */
     const val SECRET_BITS = 80

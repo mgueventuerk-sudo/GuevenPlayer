@@ -89,15 +89,23 @@ class ProofShareServer(private val context: Context, private val proofs: ProofSt
         val nonce = query["n"]?.takeIf { it.length in NONCE_RANGE } ?: return false
         val ts = query["ts"]?.toLongOrNull()
         val now = System.currentTimeMillis()
-        if (!HubAuth.fresh(ts, now)) {
+        if (!signed(k, path, query, nonce, ts)) return false
+        seen.entries.removeIf { it.value < now - KEEP_NONCE_SKEWS * HubAuth.MAX_SKEW_MS }
+        return seen.putIfAbsent(nonce, now) == null
+    }
+
+    /** Uhrzeit im erlaubten Fenster und Signatur gültig. */
+    private fun signed(key: ByteArray, path: String, query: Map<String, String>, nonce: String, ts: Long?): Boolean {
+        if (!HubAuth.fresh(ts, System.currentTimeMillis())) {
             // Häufigste Ursache ist keine Attacke, sondern eine abweichende Uhr: TV-Boxen ohne Zeitabgleich driften,
             // und dann scheitert die Anmeldung ohne jeden Hinweis. Darum eigens vermerken.
-            AppLog.log("Sport", "Prüfgerät: Anfrage mit abweichender Uhrzeit abgelehnt (erlaubt sind ${HubAuth.MAX_SKEW_MS / 60_000} Minuten)")
+            AppLog.log(
+                "Sport",
+                "Prüfgerät: Anfrage mit abweichender Uhrzeit abgelehnt (erlaubt sind ${HubAuth.MAX_SKEW_MINUTES} Minuten)",
+            )
             return false
         }
-        if (!HubAuth.verify(k, query["s"], path, nonce, ts.toString(), query["a"].orEmpty())) return false
-        seen.entries.removeIf { it.value < now - 2 * HubAuth.MAX_SKEW_MS }
-        return seen.putIfAbsent(nonce, now) == null
+        return HubAuth.verify(key, query["s"], path, nonce, ts.toString(), query["a"].orEmpty())
     }
 
     private fun handle(request: MiniHttpServer.Request): MiniHttpServer.Response {
@@ -125,6 +133,9 @@ class ProofShareServer(private val context: Context, private val proofs: ProofSt
         const val SERVICE_TYPE = "_guevenproof._tcp."
         internal const val RESPONSE = "antwort"
         internal val NONCE_RANGE = 16..64
+
+        /** Zufallswerte so lange merken wie zwei Zeitfenster – danach kann die Anfrage ohnehin nicht mehr gelten. */
+        private const val KEEP_NONCE_SKEWS = 2
         private const val SERVICE_NAME = "GuevenPlayer-Pruefgeraet"
         private const val HTTP_OK = 200
         private const val HTTP_NOT_FOUND = 404
