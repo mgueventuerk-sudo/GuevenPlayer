@@ -1,8 +1,8 @@
 package com.mg.player.player.proof
 
-/** Android 17: selbst geprüfte DirectByteBuffer-Zugriffe auf ImageReader-Frames stürzten nativ ab. */
+/** Ab Android 8 kopiert PixelCopy das Videobild ohne Zugriff auf ImageReader-Pufferspeicher. */
 internal object ProofCapturePolicy {
-    private const val UNSAFE_FROM_API = 37
+    private const val PIXEL_COPY_FROM_API = 26
 
-    fun supported(apiLevel: Int): Boolean = apiLevel < UNSAFE_FROM_API
+    fun usePixelCopy(apiLevel: Int): Boolean = apiLevel >= PIXEL_COPY_FROM_API
 }

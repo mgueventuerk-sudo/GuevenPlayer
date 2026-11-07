@@ -4,6 +4,9 @@ import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.media.ImageReader
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.view.PixelCopy
 import androidx.core.graphics.scale
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
@@ -16,7 +19,6 @@ import com.mg.player.player.engine.Media3Engine
 import com.mg.player.player.engine.PlaybackStatus
 import com.mg.player.player.engine.PlayerEngineFactory
 import com.mg.player.player.engine.StreamRequest
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -33,27 +35,27 @@ import kotlin.coroutines.resume
 class ProofProbe(private val engines: PlayerEngineFactory, private val readText: Boolean = true) {
 
     private val recognizer by lazy { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
-    private val unsupportedLogged = AtomicBoolean(false)
+    private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
 
     /** null = Sender lief nicht an (Fehler, kein Bild in [START_TIMEOUT_MS]). */
     suspend fun look(request: StreamRequest): ProofLook? = withContext(Dispatchers.Main) {
-        if (!ProofCapturePolicy.supported(Build.VERSION.SDK_INT)) {
-            if (unsupportedLogged.compareAndSet(false, true)) {
-                AppLog.log("Sport", "Automatischer Bildbeweis auf Android 17 ausgesetzt (nativer ImageReader-Absturz)")
-            }
-            return@withContext null
-        }
         val engine = engines.create(PlayerEngineType.MEDIA3) as? Media3Engine ?: return@withContext null
         val reader = ImageReader.newInstance(WIDTH, HEIGHT, PixelFormat.RGBA_8888, MAX_IMAGES)
         val frames = ArrayList<Bitmap>()
         try {
+            if (ProofCapturePolicy.usePixelCopy(Build.VERSION.SDK_INT)) {
+                // Der Decoder darf nicht an einem vollen ImageReader warten. Die Bilder werden nur verworfen;
+                // PixelCopy liest die Surface direkt über Androids Grafiksystem, ohne plane.buffer zu berühren.
+                reader.setOnImageAvailableListener({ source -> source.acquireLatestImage()?.close() }, mainHandler)
+            }
             engine.setMuted(true)
             engine.prepare(request.copy(isLive = true, liveCushionMs = 0, autoPlay = true))
             engine.setOffscreenSurface(reader.surface)
             if (!awaitPlaying(engine)) return@withContext null
             repeat(FRAMES) {
                 delay(GAP_MS)
-                withContext(Dispatchers.Default) { grab(reader) }?.let(frames::add)
+                (if (ProofCapturePolicy.usePixelCopy(Build.VERSION.SDK_INT)) copySurface(reader) else withContext(Dispatchers.Default) { grab(reader) })
+                    ?.let(frames::add)
             }
             if (frames.isEmpty()) return@withContext null
             val grays = withContext(Dispatchers.Default) {
@@ -65,6 +67,7 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
         } finally {
             engine.setOffscreenSurface(null)
             engine.release()
+            reader.setOnImageAvailableListener(null, null)
             reader.close()
             // Aufnahmen freigeben: 960×540 sind je 2 MB – sonst bleiben je Blick 6 MB für den Sammler liegen. Die letzte
             // ging an die Texterkennung: Nach einer Zeitüberschreitung kann ML Kit sie noch lesen, die bleibt dem Sammler.
@@ -96,6 +99,22 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
             RgbaPlaneDecoder.pixels(plane.buffer, width, height, plane.rowStride, plane.pixelStride)
         } ?: return null
         return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
+    }
+
+    /** PixelCopy benutzt keinen Java- oder nativen Zugriff auf ImageReader.Plane.buffer. */
+    private suspend fun copySurface(reader: ImageReader): Bitmap? {
+        val frame = Bitmap.createBitmap(WIDTH, HEIGHT, Bitmap.Config.ARGB_8888)
+        val copied = suspendCancellableCoroutine { cont ->
+            runCatching {
+                PixelCopy.request(reader.surface, null, frame, { result ->
+                    if (cont.isActive) cont.resume(result == PixelCopy.SUCCESS)
+                }, mainHandler)
+            }.onFailure { if (cont.isActive) cont.resume(false) }
+        }
+        if (copied) return frame
+        AppLog.log("Sport", "Bildbeweis: PixelCopy konnte Videobild nicht kopieren")
+        frame.recycle()
+        return null
     }
 
     private fun pixels(bitmap: Bitmap): IntArray = IntArray(bitmap.width * bitmap.height).also {
