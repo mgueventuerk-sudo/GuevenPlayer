@@ -7,7 +7,8 @@ import java.nio.ByteOrder
 @Suppress("MagicNumber") // RGBA-Kanalbreite und ARGB-Bitpositionen sind Teil des festen Pixelformats.
 internal object RgbaPlaneDecoder {
     fun pixels(buffer: ByteBuffer, width: Int, height: Int, rowStride: Int, pixelStride: Int): IntArray? {
-        if (width <= 0 || height <= 0 || pixelStride < 4 || rowStride.toLong() < width.toLong() * pixelStride) return null
+        if (width <= 0 || height <= 0) return null
+        if (pixelStride < 4 || rowStride.toLong() < width.toLong() * pixelStride) return null
         val pixelCount = width.toLong() * height
         if (pixelCount > Int.MAX_VALUE) return null
         val start = buffer.position()
