@@ -46,7 +46,7 @@ object ExitReasons {
         val text = "$kind${last.description?.let { " – $it" }.orEmpty()}\n${trace?.take(TRACE_CHARS).orEmpty()}".trim()
         // Der exportierte App-Log braucht bei einem nativen Absturz Signal, Thread und erste Frames.
         // Ohne diese Angaben bleibt nur "crash" übrig und der betroffene Decoder ist nicht erkennbar.
-        val logLines = if (last.reason == ApplicationExitInfo.REASON_CRASH_NATIVE) 4 else 1
+        val logLines = if (last.reason == ApplicationExitInfo.REASON_CRASH_NATIVE) NATIVE_LOG_LINES else 1
         AppLog.log("Ende", text.lineSequence().take(logLines).joinToString(" · "))
         return text
     }
@@ -76,4 +76,5 @@ object ExitReasons {
     }
 
     private const val TRACE_CHARS = 20_000
+    private const val NATIVE_LOG_LINES = 4
 }

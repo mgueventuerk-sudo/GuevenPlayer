@@ -3,7 +3,6 @@ package com.mg.player.player.proof
 import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.media.ImageReader
-import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
@@ -44,10 +43,12 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
             if (!awaitPlaying(engine)) return@withContext null
             repeat(FRAMES) {
                 delay(GAP_MS)
-                grab(reader)?.let(frames::add)
+                withContext(Dispatchers.Default) { grab(reader) }?.let(frames::add)
             }
             if (frames.isEmpty()) return@withContext null
-            val grays = frames.map { frame -> frame.scale(DIFF_W, DIFF_H).let { small -> FrameDiff.gray(pixels(small)).also { small.recycle() } } }
+            val grays = withContext(Dispatchers.Default) {
+                frames.map { frame -> frame.scale(DIFF_W, DIFF_H).let { small -> FrameDiff.gray(pixels(small)).also { small.recycle() } } }
+            }
             // Mit Frist: Hängt die Texterkennung, bliebe sonst die Verbindung des Zugangs (und die Suchrunde) belegt.
             val texts = if (readText) withTimeoutOrNull(OCR_TIMEOUT_MS) { recognize(frames.last()) }.orEmpty() else emptyList()
             ProofLook(texts, FrameDiff.isStatic(grays))
@@ -78,14 +79,13 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
     /** Neueste Aufnahme als Bitmap (Zeilenabstand des Puffers berücksichtigt). */
     private fun grab(reader: ImageReader): Bitmap? {
         val image = runCatching { reader.acquireLatestImage() }.getOrNull() ?: return null
-        return image.use {
-            val plane = it.planes[0]
-            val rowPadding = plane.rowStride - plane.pixelStride * it.width
-            val padded = createBitmap(it.width + rowPadding / plane.pixelStride, it.height)
-            padded.copyPixelsFromBuffer(plane.buffer)
-            // Ohne Zeilenabstand liefert createBitmap dasselbe Bild zurück – nur eine echte Kopie darf das Original freigeben.
-            Bitmap.createBitmap(padded, 0, 0, it.width, it.height).also { cropped -> if (cropped !== padded) padded.recycle() }
-        }
+        val width = image.width
+        val height = image.height
+        val pixels = image.use {
+            val plane = it.planes.firstOrNull() ?: return@use null
+            RgbaPlaneDecoder.pixels(plane.buffer, width, height, plane.rowStride, plane.pixelStride)
+        } ?: return null
+        return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
     }
 
     private fun pixels(bitmap: Bitmap): IntArray = IntArray(bitmap.width * bitmap.height).also {
