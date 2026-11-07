@@ -4,6 +4,7 @@ import android.content.Context
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.core.net.toUri
+import com.mg.player.core.log.AppLog
 import com.mg.player.core.network.IPTV_USER_AGENT
 import com.mg.player.core.util.StreamTarget
 import com.mg.player.domain.model.ChapterInfo
@@ -50,7 +51,10 @@ class LibVlcEngine(context: Context) : VideoPlayerEngine {
         player?.let { return it }
         // Eine LibVLC-Instanz für die ganze App: das Laden der Module kostet beim Start sonst jedes Mal Zeit.
         val vlc = SharedLibVlc.acquire(appContext)
-        val mp = MediaPlayer(vlc)
+        val mp = runCatching { MediaPlayer(vlc) }.getOrElse {
+            SharedLibVlc.releaseUse()
+            throw it
+        }
         mp.setEventListener { event -> onEvent(event) }
         libVlc = vlc
         player = mp
@@ -261,16 +265,17 @@ class LibVlcEngine(context: Context) : VideoPlayerEngine {
         player?.let { mp ->
             mp.setEventListener(null)
             if (viewsAttached) mp.detachViews()
-            // stop() und release() können bei hängender Verbindung blockieren -> im Hintergrund, letzter Auftrag.
+            // Die LibVLC-Referenz erst nach dem nativen MediaPlayer freigeben. Sonst kann onTrimMemory()
+            // die gemeinsame Instanz zerstören, während stop()/release() noch auf dem Worker laufen.
             worker.finish {
-                mp.stop()
-                mp.release()
+                runCatching { mp.stop() }
+                runCatching { mp.release() }
+                    .onSuccess { SharedLibVlc.releaseUse() }
+                    .onFailure { AppLog.log("Player", "LibVLC-Freigabe fehlgeschlagen: ${it.javaClass.simpleName}") }
             }
         }
         viewsAttached = false
         player = null
-        // Die gemeinsame LibVLC-Instanz bleibt für den nächsten Start erhalten (bei Speichermangel gibt sie [SharedLibVlc.trim] frei).
-        if (libVlc != null) SharedLibVlc.releaseUse()
         libVlc = null
     }
 }

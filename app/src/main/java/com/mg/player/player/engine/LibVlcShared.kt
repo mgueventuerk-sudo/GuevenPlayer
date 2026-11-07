@@ -17,8 +17,9 @@ internal object SharedLibVlc {
 
     @Synchronized
     fun acquire(context: Context): LibVLC {
+        val vlc = instance ?: LibVLC(context.applicationContext, options(DeviceTier.of(context))).also { instance = it }
         users++
-        return instance ?: LibVLC(context.applicationContext, options(DeviceTier.of(context))).also { instance = it }
+        return vlc
     }
 
     @Synchronized
