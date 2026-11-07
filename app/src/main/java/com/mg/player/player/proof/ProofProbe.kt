@@ -8,6 +8,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.PixelCopy
 import androidx.annotation.RequiresApi
+import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
@@ -105,7 +106,7 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
     /** PixelCopy benutzt keinen Java- oder nativen Zugriff auf ImageReader.Plane.buffer. */
     @RequiresApi(Build.VERSION_CODES.O)
     private suspend fun copySurface(reader: ImageReader): Bitmap? {
-        val frame = Bitmap.createBitmap(WIDTH, HEIGHT, Bitmap.Config.ARGB_8888)
+        val frame = createBitmap(WIDTH, HEIGHT)
         val copied = suspendCancellableCoroutine { cont ->
             runCatching {
                 PixelCopy.request(reader.surface, null, frame, { result ->
