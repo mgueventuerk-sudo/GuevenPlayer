@@ -37,7 +37,12 @@ object ExitReasons {
         val last = pickUnexpected(recent.map { Triple(it.timestamp, it.reason, it.importance) })
             ?.let { pick -> recent.first { it.timestamp == pick } } ?: return null
         val kind = describe(last.reason, last.importance) ?: return null
-        val trace = runCatching { last.traceInputStream?.bufferedReader()?.use { it.readText() } }.getOrNull()
+        val trace = runCatching {
+            last.traceInputStream?.use { input ->
+                if (last.reason == ApplicationExitInfo.REASON_CRASH_NATIVE) NativeTombstone.summarize(input)
+                else input.bufferedReader().readText().take(TRACE_CHARS)
+            }
+        }.getOrNull()
         val text = "$kind${last.description?.let { " – $it" }.orEmpty()}\n${trace?.take(TRACE_CHARS).orEmpty()}".trim()
         AppLog.log("Ende", text.lineSequence().first())
         return text

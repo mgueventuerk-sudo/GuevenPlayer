@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.StateFlow
 
 enum class PlaybackStatus { IDLE, BUFFERING, READY, ENDED, ERROR, HANDED_OFF }
 
+/** Warum Media3 den Wiedergabewunsch zurückgenommen hat (ohne Stream-Adresse oder Zugangsdaten). */
+enum class PlaybackPauseReason { NONE, USER_REQUEST, AUDIO_FOCUS_LOSS, AUDIO_BECOMING_NOISY, REMOTE, OTHER }
+
 /** Art eines Wiedergabefehlers – bestimmt, ob ein Neuversuch sinnvoll ist und welche Meldung erscheint. */
 enum class ErrorKind {
     NONE,
@@ -58,6 +61,9 @@ enum class ErrorCause {
 data class EngineState(
     val status: PlaybackStatus = PlaybackStatus.IDLE,
     val isPlaying: Boolean = false,
+    /** null bei Engines, die den Wiedergabewunsch nicht melden können. */
+    val playWhenReady: Boolean? = null,
+    val pauseReason: PlaybackPauseReason = PlaybackPauseReason.NONE,
     val errorMessage: String? = null,
     val videoFrameRate: Float? = null,
     val tracksVersion: Int = 0,

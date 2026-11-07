@@ -69,6 +69,8 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
 
     /** Lädt bei einem Hänger die nächste Variante stumm vor, wenn ihr Zugang einen freien Platz hat. */
     internal val standby = StandbyPreloader(this)
+    internal val livePauseWatchdog = LivePauseWatchdog()
+    internal var userPaused = false
 
     /** Entscheidet bei Störungen; bis die Einstellungen geladen sind, passiert noch nichts (siehe [startPlayer]). */
     internal var guard: PlaybackGuard? = null
@@ -201,6 +203,7 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
         standby.take(next)?.let { ready ->
             AppLog.log("Player", "Ersatz-Variante war vorgeladen · ${next.sourceName(index)}")
             adoptEngine(ready, PlayerEngineType.MEDIA3)
+            ready.setMuted(false)
             ready.play()
         }
         uiState.update { it.copy(playable = next) }

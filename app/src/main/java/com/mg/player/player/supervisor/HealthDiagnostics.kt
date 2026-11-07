@@ -2,6 +2,7 @@ package com.mg.player.player.supervisor
 
 import com.mg.player.domain.model.PlayerEngineType
 import com.mg.player.player.engine.HealthSnapshot
+import com.mg.player.player.engine.PlaybackStatus
 
 /** Datenschutzarme periodische Momentaufnahme: keine Stream-URL, Sendernamen oder Zugangsdaten. */
 internal class HealthDiagnostics(private val intervalMs: Long = DEFAULT_INTERVAL_MS) {
@@ -35,12 +36,20 @@ internal class HealthDiagnostics(private val intervalMs: Long = DEFAULT_INTERVAL
             current.renderedFrames == null -> "Standbildprüfung eingeschränkt"
             else -> "Standbildprüfung aktiv"
         }
-        return "Player-Zustand $engine: ${current.status}/${if (current.isPlaying) "spielt" else "pausiert"}; " +
+        val activity = activityOf(current)
+        return "Player-Zustand $engine: ${current.status}/$activity; " +
             "Position ${current.positionMs} ms ($position); " +
             "Videobilder ${current.renderedFrames?.toString() ?: "n/a"} (${frames ?: "Δ n/a"}, $pictureMonitoring); " +
             "Tonblöcke ${current.audioUnits?.toString() ?: "n/a"} (${audio ?: "Δ n/a"}); " +
             "Bytes ${current.bytesLoaded?.toString() ?: "n/a"} (${bytes ?: "Δ n/a"}); " +
             "Videodecoder-Warnungen ${current.videoLagEvents?.toString() ?: "n/a"}"
+    }
+
+    private fun activityOf(current: HealthSnapshot): String = when {
+        current.isPlaying -> "spielt"
+        current.status == PlaybackStatus.BUFFERING -> "puffert"
+        current.status == PlaybackStatus.READY -> "pausiert"
+        else -> "steht"
     }
 
     fun reset() {

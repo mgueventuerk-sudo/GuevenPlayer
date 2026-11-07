@@ -64,7 +64,14 @@ fun PlayerViewModel.playNextNow() {
 
 fun PlayerViewModel.togglePlayPause() {
     val engine = engine.value ?: return
-    if (engine.state.value.isPlaying) engine.pause() else engine.play()
+    if (engine.state.value.isPlaying) {
+        userPaused = true
+        livePauseWatchdog.interrupt()
+        engine.pause()
+    } else {
+        userPaused = false
+        engine.play()
+    }
 }
 
 /** Spulen (nur Filme, Serien, Catch-up), begrenzt auf den Anfang bzw. eine Sekunde vor dem Ende. */

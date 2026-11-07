@@ -26,7 +26,18 @@ internal data class Media3Config(val buffer: BufferProfile, val hw: HwDecoding, 
 @OptIn(UnstableApi::class)
 internal object Media3Build {
 
-    fun player(context: Context, config: Media3Config, bufferLimit: BufferLimit, factory: OkHttpDataSource.Factory): ExoPlayer {
+    val audioAttributes: AudioAttributes = AudioAttributes.Builder()
+        .setUsage(C.USAGE_MEDIA)
+        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+        .build()
+
+    fun player(
+        context: Context,
+        config: Media3Config,
+        bufferLimit: BufferLimit,
+        factory: OkHttpDataSource.Factory,
+        handleAudioFocus: Boolean = true,
+    ): ExoPlayer {
         val buffer = config.buffer.toConfig()
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(buffer.minMs, buffer.maxMs, buffer.playbackMs, buffer.rebufferMs)
@@ -47,14 +58,13 @@ internal object Media3Build {
                     .setTunnelingEnabled(config.tunneling),
             )
         }
-        val audio = AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build()
         return ExoPlayer.Builder(context, renderers)
             .setTrackSelector(trackSelector)
             .setLoadControl(loadControl)
             .setMediaSourceFactory(Media3Support.sourceFactory(factory, extractors))
-            // Audio-Fokus: Startet eine andere App Ton (z. B. Sprachassistent), pausiert der Player.
-            .setAudioAttributes(audio, true)
-            .setHandleAudioBecomingNoisy(true)
+            // Stumme Bildbeweis-/Standbild-/Ersatz-Player dürfen dem sichtbaren Player keinen Fokus wegnehmen.
+            .setAudioAttributes(audioAttributes, handleAudioFocus)
+            .setHandleAudioBecomingNoisy(handleAudioFocus)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
     }

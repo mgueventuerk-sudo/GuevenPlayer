@@ -71,6 +71,7 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
     private var droppedFrames = 0
     private var audioErrors = 0
     private var videoErrors = 0
+    private var lastPauseReason = PlaybackPauseReason.NONE
 
     override val positionMs: Long get() = player?.currentPosition?.coerceAtLeast(0) ?: 0
 
@@ -85,6 +86,19 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
     private val listener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) = publishState()
         override fun onIsPlayingChanged(isPlaying: Boolean) = publishState()
+
+        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            lastPauseReason = if (playWhenReady) PlaybackPauseReason.NONE else when (reason) {
+                Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST -> PlaybackPauseReason.USER_REQUEST
+                Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS -> PlaybackPauseReason.AUDIO_FOCUS_LOSS
+                Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY -> PlaybackPauseReason.AUDIO_BECOMING_NOISY
+                Player.PLAY_WHEN_READY_CHANGE_REASON_REMOTE -> PlaybackPauseReason.REMOTE
+                else -> PlaybackPauseReason.OTHER
+            }
+            publishState()
+        }
+
+        override fun onPlaybackSuppressionReasonChanged(playbackSuppressionReason: Int) = publishState()
 
         override fun onPlayerError(error: PlaybackException) {
             if (error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
@@ -153,6 +167,8 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
             it.copy(
                 status = status,
                 isPlaying = p.isPlaying,
+                playWhenReady = p.playWhenReady,
+                pauseReason = lastPauseReason,
                 errorMessage = if (status == PlaybackStatus.ERROR) it.errorMessage else null,
                 errorKind = if (status == PlaybackStatus.ERROR) it.errorKind else ErrorKind.NONE,
             )
@@ -164,7 +180,7 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
             .setUserAgent(IPTV_USER_AGENT)
             .setTransferListener(bytes)
         httpFactory = factory
-        return Media3Build.player(appContext, config, bufferLimit, factory).also {
+        return Media3Build.player(appContext, config, bufferLimit, factory, handleAudioFocus = !muted).also {
             it.addListener(listener)
             it.addAnalyticsListener(analytics)
         }
@@ -172,7 +188,12 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
 
     override fun setMuted(muted: Boolean) {
         this.muted = muted
-        player?.volume = if (muted) 0f else 1f
+        player?.let {
+            if (muted) it.volume = 0f
+            it.setAudioAttributes(Media3Build.audioAttributes, !muted)
+            it.setHandleAudioBecomingNoisy(!muted)
+            if (!muted) it.volume = 1f
+        }
     }
 
     /** Bild unsichtbar in [surface] (z. B. ImageReader) statt in eine Fläche – für den Bildbeweis im Hintergrund. */
@@ -219,6 +240,7 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
     private fun start(url: String, mimeType: String?, positionMs: Long) {
         val p = player ?: return
         bytes.bytes.set(0)
+        lastPauseReason = PlaybackPauseReason.NONE
         droppedFrames = 0
         audioErrors = 0
         videoErrors = 0

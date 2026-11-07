@@ -10,6 +10,13 @@ import org.junit.Test
 
 class HealthDiagnosticsTest {
 
+    @Test fun bufferingIsNotReportedAsPause() {
+        val diagnostics = HealthDiagnostics(intervalMs = 1)
+        val line = diagnostics.sample(PlayerEngineType.MEDIA3, HealthSnapshot(PlaybackStatus.BUFFERING, false, 0), 0).orEmpty()
+        assertTrue(line.contains("BUFFERING/puffert"))
+        assertFalse(line.contains("pausiert"))
+    }
+
     @Test
     fun reportsPlaybackProgressWithoutStreamMetadata() {
         val diagnostics = HealthDiagnostics(intervalMs = 1_000)

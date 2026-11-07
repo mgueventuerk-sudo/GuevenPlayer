@@ -11,6 +11,7 @@ fun PlayerViewModel.onLifecyclePause() {
     val engine = engineHolder.value ?: return
     if (uiState.value.engineType == PlayerEngineType.EXTERNAL) return
     pausedByLifecycle = true
+    livePauseWatchdog.interrupt()
     // Pausiert vom System (Dialog, anderes Fenster): ein laufender Start oder Hänger liegt nicht an der Quelle.
     sourceHealth.onInterrupted()
     progress.saveNow(uiState.value.playable, engine)
@@ -76,6 +77,7 @@ fun PlayerViewModel.onLifecycleStart() {
         guard?.onUserInterrupt()
     }
     beginPlayback(playable, if (playable.isLive) 0 else lastKnownPosition)
+    if (userPaused) engineHolder.value?.pause()
 }
 
 fun PlayerViewModel.onLifecycleResume() {
@@ -83,6 +85,7 @@ fun PlayerViewModel.onLifecycleResume() {
     pausedByLifecycle = false
     val fromHold = resumeFromHold
     resumeFromHold = false
+    if (userPaused) return
     val playable = uiState.value.playable ?: return
     if (playable.isLive && !fromHold) prepare(playable, 0) else engineHolder.value?.play()
 }

@@ -12,6 +12,7 @@ import com.mg.player.domain.model.PlayerEngineType
 import com.mg.player.domain.model.forAutomaticOptimization
 import com.mg.player.domain.model.playlistIdOf
 import com.mg.player.player.engine.PlaybackStatus
+import com.mg.player.player.engine.VideoPlayerEngine
 import com.mg.player.player.supervisor.StartHint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
@@ -122,6 +123,8 @@ private suspend fun PlayerViewModel.loadChannelList(playable: Playable, sameAcco
 }
 
 internal suspend fun PlayerViewModel.startPlayable(playable: Playable) {
+    userPaused = false
+    livePauseWatchdog.resetSession()
     if (!switchingAccount) accounts.resetOffers()
     switchingAccount = false
     (playable.activePlaylistId ?: playlistIdOf(playable.id))?.let { playlistId ->
@@ -180,12 +183,8 @@ private fun PlayerViewModel.tickDelayMs(): Long {
 private suspend fun PlayerViewModel.tick() {
     val engine = engineHolder.value ?: return
     val playable = uiState.value.playable ?: return
-    if (stoppedByLifecycle) return
-    if (!live.zapPending && uiState.value.engineType != PlayerEngineType.EXTERNAL) {
-        guard?.onTick(engine)
-        sourceHealth.onTick()
-        watchProof.onTick(playable.activeVariant.takeIf { playable.isLive }, engine.state.value.isPlaying)
-    }
+    if (stoppedByLifecycle || pausedByLifecycle) return
+    monitorActivePlayback(engine, playable)
     if (playable.isLive || uiState.value.engineType == PlayerEngineType.EXTERNAL) return
     val pos = engine.positionMs
     val dur = engine.durationMs
@@ -197,6 +196,32 @@ private suspend fun PlayerViewModel.tick() {
         null -> Unit
     }
     progress.maybeSave(playable, pos, dur, engine.state.value.isPlaying)
+}
+
+private fun PlayerViewModel.monitorActivePlayback(engine: VideoPlayerEngine, playable: Playable) {
+    if (live.zapPending || uiState.value.engineType == PlayerEngineType.EXTERNAL) return
+    // Ein absichtlich oder durch Media3 pausierter Player ist kein Stream-Hänger.
+    if (!userPaused && engine.state.value.playWhenReady != false) guard?.onTick(engine)
+    if (playable.isLive) checkLivePause(engine)
+    sourceHealth.onTick()
+    watchProof.onTick(playable.activeVariant.takeIf { playable.isLive }, engine.state.value.isPlaying)
+}
+
+private fun PlayerViewModel.checkLivePause(engine: VideoPlayerEngine) {
+    when (val decision = livePauseWatchdog.check(engine.state.value, SystemClock.elapsedRealtime(), !userPaused)) {
+        is LivePauseWatchdog.Decision.Observed ->
+            AppLog.log("Player", "Wächter: Live-Pause erkannt (${decision.reason})")
+
+        is LivePauseWatchdog.Decision.Resume -> {
+            AppLog.log("Player", "Wächter: Live-Pause fortsetzen (${decision.attempt}/2, ${decision.reason})")
+            engine.play()
+        }
+
+        is LivePauseWatchdog.Decision.Unresolved ->
+            AppLog.log("Player", "Wächter: Live-Pause bleibt nach zwei Fortsetzungsversuchen bestehen (${decision.reason})")
+
+        null -> Unit
+    }
 }
 
 internal fun PlayerViewModel.durationMs(): Long = engineHolder.value?.durationMs?.takeIf { it > 0 } ?: positionState.value.durationMs
