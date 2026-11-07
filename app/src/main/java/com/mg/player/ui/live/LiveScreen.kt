@@ -31,7 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -187,9 +186,7 @@ fun LiveScreen(modifier: Modifier = Modifier) {
                 RestoreScroll(restoreChannelId, channels, listState)
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .focusRestorer(FocusRequester.Default),
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(vertical = 12.dp, horizontal = 6.dp),
                 ) {
                     items(

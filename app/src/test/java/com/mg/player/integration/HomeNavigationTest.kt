@@ -152,27 +152,36 @@ class HomeNavigationTest {
         compose.remote(Key.DirectionDown)
         compose.onNode(isFocused() and hasText("Alle Sender")).assertExists()
         compose.remote(Key.DirectionRight)
-        // Der erste Paging-Eintrag wird erst nach dem Gruppenwechsel angehängt.
+        // Der sichtbare Name ist nach der Quellengruppierung „ZDF“, nicht der rohe FHD-Playlistname.
         compose.waitUntil(5_000) {
-            compose.onAllNodes(isFocused() and hasText("DE: ZDF FHD")).fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodes(isFocused() and hasText("1") and hasText("ZDF")).fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNode(isFocused() and hasText("DE: ZDF FHD")).assertExists()
+        compose.onNode(isFocused() and hasText("1") and hasText("ZDF")).assertExists()
         compose.remote(Key.DirectionDown, times = 6)
         back()
         compose.onNode(isFocused() and hasText("Alle Sender")).assertExists()
         compose.remote(Key.DirectionRight)
-        compose.onNode(isFocused() and hasText("DE: ZDF FHD")).assertExists()
+        compose.waitUntil(5_000) {
+            compose.onAllNodes(isFocused() and hasText("1") and hasText("ZDF")).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNode(isFocused() and hasText("1") and hasText("ZDF")).assertExists()
 
         compose.clickable("Filme").pressOk()
         compose.waitForText("Alle Filme")
         compose.settle()
         compose.remote(Key.DirectionRight)
-        compose.onNode(isFocused() and hasText("DE - Nordlicht (2023) [4K]")).assertExists()
+        compose.waitUntil(5_000) {
+            compose.onAllNodes(isFocused() and hasContentDescription("Nordlicht", substring = true)).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNode(isFocused() and hasContentDescription("Nordlicht", substring = true)).assertExists()
         compose.remote(Key.DirectionDown, times = 10)
         back()
         compose.onNode(isFocused() and hasText("Alle Filme")).assertExists()
         compose.remote(Key.DirectionRight)
-        compose.onNode(isFocused() and hasText("DE - Nordlicht (2023) [4K]")).assertExists()
+        compose.waitUntil(5_000) {
+            compose.onAllNodes(isFocused() and hasContentDescription("Nordlicht", substring = true)).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNode(isFocused() and hasContentDescription("Nordlicht", substring = true)).assertExists()
     }
 
     @Test

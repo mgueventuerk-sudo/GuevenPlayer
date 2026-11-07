@@ -24,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -190,7 +189,6 @@ fun <T : Any> PagingPosterGrid(
     val restoreRequester = remember { FocusRequester() }
     val firstPosterRequester = remember { FocusRequester() }
     var restorePending by remember { mutableStateOf(restoreKey != null) }
-    var firstFocusPending by remember { mutableStateOf(false) }
     var handledFirstFocusRequest by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(focusFirstRequest, items.itemCount, items.loadState.refresh) {
@@ -198,16 +196,13 @@ fun <T : Any> PagingPosterGrid(
         if (items.loadState.refresh is androidx.paging.LoadState.Loading) return@LaunchedEffect
         handledFirstFocusRequest = focusFirstRequest
         restorePending = false
-        firstFocusPending = true
         gridState.scrollToItem(0)
         repeat(40) {
             if (runCatching { firstPosterRequester.requestFocus() }.getOrDefault(false)) {
-                firstFocusPending = false
                 return@LaunchedEffect
             }
             delay(50)
         }
-        firstFocusPending = false
     }
 
     if (items.itemCount == 0) {
@@ -228,7 +223,7 @@ fun <T : Any> PagingPosterGrid(
         // Schlanke Kacheln: ca. 104–150 dp breit, je nach Bildschirm 5–7 Spalten.
         columns = GridCells.Adaptive(minSize = minCellWidth),
         state = gridState,
-        modifier = modifier.focusRestorer(FocusRequester.Default),
+        modifier = modifier,
         // Platz rundum, damit die vergrößerte Kachel samt Schatten nicht abgeschnitten wird.
         contentPadding = contentPadding,
         horizontalArrangement = Arrangement.spacedBy(spacing),
@@ -243,17 +238,15 @@ fun <T : Any> PagingPosterGrid(
             if (item != null) {
                 val poster = remember(item) { toPoster(item) }
                 val isRestoreTarget = restorePending && key(item) == restoreKey
-                val isFirstFocusTarget = firstFocusPending && index == 0
+                val isFirstFocusTarget = index == 0
                 PosterCard(
                     poster,
                     onClick = { onClick(item) },
                     onLongClick = onLongClick?.let { handler -> { handler(item) } },
                     onFocused = { backdrop.url = poster.imageUrl },
-                    modifier = when {
-                        isFirstFocusTarget -> Modifier.focusRequester(firstPosterRequester)
-                        isRestoreTarget -> Modifier.focusRequester(restoreRequester)
-                        else -> Modifier
-                    },
+                    modifier = Modifier
+                        .then(if (isFirstFocusTarget) Modifier.focusRequester(firstPosterRequester) else Modifier)
+                        .then(if (isRestoreTarget) Modifier.focusRequester(restoreRequester) else Modifier),
                 )
                 if (isRestoreTarget) {
                     LaunchedEffect(Unit) {
