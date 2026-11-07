@@ -5,9 +5,12 @@ name: Gerätetests (Emulator)
 # Der Default-Branch dieses Repos heisst nicht "main", sondern ccr-088667a5-xnf5zn. Mit "branches: [ main ]"
 # hat dieser Workflow nie ausgeloest - GitHub kannte ihn gar nicht, und die Rauchtests auf echtem Android
 # (LibVLC, FFmpeg, WireGuard laden nativ) liefen seit ihrer Einfuehrung kein einziges Mal.
+# Nicht mehr bei jedem Push: Drei Emulator-Laeufe plus Baseline-Profil kosteten rund 45 % der Actions-Minuten,
+# am 7.11. war das Monatskontingent (2.000 min, Free-Plan) aufgebraucht und der Release-Job startete nicht mehr.
+# Jetzt einmal naechtlich auf dem Default-Branch und jederzeit von Hand (Actions -> "Run workflow").
 on:
-  push:
-    branches: [ main, 'ccr-*' ]
+  schedule:
+    - cron: '30 2 * * *'
   workflow_dispatch:
 
 permissions:
@@ -85,11 +88,10 @@ jobs:
 
   # Baseline-Profil auf einem Emulator erzeugen (Plan B): Das eingecheckte Profil ist von Hand geschrieben
   # (23 Regeln, Stand 3.39) - ein gemessenes deckt die Pfade ab, die wirklich laufen, statt der vermuteten.
-  # Laeuft nur von Hand bzw. auf dem Default-Branch, weil ein Emulator-Lauf teuer ist. Das Ergebnis kommt als
-  # Artefakt heraus und wird bewusst nicht automatisch committet: Ein Profil, das niemand angesehen hat,
+  # Laeuft wie die Emulator-Tests nur naechtlich bzw. von Hand, weil ein Emulator-Lauf teuer ist. Das Ergebnis kommt
+  # als Artefakt heraus und wird bewusst nicht automatisch committet: Ein Profil, das niemand angesehen hat,
   # gehoert nicht ungeprueft in die App.
   baseline-profile:
-    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'ccr-088667a5-xnf5zn'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
