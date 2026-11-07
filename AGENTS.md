@@ -64,7 +64,8 @@ Bequemlichkeit.
 - Code nur als Diff ausgeben.
 
 ## Definition of Done (Pflicht vor „fertig")
-- Kompiliert + Tests grün + Detekt/Lint ohne NEUE Fehler: `./gradlew test detekt lint`.
+- Kompiliert + Tests grün + Detekt/Lint ohne NEUE Fehler:
+  `./gradlew test detekt lint`.
 - Zusätzlich konkrete manuelle Prüfschritte nennen (was auf Gerät zu
   prüfen ist). Ohne Nachweis gilt nichts als fertig.
 - „Sollte funktionieren" ist verboten. Entweder belegt grün oder klar
@@ -83,3 +84,13 @@ Raten und blindes Scannen sind verboten.
    Nennen, wie der Fix reproduziert wird.
 6. RÜCKFALLEBENE — keine Ursache findbar: ehrlich sagen, Verdachtspunkte
    mit Beleg listen, keinen Schein-Fix.
+
+## Aufräumen (nur auf ausdrücklichen Auftrag)
+Wenn der Nutzer „Aufräumen" beauftragt, gelten diese Grenzen:
+1. IDENTIFIZIEREN — Liste aller Verdachtsdateien (ungenutzte/doppelte
+   Bilder, Assets, tote Referenzen) mit Begründung. NICHTS löschen.
+2. VORLEGEN — Liste + geplante Änderungen als Vorschlag ausgeben und
+   auf Freigabe des Nutzers warten.
+3. LÖSCHEN — erst nach Freigabe, nur die freigegebenen Dateien. Vorher
+   Referenzen im Code prüfen; keine Datei löschen, die noch referenziert
+   wird.
