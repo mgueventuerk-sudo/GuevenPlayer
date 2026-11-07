@@ -85,11 +85,11 @@ jobs:
 
   # Baseline-Profil auf einem Emulator erzeugen (Plan B): Das eingecheckte Profil ist von Hand geschrieben
   # (23 Regeln, Stand 3.39) - ein gemessenes deckt die Pfade ab, die wirklich laufen, statt der vermuteten.
-  # Laeuft nur von Hand bzw. auf dem Default-Branch, weil ein Emulator-Lauf teuer ist. Das Ergebnis kommt als
+  # Laeuft nur von Hand, weil ein Emulator-Lauf teuer ist. Das Ergebnis kommt als
   # Artefakt heraus und wird bewusst nicht automatisch committet: Ein Profil, das niemand angesehen hat,
   # gehoert nicht ungeprueft in die App.
   baseline-profile:
-    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'ccr-088667a5-xnf5zn'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:

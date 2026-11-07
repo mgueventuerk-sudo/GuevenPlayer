@@ -1,7 +1,10 @@
 package com.mg.player.player.proof
 
 import android.graphics.Bitmap
+import android.graphics.ColorSpace
 import android.graphics.PixelFormat
+import android.hardware.HardwareBuffer
+import android.media.Image
 import android.media.ImageReader
 import android.os.Build
 import android.os.Handler
@@ -21,6 +24,7 @@ import com.mg.player.player.engine.Media3Engine
 import com.mg.player.player.engine.PlaybackStatus
 import com.mg.player.player.engine.PlayerEngineFactory
 import com.mg.player.player.engine.StreamRequest
+import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -41,23 +45,28 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
 
     /** null = Sender lief nicht an (Fehler, kein Bild in [START_TIMEOUT_MS]). */
     suspend fun look(request: StreamRequest): ProofLook? = withContext(Dispatchers.Main) {
-        val engine = engines.create(PlayerEngineType.MEDIA3) as? Media3Engine ?: return@withContext null
-        val reader = ImageReader.newInstance(WIDTH, HEIGHT, PixelFormat.RGBA_8888, MAX_IMAGES)
+        val reader = runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) newHardwareReader()
+            else ImageReader.newInstance(WIDTH, HEIGHT, PixelFormat.RGBA_8888, MAX_IMAGES)
+        }.getOrElse { error ->
+            AppLog.log("Sport", "Bildbeweis: Bildausgabe nicht verfügbar (${error.javaClass.simpleName})")
+            return@withContext null
+        }
+        val engine = engines.create(PlayerEngineType.MEDIA3) as? Media3Engine ?: run {
+            reader.close()
+            return@withContext null
+        }
+        val latestImage = AtomicReference<Image?>()
         val frames = ArrayList<Bitmap>()
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                // Der Decoder darf nicht an einem vollen ImageReader warten. Die Bilder werden nur verworfen;
-                // PixelCopy liest die Surface direkt über Androids Grafiksystem, ohne plane.buffer zu berühren.
-                reader.setOnImageAvailableListener({ source -> source.acquireLatestImage()?.close() }, mainHandler)
-            }
+            listenForFrames(reader, latestImage)
             engine.setMuted(true)
             engine.prepare(request.copy(isLive = true, liveCushionMs = 0, autoPlay = true))
             engine.setOffscreenSurface(reader.surface)
             if (!awaitPlaying(engine)) return@withContext null
             repeat(FRAMES) {
                 delay(GAP_MS)
-                (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) copySurface(reader) else withContext(Dispatchers.Default) { grab(reader) })
-                    ?.let(frames::add)
+                captureFrame(reader, latestImage)?.let(frames::add)
             }
             if (frames.isEmpty()) return@withContext null
             val grays = withContext(Dispatchers.Default) {
@@ -70,6 +79,7 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
             engine.setOffscreenSurface(null)
             engine.release()
             reader.setOnImageAvailableListener(null, null)
+            latestImage.getAndSet(null)?.close()
             reader.close()
             // Aufnahmen freigeben: 960×540 sind je 2 MB – sonst bleiben je Blick 6 MB für den Sammler liegen. Die letzte
             // ging an die Texterkennung: Nach einer Zeitüberschreitung kann ML Kit sie noch lesen, die bleibt dem Sammler.
@@ -101,6 +111,48 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
             RgbaPlaneDecoder.pixels(plane.buffer, width, height, plane.rowStride, plane.pixelStride)
         } ?: return null
         return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
+    }
+
+    private fun listenForFrames(reader: ImageReader, latestImage: AtomicReference<Image?>) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Immer das jüngste Bild behalten, damit der Decoder nicht zwischen zwei Proben stehen bleibt.
+            reader.setOnImageAvailableListener({ source ->
+                val next = try {
+                    source.acquireLatestImage()
+                } catch (_: IllegalStateException) {
+                    return@setOnImageAvailableListener
+                } ?: return@setOnImageAvailableListener
+                latestImage.getAndSet(next)?.close()
+            }, mainHandler)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Auf Android 8–9 werden die Bilder verworfen; PixelCopy liest die Surface.
+            reader.setOnImageAvailableListener({ source -> source.acquireLatestImage()?.close() }, mainHandler)
+        }
+    }
+
+    private suspend fun captureFrame(reader: ImageReader, latestImage: AtomicReference<Image?>): Bitmap? = when {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> withContext(Dispatchers.Default) { grabHardware(latestImage.getAndSet(null)) }
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> copySurface(reader)
+        else -> withContext(Dispatchers.Default) { grab(reader) }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun newHardwareReader(): ImageReader = ImageReader.newInstance(
+        WIDTH, HEIGHT, PixelFormat.RGBA_8888, HARDWARE_IMAGES,
+        HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE or HardwareBuffer.USAGE_CPU_READ_OFTEN,
+    )
+
+    /** Übernimmt ein Hardware-Bild als Software-Bitmap, ohne DirectByteBuffer oder copyPixelsFromBuffer. */
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun grabHardware(image: Image?): Bitmap? = image?.use { frame ->
+        frame.hardwareBuffer?.use { buffer ->
+            val wrapped = Bitmap.wrapHardwareBuffer(buffer, ColorSpace.get(ColorSpace.Named.SRGB)) ?: return@use null
+            try {
+                wrapped.copy(Bitmap.Config.ARGB_8888, false)
+            } finally {
+                wrapped.recycle()
+            }
+        }
     }
 
     /** PixelCopy benutzt keinen Java- oder nativen Zugriff auf ImageReader.Plane.buffer. */
@@ -135,6 +187,7 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
         private const val WIDTH = 960
         private const val HEIGHT = 540
         private const val MAX_IMAGES = 2
+        private const val HARDWARE_IMAGES = 3
         private const val FRAMES = 3
         const val GAP_MS = 2_500L
         private const val START_TIMEOUT_MS = 10_000L
