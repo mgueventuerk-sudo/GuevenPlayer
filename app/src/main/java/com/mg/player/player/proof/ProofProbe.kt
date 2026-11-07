@@ -3,10 +3,12 @@ package com.mg.player.player.proof
 import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.media.ImageReader
+import android.os.Build
 import androidx.core.graphics.scale
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.mg.player.core.log.AppLog
 import com.mg.player.data.sport.proof.FrameDiff
 import com.mg.player.data.sport.proof.ProofLook
 import com.mg.player.domain.model.PlayerEngineType
@@ -14,6 +16,7 @@ import com.mg.player.player.engine.Media3Engine
 import com.mg.player.player.engine.PlaybackStatus
 import com.mg.player.player.engine.PlayerEngineFactory
 import com.mg.player.player.engine.StreamRequest
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -30,9 +33,16 @@ import kotlin.coroutines.resume
 class ProofProbe(private val engines: PlayerEngineFactory, private val readText: Boolean = true) {
 
     private val recognizer by lazy { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
+    private val unsupportedLogged = AtomicBoolean(false)
 
     /** null = Sender lief nicht an (Fehler, kein Bild in [START_TIMEOUT_MS]). */
     suspend fun look(request: StreamRequest): ProofLook? = withContext(Dispatchers.Main) {
+        if (!ProofCapturePolicy.supported(Build.VERSION.SDK_INT)) {
+            if (unsupportedLogged.compareAndSet(false, true)) {
+                AppLog.log("Sport", "Automatischer Bildbeweis auf Android 17 ausgesetzt (nativer ImageReader-Absturz)")
+            }
+            return@withContext null
+        }
         val engine = engines.create(PlayerEngineType.MEDIA3) as? Media3Engine ?: return@withContext null
         val reader = ImageReader.newInstance(WIDTH, HEIGHT, PixelFormat.RGBA_8888, MAX_IMAGES)
         val frames = ArrayList<Bitmap>()
