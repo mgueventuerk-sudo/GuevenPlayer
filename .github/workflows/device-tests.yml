@@ -1,7 +1,7 @@
 name: Gerätetests (Emulator)
 
 # Rauchtests auf echtem Android: Start, SQLite, native Bibliotheken (LibVLC, FFmpeg, WireGuard), Media3.
-# Android 7 (API 24, ältestes unterstütztes), Android 9 (API 28, Fire TV/viele TV-Boxen) und Android 14 (API 34).
+# Android 7 (API 24, ältestes unterstütztes), Android 9 (API 28, Fire TV) und Android 17 (API 37, aktuelles Handy).
 # Der Default-Branch dieses Repos heisst nicht "main", sondern ccr-088667a5-xnf5zn. Mit "branches: [ main ]"
 # hat dieser Workflow nie ausgeloest - GitHub kannte ihn gar nicht, und die Rauchtests auf echtem Android
 # (LibVLC, FFmpeg, WireGuard laden nativ) liefen seit ihrer Einfuehrung kein einziges Mal.
@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api-level: [ 24, 28, 34 ]
+        api-level: [ 24, 28, 37 ]
     steps:
       - name: Code auschecken
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -69,7 +69,7 @@ jobs:
         with:
           api-level: ${{ matrix.api-level }}
           arch: x86_64
-          target: ${{ matrix.api-level == 34 && 'google_apis' || 'default' }}
+          target: ${{ matrix.api-level >= 34 && 'google_apis' || 'default' }}
           disable-animations: true
           disk-size: 6144M
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
