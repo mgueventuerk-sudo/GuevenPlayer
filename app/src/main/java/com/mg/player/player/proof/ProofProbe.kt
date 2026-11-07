@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.view.PixelCopy
+import androidx.annotation.RequiresApi
 import androidx.core.graphics.scale
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
@@ -43,7 +44,7 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
         val reader = ImageReader.newInstance(WIDTH, HEIGHT, PixelFormat.RGBA_8888, MAX_IMAGES)
         val frames = ArrayList<Bitmap>()
         try {
-            if (ProofCapturePolicy.usePixelCopy(Build.VERSION.SDK_INT)) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 // Der Decoder darf nicht an einem vollen ImageReader warten. Die Bilder werden nur verworfen;
                 // PixelCopy liest die Surface direkt über Androids Grafiksystem, ohne plane.buffer zu berühren.
                 reader.setOnImageAvailableListener({ source -> source.acquireLatestImage()?.close() }, mainHandler)
@@ -54,7 +55,7 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
             if (!awaitPlaying(engine)) return@withContext null
             repeat(FRAMES) {
                 delay(GAP_MS)
-                (if (ProofCapturePolicy.usePixelCopy(Build.VERSION.SDK_INT)) copySurface(reader) else withContext(Dispatchers.Default) { grab(reader) })
+                (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) copySurface(reader) else withContext(Dispatchers.Default) { grab(reader) })
                     ?.let(frames::add)
             }
             if (frames.isEmpty()) return@withContext null
@@ -102,6 +103,7 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
     }
 
     /** PixelCopy benutzt keinen Java- oder nativen Zugriff auf ImageReader.Plane.buffer. */
+    @RequiresApi(Build.VERSION_CODES.O)
     private suspend fun copySurface(reader: ImageReader): Bitmap? {
         val frame = Bitmap.createBitmap(WIDTH, HEIGHT, Bitmap.Config.ARGB_8888)
         val copied = suspendCancellableCoroutine { cont ->
