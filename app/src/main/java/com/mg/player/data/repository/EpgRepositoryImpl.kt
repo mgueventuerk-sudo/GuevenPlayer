@@ -1,6 +1,7 @@
 package com.mg.player.data.repository
 
 import android.content.Context
+import android.util.LruCache
 import androidx.core.content.edit
 import com.mg.player.core.log.AppLog
 import com.mg.player.data.combined.Combined
@@ -21,7 +22,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
-import java.util.concurrent.ConcurrentHashMap
 
 class EpgRepositoryImpl(
     context: Context,
@@ -37,14 +37,14 @@ class EpgRepositoryImpl(
 
     private data class CachedShortEpg(val loadedAtMs: Long, val programs: List<EpgProgram>)
 
-    private val shortEpgCache = ConcurrentHashMap<String, CachedShortEpg>()
+    private val shortEpgCache = LruCache<String, CachedShortEpg>(MAX_SHORT_EPG_CHANNELS)
 
     /** Höchstens vier gleichzeitige get_short_epg-Anfragen – manche Panels sperren sonst den Account. */
     private val shortEpgPermits = Semaphore(MAX_PARALLEL_SHORT_EPG)
 
     override suspend fun refresh(playlist: Playlist, onProgress: (ImportProgress) -> Unit) = withContext(Dispatchers.IO) {
         val entity = db.playlistDao().get(playlist.id) ?: return@withContext
-        shortEpgCache.clear()
+        shortEpgCache.evictAll()
         val key = playlist.id.toString()
         attempts.edit {
             putLong(key, System.currentTimeMillis())
@@ -92,7 +92,7 @@ class EpgRepositoryImpl(
             AppLog.debug("EPG", "get_short_epg fehlgeschlagen: ${e.javaClass.simpleName}")
             emptyList()
         }
-        shortEpgCache[channelId] = CachedShortEpg(System.currentTimeMillis(), programs)
+        shortEpgCache.put(channelId, CachedShortEpg(System.currentTimeMillis(), programs))
         return programs
     }
 
@@ -113,12 +113,13 @@ class EpgRepositoryImpl(
     }
 
     override suspend fun clear() = withContext(Dispatchers.IO) {
-        shortEpgCache.clear()
+        shortEpgCache.evictAll()
         db.epgDao().deleteAll()
         db.epgDao().deleteAllActive()
     }
 
     private companion object {
+        const val MAX_SHORT_EPG_CHANNELS = 128
         const val CACHE_TTL_MS = 10 * 60_000L
         const val MAX_PARALLEL_SHORT_EPG = 4
         const val SUCCESS_PREFIX = "ok_"

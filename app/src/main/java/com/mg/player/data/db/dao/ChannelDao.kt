@@ -73,7 +73,7 @@ abstract class ChannelDao {
     // Index-Zugriff statt eines GROUP BY über alle Sender.
     @Query(
         "SELECT c.*, $NO_NOW, g.variantsCat AS variants FROM channel_flags g INNER JOIN channels c ON c.id = g.channelId " +
-            "WHERE g.playlistId = :playlistId AND g.categoryId = :categoryId AND g.primaryCat = 1 ORDER BY g.sortIndex " +
+            "WHERE g.playlistId = :playlistId AND g.categoryId = :categoryId AND g.primaryCat = 1 ORDER BY g.sortIndex, g.rowid " +
             "LIMIT :limit OFFSET :offset",
     )
     abstract suspend fun pageByCategory(playlistId: Long, categoryId: String, limit: Int, offset: Int): List<ChannelWithNow>
@@ -81,7 +81,7 @@ abstract class ChannelDao {
     // EXCLUDE_RESTRICTED zusätzlich: Eine gerade ausgeblendete Gruppe verschwindet sofort, nicht erst nach dem Neuaufbau.
     @Query(
         "SELECT c.*, $NO_NOW, g.variantsAll AS variants FROM channel_flags g INNER JOIN channels c ON c.id = g.channelId " +
-            "WHERE g.playlistId = :playlistId AND g.primaryAll = 1 AND $EXCLUDE_RESTRICTED ORDER BY g.sortIndex " +
+            "WHERE g.playlistId = :playlistId AND g.primaryAll = 1 AND $EXCLUDE_RESTRICTED ORDER BY g.sortIndex, g.rowid " +
             "LIMIT :limit OFFSET :offset",
     )
     abstract suspend fun pageAll(playlistId: Long, limit: Int, offset: Int): List<ChannelWithNow>
@@ -157,15 +157,35 @@ abstract class ChannelDao {
     // Für das Zappen: pro Sender-Gruppe nur die beste Variante, in Listenreihenfolge.
     @Query(
         "SELECT g.channelId FROM channel_flags g WHERE g.playlistId = :playlistId AND g.categoryId = :categoryId " +
-            "AND g.primaryCat = 1 ORDER BY g.sortIndex",
+            "AND g.primaryCat = 1 ORDER BY g.sortIndex, g.rowid",
     )
     abstract suspend fun idsByCategory(playlistId: Long, categoryId: String): List<String>
 
     @Query(
         "SELECT g.channelId FROM channel_flags g WHERE g.playlistId = :playlistId AND g.primaryAll = 1 " +
-            "AND g.categoryId NOT IN (SELECT categoryId FROM category_prefs WHERE hidden = 1 OR locked = 1) ORDER BY g.sortIndex",
+            "AND g.categoryId NOT IN (SELECT categoryId FROM category_prefs WHERE hidden = 1 OR locked = 1) ORDER BY g.sortIndex, g.rowid",
     )
     abstract suspend fun idsAll(playlistId: Long): List<String>
+
+    @Query(
+        "SELECT COALESCE((SELECT (SELECT COUNT(*) FROM channel_flags g " +
+            "WHERE g.playlistId = :playlistId AND g.categoryId = :categoryId AND g.primaryCat = 1 " +
+            "AND (g.sortIndex < target.sortIndex OR (g.sortIndex = target.sortIndex AND g.rowid < target.rowid))) " +
+            "FROM channel_flags target WHERE target.channelId = :channelId AND target.playlistId = :playlistId " +
+            "AND target.categoryId = :categoryId AND target.primaryCat = 1), -1)",
+    )
+    abstract suspend fun positionByCategory(playlistId: Long, categoryId: String, channelId: String): Int
+
+    @Query(
+        "SELECT COALESCE((SELECT (SELECT COUNT(*) FROM channel_flags g " +
+            "WHERE g.playlistId = :playlistId AND g.primaryAll = 1 AND g.categoryId NOT IN " +
+            "(SELECT categoryId FROM category_prefs WHERE hidden = 1 OR locked = 1) " +
+            "AND (g.sortIndex < target.sortIndex OR (g.sortIndex = target.sortIndex AND g.rowid < target.rowid))) " +
+            "FROM channel_flags target WHERE target.channelId = :channelId AND target.playlistId = :playlistId " +
+            "AND target.primaryAll = 1 AND target.categoryId NOT IN " +
+            "(SELECT categoryId FROM category_prefs WHERE hidden = 1 OR locked = 1)), -1)",
+    )
+    abstract suspend fun positionAll(playlistId: Long, channelId: String): Int
 
     @Query(
         "SELECT id FROM (SELECT c.id AS id, (f.itemId IS NULL) AS notFavorite, f.addedAtMs AS addedAt, " +

@@ -284,7 +284,7 @@ class LiveViewModel(private val container: AppContainer) : ViewModel() {
         val playlist = playlistId.value ?: return
         val category = categoryId?.takeIf { canReopen(it) } ?: _selectedCategoryId.value
         val position = try {
-            liveRepo.channelIds(playlist, category).indexOf(channelId)
+            liveRepo.channelPosition(playlist, category, channelId)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {

@@ -21,6 +21,7 @@ import com.mg.player.domain.model.TmdbInfo
 import com.mg.player.domain.model.TmdbLibraryMatch
 import com.mg.player.domain.model.TmdbRecommendation
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 
 data class PlaylistInput(
     val name: String,
@@ -81,6 +82,9 @@ interface LiveRepository {
     fun channels(playlistId: Long, categoryId: String, startAt: Int = 0): Flow<PagingData<Channel>>
     suspend fun channel(id: String): Channel?
     suspend fun channelIds(playlistId: Long, categoryId: String): List<String>
+
+    suspend fun channelPosition(playlistId: Long, categoryId: String, channelId: String): Int =
+        channelIds(playlistId, categoryId).indexOf(channelId)
 
     /** Alle Stream-Varianten eines Senders, beste Qualität zuerst; mindestens der Sender selbst. */
     suspend fun variants(channel: Channel): List<Channel>
@@ -148,6 +152,11 @@ interface SearchRepository {
 
     /** Wie [searchAll], zusätzlich die Treffer je Playlist für die Seiten der Suche. */
     suspend fun searchPages(query: String, activePlaylistId: Long?): SearchPages
+
+    /** Teilergebnisse bis alle Zugänge durchsucht sind. */
+    fun observeSearchPages(query: String, activePlaylistId: Long?) = flow {
+        emit(searchPages(query, activePlaylistId))
+    }
 
     /** Suchindex im Hintergrund aufbauen, falls er fehlt oder ein älteres Format hat. */
     suspend fun prepare(playlistId: Long)
