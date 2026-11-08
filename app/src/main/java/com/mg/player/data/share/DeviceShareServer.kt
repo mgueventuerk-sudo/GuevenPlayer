@@ -16,7 +16,7 @@ class DeviceShareServer(
     private val exportBackup: suspend () -> String?,
     /** Hochgeladene Sicherungsdatei -> Rückmeldung fürs Handy; null = /restore ist zu (nur „Wiederherstellen“ öffnet ihn). */
     private val receiveBackup: (suspend (String) -> Reply)? = null,
-    private val readLog: () -> String,
+    private val readLog: suspend () -> String,
     /** VPN-Konfiguration (im Browser verschlüsselt) -> Rückmeldung fürs Handy. */
     private val receiveVpn: suspend (String) -> Reply = { Reply(false, "Nicht verfügbar", "Bitte am Fernseher „VPN einrichten“ öffnen.") },
     /** Fehlerprotokoll nur in „Protokoll teilen“ – das Token der anderen Seiten geht im Klartext durchs WLAN. */
