@@ -157,4 +157,8 @@ data class PlaylistHits(val playlistId: Long, val name: String, val hits: List<S
 
 /** Ergebnis der Suche: „Alle Playlists“ zusammengeführt plus eine Seite je Playlist (auch ohne Treffer). */
 @Immutable
-data class SearchPages(val all: List<SearchHit>, val playlists: List<PlaylistHits>)
+data class SearchPages(
+    val all: List<SearchHit>,
+    val playlists: List<PlaylistHits>,
+    val pendingPlaylistIds: Set<Long> = emptySet(),
+)

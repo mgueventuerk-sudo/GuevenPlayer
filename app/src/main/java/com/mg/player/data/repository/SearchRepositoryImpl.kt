@@ -11,6 +11,7 @@ import com.mg.player.data.search.SearchIndexer
 import com.mg.player.data.search.SearchText
 import com.mg.player.data.search.SourceHits
 import com.mg.player.data.search.mergeAcrossPlaylists
+import com.mg.player.data.search.parallelSearchResults
 import com.mg.player.data.search.searchRelevance
 import com.mg.player.domain.model.ContentType
 import com.mg.player.domain.model.PlaylistHits
@@ -20,9 +21,10 @@ import com.mg.player.domain.repository.SearchRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Collections
@@ -74,28 +76,39 @@ class SearchRepositoryImpl(private val db: AppDatabase, private val indexer: Sea
 
     override suspend fun searchAll(query: String, activePlaylistId: Long?): List<SearchHit> = searchPages(query, activePlaylistId).all
 
-    override suspend fun searchPages(query: String, activePlaylistId: Long?): SearchPages = withContext(Dispatchers.IO) {
-        // „Alle Zugänge“: jeder Inhalt einmal (die Kombination ist schon zusammengeführt).
+    override suspend fun searchPages(query: String, activePlaylistId: Long?): SearchPages =
+        observeSearchPages(query, activePlaylistId).last()
+
+    override fun observeSearchPages(query: String, activePlaylistId: Long?): Flow<SearchPages> = flow {
         if (Combined.isCombined(activePlaylistId)) {
             val hits = search(Combined.ID, query)
-            return@withContext SearchPages(hits, listOf(PlaylistHits(Combined.ID, Combined.NAME, hits)))
+            emit(SearchPages(hits, listOf(PlaylistHits(Combined.ID, Combined.NAME, hits))))
+            return@flow
         }
         val playlists = db.playlistDao().all().sortedBy { if (it.id == activePlaylistId) 0 else 1 }
-        // Parallel: Jeder Zugang hat seinen eigenen Index, die Abfragen blockieren sich nicht.
-        // Einmal suchen, dann auf die Seiten verteilen – beim Wischen zwischen den Seiten wird nichts neu geladen.
-        val sources = coroutineScope {
-            playlists.map { p -> async { SourceHits(p.id, p.name, search(p.id, query)) } }.awaitAll()
+        if (playlists.isEmpty()) {
+            emit(SearchPages(emptyList(), emptyList()))
+            return@flow
         }
-        val withHits = sources.filter { it.hits.isNotEmpty() }
-        val all = when {
-            withHits.isEmpty() -> emptyList()
-            playlists.size == 1 -> withHits.first().hits
-            else -> mergeAcrossPlaylists(withHits, query, LIMIT * 2)
+
+        val pending = playlists.mapTo(linkedSetOf()) { it.id }
+        val completedById = mutableMapOf<Long, SourceHits>()
+        parallelSearchResults(playlists, MAX_PARALLEL_PLAYLISTS) { playlist ->
+            SourceHits(playlist.id, playlist.name, search(playlist.id, query))
+        }.collect { completed ->
+            completedById[completed.playlistId] = completed
+            pending.remove(completed.playlistId)
+            val sources = playlists.mapNotNull { completedById[it.id] }
+            val withHits = sources.filter { it.hits.isNotEmpty() }
+            val all = when {
+                withHits.isEmpty() -> emptyList()
+                playlists.size == 1 -> withHits.first().hits
+                else -> mergeAcrossPlaylists(withHits, query, LIMIT * 2)
+            }
+            val pages = sources.sortedBy { it.playlistId }.map { PlaylistHits(it.playlistId, it.name, it.hits) }
+            emit(SearchPages(all, pages, pending.toSet()))
         }
-        // Seitenreihenfolge wie die Zugänge (nach ID), nicht nach „aktiv zuerst“ – sonst springen die Tabs beim Wechsel.
-        val pages = sources.sortedBy { it.playlistId }.map { PlaylistHits(it.playlistId, it.name, it.hits) }
-        SearchPages(all, pages)
-    }
+    }.flowOn(Dispatchers.IO)
 
     /** Index für diesen Zugang vorbereiten, falls er fehlt (z. B. beim App-Start nach einem Update). */
     override suspend fun prepare(playlistId: Long) {
@@ -175,6 +188,7 @@ class SearchRepositoryImpl(private val db: AppDatabase, private val indexer: Sea
 
     private companion object {
         const val LIMIT = 60
+        const val MAX_PARALLEL_PLAYLISTS = 3
         const val SPARSE_RESULTS = 10
         const val MIN_QUERY = 2
 

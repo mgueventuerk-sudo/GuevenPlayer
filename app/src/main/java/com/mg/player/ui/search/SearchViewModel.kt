@@ -8,15 +8,17 @@ import com.mg.player.domain.model.Playlist
 import com.mg.player.domain.model.SearchPages
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
 
 /**
@@ -48,13 +50,13 @@ class SearchViewModel(private val container: AppContainer) : ViewModel() {
 
     /** null = noch kein Suchbegriff (weniger als zwei Zeichen). */
     val results: StateFlow<SearchPages?> = _query
-        .debounce(350)
-        .mapLatest { q ->
+        .transformLatest<String, SearchPages?> { q ->
             if (q.trim().length < 2) {
-                null
+                emit(null)
             } else {
+                delay(350)
                 val active = container.settingsRepository.current().activePlaylistId
-                container.searchRepository.searchPages(q, active)
+                emitAll(container.searchRepository.observeSearchPages(q, active))
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)

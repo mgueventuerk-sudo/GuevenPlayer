@@ -182,6 +182,11 @@ private fun SearchPage(
     val hits = if (pageId == null) pages.all else pages.playlists.firstOrNull { it.playlistId == pageId }?.hits.orEmpty()
     val sections = remember(hits, filter) { (if (filter == null) hits else hits.filter { it.type == filter }).toSections() }
     if (sections.isEmpty()) {
+        val pending = if (pageId == null) pages.pendingPlaylistIds.isNotEmpty() else pageId in pages.pendingPlaylistIds
+        if (pending) {
+            CenteredMessage("Suche läuft …", icon = AppIcons.Search)
+            return
+        }
         val name = playlists.firstOrNull { it.id == pageId }?.name
         CenteredMessage(
             if (name == null) "Keine Treffer für „$query“" else "Keine Treffer in „$name“",

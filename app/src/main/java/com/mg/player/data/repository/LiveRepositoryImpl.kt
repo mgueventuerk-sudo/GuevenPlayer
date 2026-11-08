@@ -138,6 +138,20 @@ class LiveRepositoryImpl(
         }
     }
 
+    override suspend fun channelPosition(playlistId: Long, categoryId: String, channelId: String): Int =
+        withContext(Dispatchers.IO) {
+            when (categoryId) {
+                Category.FAVORITES, Category.RECENT, Category.FREQUENT ->
+                    channelIds(playlistId, categoryId).indexOf(channelId)
+                else -> {
+                    groupIndex.ensure(playlistId)
+                    val dao = db.channelDao()
+                    if (categoryId == Category.ALL) dao.positionAll(playlistId, channelId)
+                    else dao.positionByCategory(playlistId, categoryId, channelId)
+                }
+            }
+        }
+
     /** „Oft gesehen“: Reihenfolge aus den Sehgewohnheiten, nur Sender dieses Zugangs und keine gesperrten. */
     private suspend fun frequent(playlistId: Long): List<ChannelWithNow> {
         val ids = habits?.top().orEmpty()

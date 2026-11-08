@@ -1,6 +1,7 @@
 package com.mg.player.data.repository
 
 import android.content.Context
+import android.util.LruCache
 import androidx.core.content.edit
 import com.mg.player.core.log.AppLog
 import com.mg.player.data.combined.Combined
@@ -18,10 +19,11 @@ import com.mg.player.domain.repository.EpgRepository
 import com.mg.player.domain.repository.ImportProgress
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
-import java.util.concurrent.ConcurrentHashMap
 
 class EpgRepositoryImpl(
     context: Context,
@@ -37,14 +39,17 @@ class EpgRepositoryImpl(
 
     private data class CachedShortEpg(val loadedAtMs: Long, val programs: List<EpgProgram>)
 
-    private val shortEpgCache = ConcurrentHashMap<String, CachedShortEpg>()
+    private class ShortEpgRequest(val mutex: Mutex = Mutex(), var callers: Int = 0)
+
+    private val shortEpgRequests = mutableMapOf<String, ShortEpgRequest>()
+    private val shortEpgCache = LruCache<String, CachedShortEpg>(MAX_SHORT_EPG_CHANNELS)
 
     /** Höchstens vier gleichzeitige get_short_epg-Anfragen – manche Panels sperren sonst den Account. */
     private val shortEpgPermits = Semaphore(MAX_PARALLEL_SHORT_EPG)
 
     override suspend fun refresh(playlist: Playlist, onProgress: (ImportProgress) -> Unit) = withContext(Dispatchers.IO) {
         val entity = db.playlistDao().get(playlist.id) ?: return@withContext
-        shortEpgCache.clear()
+        shortEpgCache.evictAll()
         val key = playlist.id.toString()
         attempts.edit {
             putLong(key, System.currentTimeMillis())
@@ -76,15 +81,32 @@ class EpgRepositoryImpl(
             for (source in sources) shortEpg(source).takeIf { it.isNotEmpty() }?.let { return it }
             return emptyList()
         }
-        val row = db.channelDao().get(channelId, System.currentTimeMillis()) ?: return emptyList()
-        if (row.channel.remoteId.isBlank()) return emptyList()
-        val playlist = db.playlistDao().get(row.channel.playlistId) ?: return emptyList()
-        if (playlist.type != PlaylistType.XTREAM.name) return emptyList()
+        val request = synchronized(shortEpgRequests) {
+            shortEpgRequests.getOrPut(channelId) { ShortEpgRequest() }.also { it.callers++ }
+        }
+        try {
+            return request.mutex.withLock {
+                val latest = shortEpgCache[channelId]
+                if (latest != null && System.currentTimeMillis() - latest.loadedAtMs < CACHE_TTL_MS) latest.programs
+                else loadShortEpg(channelId)
+            }
+        } finally {
+            synchronized(shortEpgRequests) {
+                request.callers--
+                if (request.callers == 0) shortEpgRequests.remove(channelId)
+            }
+        }
+    }
+
+    private suspend fun loadShortEpg(channelId: String): List<EpgProgram> {
+        val channel = db.channelDao().entity(channelId)?.takeIf { it.remoteId.isNotBlank() } ?: return emptyList()
+        val playlist = db.playlistDao().get(channel.playlistId)?.takeIf { it.type == PlaylistType.XTREAM.name }
+            ?: return emptyList()
         val programs = try {
             val shift = epgShiftMs(playlist.id)
             // Wartende Anfragen werden beim Wegscrollen abgebrochen, bevor sie überhaupt starten.
             shortEpgPermits.withPermit {
-                api.openShortEpg(api.credentials(playlist), row.channel.remoteId).use { XmltvParser.parseShortEpg(it) }
+                api.openShortEpg(api.credentials(playlist), channel.remoteId).use { XmltvParser.parseShortEpg(it) }
             }.map { EpgProgram(it.title, it.description, it.startMs + shift, it.endMs + shift) }
         } catch (e: CancellationException) {
             throw e
@@ -92,7 +114,7 @@ class EpgRepositoryImpl(
             AppLog.debug("EPG", "get_short_epg fehlgeschlagen: ${e.javaClass.simpleName}")
             emptyList()
         }
-        shortEpgCache[channelId] = CachedShortEpg(System.currentTimeMillis(), programs)
+        shortEpgCache.put(channelId, CachedShortEpg(System.currentTimeMillis(), programs))
         return programs
     }
 
@@ -113,12 +135,13 @@ class EpgRepositoryImpl(
     }
 
     override suspend fun clear() = withContext(Dispatchers.IO) {
-        shortEpgCache.clear()
+        shortEpgCache.evictAll()
         db.epgDao().deleteAll()
         db.epgDao().deleteAllActive()
     }
 
     private companion object {
+        const val MAX_SHORT_EPG_CHANNELS = 128
         const val CACHE_TTL_MS = 10 * 60_000L
         const val MAX_PARALLEL_SHORT_EPG = 4
         const val SUCCESS_PREFIX = "ok_"
