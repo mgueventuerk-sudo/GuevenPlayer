@@ -99,15 +99,14 @@ class EpgRepositoryImpl(
     }
 
     private suspend fun loadShortEpg(channelId: String): List<EpgProgram> {
-        val row = db.channelDao().get(channelId, System.currentTimeMillis()) ?: return emptyList()
-        if (row.channel.remoteId.isBlank()) return emptyList()
-        val playlist = db.playlistDao().get(row.channel.playlistId) ?: return emptyList()
-        if (playlist.type != PlaylistType.XTREAM.name) return emptyList()
+        val channel = db.channelDao().entity(channelId)?.takeIf { it.remoteId.isNotBlank() } ?: return emptyList()
+        val playlist = db.playlistDao().get(channel.playlistId)?.takeIf { it.type == PlaylistType.XTREAM.name }
+            ?: return emptyList()
         val programs = try {
             val shift = epgShiftMs(playlist.id)
             // Wartende Anfragen werden beim Wegscrollen abgebrochen, bevor sie überhaupt starten.
             shortEpgPermits.withPermit {
-                api.openShortEpg(api.credentials(playlist), row.channel.remoteId).use { XmltvParser.parseShortEpg(it) }
+                api.openShortEpg(api.credentials(playlist), channel.remoteId).use { XmltvParser.parseShortEpg(it) }
             }.map { EpgProgram(it.title, it.description, it.startMs + shift, it.endMs + shift) }
         } catch (e: CancellationException) {
             throw e
