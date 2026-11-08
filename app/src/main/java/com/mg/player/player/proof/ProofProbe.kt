@@ -1,7 +1,6 @@
 package com.mg.player.player.proof
 
 import android.graphics.Bitmap
-import android.graphics.ColorSpace
 import android.graphics.ImageFormat
 import android.graphics.PixelFormat
 import android.hardware.HardwareBuffer
@@ -26,7 +25,6 @@ import com.mg.player.player.engine.PlaybackStatus
 import com.mg.player.player.engine.PlayerEngineFactory
 import com.mg.player.player.engine.StreamRequest
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -49,13 +47,15 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
     /** null = Sender lief nicht an (Fehler, kein Bild in [START_TIMEOUT_MS]). */
     suspend fun look(request: StreamRequest): ProofLook? = withContext(Dispatchers.Main) {
         val reader = runCatching {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) newHardwareReader()
-            // PRIVATE lässt den Decoder sein natives Surface-Format wählen. Auf Fire TV Android 9
-            // liefert der Decoder YUV 4:2:0 (0x11), was ein RGBA-ImageReader nicht annehmen kann.
-            else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // PRIVATE lässt den Decoder sein natives Surface-Format wählen. Decoder können YUV
+            // ausgeben; ein RGBA-ImageReader verursacht dann beim acquireLatestImage einen Absturz.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ImageReader.newInstance(WIDTH, HEIGHT, ImageFormat.PRIVATE, MAX_IMAGES, HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE)
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 ImageReader.newInstance(WIDTH, HEIGHT, ImageFormat.PRIVATE, MAX_IMAGES)
+            } else {
+                ImageReader.newInstance(WIDTH, HEIGHT, PixelFormat.RGBA_8888, MAX_IMAGES)
             }
-            else ImageReader.newInstance(WIDTH, HEIGHT, PixelFormat.RGBA_8888, MAX_IMAGES)
         }.getOrElse { error ->
             AppLog.log("Sport", "Bildbeweis: Bildausgabe nicht verfügbar (${error.javaClass.simpleName})")
             return@withContext null
@@ -64,17 +64,26 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
             reader.close()
             return@withContext null
         }
-        val latestImage = AtomicReference<Image?>()
         val frames = ArrayList<Bitmap>()
+        val latestFrame = LatestProofFrame { acquireLatestImage(reader) }
         try {
-            listenForFrames(reader, latestImage)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                reader.setOnImageAvailableListener({ _ ->
+                    latestFrame.onFrame()
+                }, mainHandler)
+            }
             engine.setMuted(true)
             engine.prepare(request.copy(isLive = true, liveCushionMs = 0, autoPlay = true))
             engine.setOffscreenSurface(reader.surface)
             if (!awaitPlaying(engine)) return@withContext null
             repeat(FRAMES) {
                 delay(GAP_MS)
-                captureFrame(reader, latestImage)?.let(frames::add)
+                latestFrame.beginCopy()
+                try {
+                    captureFrame(reader, latestFrame.image)?.let(frames::add)
+                } finally {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) latestFrame.finishCopy()
+                }
             }
             if (frames.isEmpty()) return@withContext null
             val grays = withContext(Dispatchers.Default) {
@@ -84,10 +93,11 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
             val texts = if (readText) withTimeoutOrNull(OCR_TIMEOUT_MS) { recognize(frames.last()) }.orEmpty() else emptyList()
             ProofLook(texts, FrameDiff.isStatic(grays))
         } finally {
+            reader.setOnImageAvailableListener(null, null)
+            latestFrame.close()
+            acquireLatestImage(reader)?.close()
             engine.setOffscreenSurface(null)
             engine.release()
-            reader.setOnImageAvailableListener(null, null)
-            latestImage.getAndSet(null)?.close()
             reader.close()
             // Aufnahmen freigeben: 960×540 sind je 2 MB – sonst bleiben je Blick 6 MB für den Sammler liegen. Die letzte
             // ging an die Texterkennung: Nach einer Zeitüberschreitung kann ML Kit sie noch lesen, die bleibt dem Sammler.
@@ -109,48 +119,6 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
         result
     } == true
 
-    /** Neueste Aufnahme als Bitmap (Zeilenabstand des Puffers berücksichtigt). */
-    private fun grab(reader: ImageReader): Bitmap? {
-        val image = acquireLatestImage(reader) ?: return null
-        val width = image.width
-        val height = image.height
-        val pixels = image.use {
-            val plane = it.planes.firstOrNull() ?: return@use null
-            RgbaPlaneDecoder.pixels(plane.buffer, width, height, plane.rowStride, plane.pixelStride)
-        } ?: return null
-        return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
-    }
-
-    private fun listenForFrames(reader: ImageReader, latestImage: AtomicReference<Image?>) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Immer das jüngste Bild behalten, damit der Decoder nicht zwischen zwei Proben stehen bleibt.
-            reader.setOnImageAvailableListener({ source ->
-                try {
-                    val next = acquireLatestImage(source) ?: return@setOnImageAvailableListener
-                    latestImage.getAndSet(next)?.close()
-                } catch (error: IllegalStateException) {
-                    // Kein Fehler im Decoder darf aus dem Framework-Callback in den Main-Thread laufen.
-                    logImageReaderFailure(error)
-                } catch (error: UnsupportedOperationException) {
-                    // Kein Fehler im Decoder darf aus dem Framework-Callback in den Main-Thread laufen.
-                    logImageReaderFailure(error)
-                }
-            }, mainHandler)
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Private Images werden nur freigegeben; PixelCopy liest die Surface in eine Bitmap.
-            // Das PRIVATE-Format passt sich dem tatsächlichen Decoder-Format (auch YUV 0x11) an.
-            reader.setOnImageAvailableListener({ source ->
-                try {
-                    acquireLatestImage(source)?.close()
-                } catch (error: IllegalStateException) {
-                    logImageReaderFailure(error)
-                } catch (error: UnsupportedOperationException) {
-                    logImageReaderFailure(error)
-                }
-            }, mainHandler)
-        }
-    }
-
     private fun acquireLatestImage(reader: ImageReader): Image? = acquireImageSafely(
         acquire = { reader.acquireLatestImage() },
         onFailure = ::logImageReaderFailure,
@@ -162,29 +130,22 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
         }
     }
 
-    private suspend fun captureFrame(reader: ImageReader, latestImage: AtomicReference<Image?>): Bitmap? = when {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> withContext(Dispatchers.Default) { grabHardware(latestImage.getAndSet(null)) }
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> copySurface(reader)
-        else -> withContext(Dispatchers.Default) { grab(reader) }
+    private suspend fun captureFrame(reader: ImageReader, image: Image?): Bitmap? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        // Das Decoder-Bild bleibt bis zum PixelCopy-Callback gültig.
+        if (image != null) copySurface(reader) else null
+    } else {
+        withContext(Dispatchers.Default) { grab(reader) }
     }
 
-    @RequiresApi(Build.VERSION_CODES.Q)
-    private fun newHardwareReader(): ImageReader = ImageReader.newInstance(
-        WIDTH, HEIGHT, PixelFormat.RGBA_8888, HARDWARE_IMAGES,
-        HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE or HardwareBuffer.USAGE_CPU_READ_OFTEN,
-    )
-
-    /** Übernimmt ein Hardware-Bild als Software-Bitmap, ohne DirectByteBuffer oder copyPixelsFromBuffer. */
-    @RequiresApi(Build.VERSION_CODES.Q)
-    private fun grabHardware(image: Image?): Bitmap? = image?.use { frame ->
-        frame.hardwareBuffer?.use { buffer ->
-            val wrapped = Bitmap.wrapHardwareBuffer(buffer, ColorSpace.get(ColorSpace.Named.SRGB)) ?: return@use null
-            try {
-                wrapped.copy(Bitmap.Config.ARGB_8888, false)
-            } finally {
-                wrapped.recycle()
-            }
-        }
+    private fun grab(reader: ImageReader): Bitmap? {
+        val image = acquireLatestImage(reader) ?: return null
+        val width = image.width
+        val height = image.height
+        val pixels = image.use {
+            val plane = it.planes.firstOrNull() ?: return@use null
+            RgbaPlaneDecoder.pixels(plane.buffer, width, height, plane.rowStride, plane.pixelStride)
+        } ?: return null
+        return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
     }
 
     /** PixelCopy benutzt keinen Java- oder nativen Zugriff auf ImageReader.Plane.buffer. */
@@ -218,8 +179,7 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
         /** Groß genug für die Spielstand-Einblendung, klein genug für Fire-TV-Sticks. */
         private const val WIDTH = 960
         private const val HEIGHT = 540
-        private const val MAX_IMAGES = 2
-        private const val HARDWARE_IMAGES = 3
+        private const val MAX_IMAGES = 3
         private const val FRAMES = 3
         const val GAP_MS = 2_500L
         private const val START_TIMEOUT_MS = 10_000L
