@@ -178,7 +178,6 @@ fun AppRoot(container: AppContainer) {
 
                         is Screen.EditPlaylist -> EditPlaylistScreen(screen.playlistId, onDone = { navigator.pop() })
 
-
                         is Screen.CountryFilter -> CountryFilterScreen(
                             firstRun = screen.firstRun,
                             playlistId = screen.playlistId,
@@ -259,11 +258,15 @@ private suspend fun startCombined(container: AppContainer, autoUpdate: Boolean, 
 }
 
 internal suspend fun resolveStart(container: AppContainer): StartInfo {
-    // Dienste, die die Oberfläche beim ersten Bild anfasst, hier (IO) anlegen: Ihre Konstruktoren lesen SharedPreferences
-    // bzw. Dateien. Im Emulator-Labor (3.23) wartete der Hauptthread darauf während der Komposition der Startseite – mit
-    // Tastendruck in dieser Zeit ein ANR („Input dispatching timed out“). StrictMode meldete zudem Sport, Sehgewohnheiten
-    // und Auto-Aufnahme.
-    warmUp(container.parentalControl, container.vpn, container.sport.repository, container.channelHabits, container.autoRecorder)
+    // Start-Hotpath: alle teuren Services auf IO initialisieren, damit der Hauptthread nicht beim ersten Bild auf
+    // SharedPreferences/Room-Initialisierung wartet.
+    withContext(Dispatchers.IO) {
+        container.parentalControl
+        container.vpn
+        container.sport.repository
+        container.channelHabits
+        container.autoRecorder
+    }
     val playlists = container.playlistRepository.observePlaylists().first()
     if (playlists.isEmpty()) return StartInfo(Screen.Setup, null, container.settingsRepository.current().appLock)
     var settings = container.settingsRepository.current()
@@ -330,4 +333,4 @@ private fun SplashScreen() {
 
 /** Erzwingt das Anlegen verzögert erzeugter Dienste auf dem aufrufenden Thread (siehe [resolveStart]). */
 @Suppress("UNUSED_PARAMETER", "UnusedParameter")
-private fun warmUp(vararg services: Any) = Unit
+private suspend fun warmUp(vararg services: Any) = Unit
