@@ -76,6 +76,7 @@ fun LiveScreen(modifier: Modifier = Modifier) {
     val selectedCategory by vm.selectedCategoryId.collectAsStateWithLifecycle()
     val previewResolution by vm.previewResolution.collectAsStateWithLifecycle()
     val channels = vm.channels.collectAsLazyPagingItems()
+    val nowMsProvider = remember { { System.currentTimeMillis() } }
     val nowMs by produceState(System.currentTimeMillis()) {
         while (true) {
             delay(30_000)
@@ -173,7 +174,7 @@ fun LiveScreen(modifier: Modifier = Modifier) {
 
                         selectedCategory == Category.FREQUENT -> "Sender, die du zu dieser Tageszeit länger schaust, erscheinen hier – oben die häufigsten."
 
-                        // Leere Gruppe: sagen, was hilft, statt nur „leer“.
+                        // Leerer Gruppe: sagen, was hilft, statt nur „leer“.
                         else -> "Andere Gruppe wählen oder unter Einstellungen › Zugänge & EPG aktualisieren."
                     },
                     loading = loading,
@@ -212,7 +213,7 @@ fun LiveScreen(modifier: Modifier = Modifier) {
                             ChannelRow(
                                 channel = channel,
                                 number = channel.listNumber(index),
-                                nowMs = nowMs,
+                                nowMsProvider = nowMsProvider,
                                 measuredResolution = previewResolution?.takeIf { it.channelId == channel.id }?.label,
                                 onClick = { openChannel(channel) },
                                 // Einheitliches Kontextmenü: alles, was mit dem Sender geht.
