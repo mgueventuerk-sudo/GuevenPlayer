@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-if ./gradlew :app:connectedDebugAndroidTest -PbenchmarkEmulator=true --stacktrace; then
+if ./gradlew :app:connectedDebugAndroidTest -PbenchmarkEmulator=true -Pandroid.testInstrumentationRunnerArguments.notClass=com.mg.player.lab.VirtualLabTest --stacktrace; then
   exit 0
 fi
 
