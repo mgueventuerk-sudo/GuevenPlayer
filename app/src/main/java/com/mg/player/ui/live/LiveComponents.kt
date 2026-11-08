@@ -72,7 +72,7 @@ fun ChannelLogo(url: String?, name: String, modifier: Modifier = Modifier) {
 fun ChannelRow(
     channel: Channel,
     number: Int,
-    nowMs: Long,
+    nowMsProvider: () -> Long,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null,
@@ -133,6 +133,7 @@ fun ChannelRow(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Spacer(Modifier.height(5.dp))
+                    val nowMs = nowMsProvider()
                     val focused = LocalSurfaceFocused.current
                     ProgressBar(
                         ((nowMs - start).toFloat() / (end - start)),
