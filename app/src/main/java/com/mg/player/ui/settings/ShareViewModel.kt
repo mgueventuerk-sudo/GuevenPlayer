@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 enum class ShareMode(val title: String, val path: String) {
@@ -44,8 +43,8 @@ class ShareViewModel(private val container: AppContainer, private val mode: Shar
         exportBackup = { exportPassphrase?.let { container.backupManager.export(it) } },
         // Sonst nimmt auch „Protokoll teilen“ oder „Sicherung erstellen“ eine fremde Sicherung an (Token steht im Klartext im WLAN).
         receiveBackup = if (mode == ShareMode.BACKUP_IMPORT) ::receive else null,
-        // Läuft im Thread des kleinen Webservers (nicht im Hauptthread) – dort darf auf die Datenbank gewartet werden.
-        readLog = { if (mode == ShareMode.NAMES) runBlocking(Dispatchers.IO) { NamesExport.build(container.database) } else AppLog.readRedacted() },
+        // Suspend-fähig, damit die Datenbankabfrage nicht mit runBlocking einen Server-Thread blockiert.
+        readLog = { if (mode == ShareMode.NAMES) NamesExport.build(container.database) else AppLog.readRedacted() },
         receiveVpn = ::receiveVpn,
         allowLog = mode == ShareMode.LOG || mode == ShareMode.NAMES,
     )
