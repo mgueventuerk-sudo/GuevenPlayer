@@ -116,10 +116,25 @@ class ProofPixelCopyTest {
             decoder.configure(MediaFormat.createVideoFormat(MIME_TYPE, SIZE, SIZE), reader.surface, null, 0)
             decoder.start()
             started = true
+
             val inputIndex = decoder.dequeueInputBuffer(CODEC_TIMEOUT_US)
             assertTrue("Decoder nahm keinen H.264-Eingabepuffer an", inputIndex >= 0)
-            requireNotNull(decoder.getInputBuffer(inputIndex)).put(payload)
-            decoder.queueInputBuffer(inputIndex, 0, payload.size, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
+            val inputBuffer = requireNotNull(decoder.getInputBuffer(inputIndex))
+            inputBuffer.clear()
+            assertTrue("H.264-Testsample passt nicht in den Decoder-Eingabepuffer", payload.size <= inputBuffer.remaining())
+            inputBuffer.put(payload)
+            // Das Bild und EOS muessen getrennte Eingabepuffer sein. Einige Decoder lehnen
+            // einen Datenpuffer ab, der gleichzeitig als End-of-stream markiert ist.
+            decoder.queueInputBuffer(inputIndex, 0, payload.size, 0, 0)
+
+            val inputDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(WAIT_SECONDS)
+            var endOfStreamIndex = MediaCodec.INFO_TRY_AGAIN_LATER
+            while (endOfStreamIndex < 0 && System.nanoTime() < inputDeadline) {
+                endOfStreamIndex = decoder.dequeueInputBuffer(CODEC_TIMEOUT_US)
+            }
+            assertTrue("Decoder nahm keinen EOS-Eingabepuffer an", endOfStreamIndex >= 0)
+            requireNotNull(decoder.getInputBuffer(endOfStreamIndex)).clear()
+            decoder.queueInputBuffer(endOfStreamIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
 
             val info = MediaCodec.BufferInfo()
             val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(WAIT_SECONDS)
