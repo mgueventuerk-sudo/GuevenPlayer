@@ -63,6 +63,19 @@ jobs:
           ./gradlew --continue spotlessCheck detekt :app:lintRelease
 
             - name: Tests ausführen
+  run: |
+    chmod +x gradlew
+    for attempt in 1 2 3; do
+      if ./gradlew testDebugUnitTest --stacktrace; then
+        exit 0
+      fi
+      if [ "$attempt" -lt 3 ]; then
+        echo "::warning::Robolectric artifact fetch failed; retrying test run ($attempt/3)."
+        sleep 20
+      else
+        exit 1
+      fi
+    done
         run: |
           chmod +x gradlew
           # Robolectric lädt das Android-14-Artifact zur Laufzeit per Maven nach.
