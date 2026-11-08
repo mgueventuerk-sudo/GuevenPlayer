@@ -127,7 +127,7 @@ class LiveViewModel(private val container: AppContainer) : ViewModel() {
         reconnectPreviewOnTunnel()
         viewModelScope.launch {
             // Im Vollbild umgeschaltet: Die Liste folgt (Kategorie und Position), solange der Player offen ist.
-            settingsRepo.settings.map { it.lastChannelId to it.lastChannelCategoryId }.distinctUntilChanged().collect { (id, cat) ->
+            settingsRepo.settings.map { it.lastChannelId to it.lastChannelCategoryId }.distinctUntilChanged().collectLatest { (id, cat) ->
                 if (awaitingReturn && id != null) followPlayer(id, cat)
             }
         }

@@ -11,6 +11,7 @@ import com.mg.player.data.search.SearchIndexer
 import com.mg.player.data.search.SearchText
 import com.mg.player.data.search.SourceHits
 import com.mg.player.data.search.mergeAcrossPlaylists
+import com.mg.player.data.search.parallelSearchResults
 import com.mg.player.data.search.searchRelevance
 import com.mg.player.domain.model.ContentType
 import com.mg.player.domain.model.PlaylistHits
@@ -20,9 +21,6 @@ import com.mg.player.domain.repository.SearchRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -94,14 +92,13 @@ class SearchRepositoryImpl(private val db: AppDatabase, private val indexer: Sea
         }
 
         val pending = playlists.mapTo(linkedSetOf()) { it.id }
-        val sources = mutableListOf<SourceHits>()
-        val batches = listOf(playlists.take(1)) + playlists.drop(1).chunked(MAX_PARALLEL_PLAYLISTS)
-        for (batch in batches) {
-            val completed = coroutineScope {
-                batch.map { p -> async { SourceHits(p.id, p.name, search(p.id, query)) } }.awaitAll()
-            }
-            sources.addAll(completed)
-            completed.forEach { pending.remove(it.playlistId) }
+        val completedById = mutableMapOf<Long, SourceHits>()
+        parallelSearchResults(playlists, MAX_PARALLEL_PLAYLISTS) { playlist ->
+            SourceHits(playlist.id, playlist.name, search(playlist.id, query))
+        }.collect { completed ->
+            completedById[completed.playlistId] = completed
+            pending.remove(completed.playlistId)
+            val sources = playlists.mapNotNull { completedById[it.id] }
             val withHits = sources.filter { it.hits.isNotEmpty() }
             val all = when {
                 withHits.isEmpty() -> emptyList()

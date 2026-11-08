@@ -19,7 +19,9 @@ import com.mg.player.domain.repository.EpgRepository
 import com.mg.player.domain.repository.ImportProgress
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 
@@ -37,6 +39,9 @@ class EpgRepositoryImpl(
 
     private data class CachedShortEpg(val loadedAtMs: Long, val programs: List<EpgProgram>)
 
+    private class ShortEpgRequest(val mutex: Mutex = Mutex(), var callers: Int = 0)
+
+    private val shortEpgRequests = mutableMapOf<String, ShortEpgRequest>()
     private val shortEpgCache = LruCache<String, CachedShortEpg>(MAX_SHORT_EPG_CHANNELS)
 
     /** Höchstens vier gleichzeitige get_short_epg-Anfragen – manche Panels sperren sonst den Account. */
@@ -76,6 +81,24 @@ class EpgRepositoryImpl(
             for (source in sources) shortEpg(source).takeIf { it.isNotEmpty() }?.let { return it }
             return emptyList()
         }
+        val request = synchronized(shortEpgRequests) {
+            shortEpgRequests.getOrPut(channelId) { ShortEpgRequest() }.also { it.callers++ }
+        }
+        try {
+            return request.mutex.withLock {
+                val latest = shortEpgCache[channelId]
+                if (latest != null && System.currentTimeMillis() - latest.loadedAtMs < CACHE_TTL_MS) latest.programs
+                else loadShortEpg(channelId)
+            }
+        } finally {
+            synchronized(shortEpgRequests) {
+                request.callers--
+                if (request.callers == 0) shortEpgRequests.remove(channelId)
+            }
+        }
+    }
+
+    private suspend fun loadShortEpg(channelId: String): List<EpgProgram> {
         val row = db.channelDao().get(channelId, System.currentTimeMillis()) ?: return emptyList()
         if (row.channel.remoteId.isBlank()) return emptyList()
         val playlist = db.playlistDao().get(row.channel.playlistId) ?: return emptyList()

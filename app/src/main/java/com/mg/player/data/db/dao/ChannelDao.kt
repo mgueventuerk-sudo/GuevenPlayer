@@ -170,7 +170,7 @@ abstract class ChannelDao {
     @Query(
         "SELECT COALESCE((SELECT (SELECT COUNT(*) FROM channel_flags g " +
             "WHERE g.playlistId = :playlistId AND g.categoryId = :categoryId AND g.primaryCat = 1 " +
-            "AND (g.sortIndex < target.sortIndex OR (g.sortIndex = target.sortIndex AND g.rowid < target.rowid))) " +
+            "AND g.sortIndex <= target.sortIndex AND (g.sortIndex < target.sortIndex OR g.rowid < target.rowid)) " +
             "FROM channel_flags target WHERE target.channelId = :channelId AND target.playlistId = :playlistId " +
             "AND target.categoryId = :categoryId AND target.primaryCat = 1), -1)",
     )
@@ -180,7 +180,7 @@ abstract class ChannelDao {
         "SELECT COALESCE((SELECT (SELECT COUNT(*) FROM channel_flags g " +
             "WHERE g.playlistId = :playlistId AND g.primaryAll = 1 AND g.categoryId NOT IN " +
             "(SELECT categoryId FROM category_prefs WHERE hidden = 1 OR locked = 1) " +
-            "AND (g.sortIndex < target.sortIndex OR (g.sortIndex = target.sortIndex AND g.rowid < target.rowid))) " +
+            "AND g.sortIndex <= target.sortIndex AND (g.sortIndex < target.sortIndex OR g.rowid < target.rowid)) " +
             "FROM channel_flags target WHERE target.channelId = :channelId AND target.playlistId = :playlistId " +
             "AND target.primaryAll = 1 AND target.categoryId NOT IN " +
             "(SELECT categoryId FROM category_prefs WHERE hidden = 1 OR locked = 1)), -1)",

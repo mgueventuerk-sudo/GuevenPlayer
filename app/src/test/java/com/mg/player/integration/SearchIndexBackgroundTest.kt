@@ -55,7 +55,7 @@ class SearchIndexBackgroundTest {
     }
 
     @Test
-    fun searchEmitsActivePlaylistBeforeRemainingPlaylists() = runBlocking {
+    fun searchEmitsPartialResultsBeforeAllPlaylistsComplete() = runBlocking {
         repeat(2) { server.enqueue(MockResponse().setBody(TestPlaylists.M3U)) }
         server.start()
         val other = addM3u()
@@ -65,8 +65,9 @@ class SearchIndexBackgroundTest {
 
         val updates = container.searchRepository.observeSearchPages("zdf", active).toList()
 
-        assertEquals(listOf(active), updates.first().playlists.map { it.playlistId })
-        assertEquals(setOf(other), updates.first().pendingPlaylistIds)
+        val first = updates.first()
+        assertEquals(1, first.playlists.size)
+        assertEquals(setOf(other, active) - first.playlists.single().playlistId, first.pendingPlaylistIds)
         assertTrue(updates.first().all.isNotEmpty())
         assertEquals(listOf(other, active).sorted(), updates.last().playlists.map { it.playlistId })
         assertTrue(updates.last().pendingPlaylistIds.isEmpty())
