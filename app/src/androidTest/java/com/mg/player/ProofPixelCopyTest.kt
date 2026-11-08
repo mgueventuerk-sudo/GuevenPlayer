@@ -15,13 +15,13 @@ import android.os.Looper
 import android.util.Base64
 import android.view.PixelCopy
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.SdkSuppress
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
-import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -29,8 +29,8 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class ProofPixelCopyTest {
     @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     fun decodesVideoIntoPrivateReaderAndCopiesFrameOnAndroidOPlus() {
-        assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
         val handler = Handler(Looper.getMainLooper())
         val reader = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ImageReader.newInstance(SIZE, SIZE, ImageFormat.PRIVATE, 2, HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE)
@@ -77,8 +77,8 @@ class ProofPixelCopyTest {
     }
 
     @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O, maxSdkVersion = Build.VERSION_CODES.P)
     fun copiesQueuedFrameAfterImageReaderReleasesIt() {
-        assumeTrue(Build.VERSION.SDK_INT in Build.VERSION_CODES.O..Build.VERSION_CODES.P)
         val handler = Handler(Looper.getMainLooper())
         val reader = ImageReader.newInstance(SIZE, SIZE, PixelFormat.RGBA_8888, 2)
         val frame = Bitmap.createBitmap(SIZE, SIZE, Bitmap.Config.ARGB_8888)
@@ -150,7 +150,7 @@ class ProofPixelCopyTest {
                 "IGNhYmFjPTAgcmVmPTEgZGVibG9jaz0wOjA6MCBhbmFseXNlPTA6MCBtZT1kaWEgc3VibWU9MCBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0w" +
                 "IG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MCA4eDhkY3Q9MCBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29m" +
                 "ZnNldD0wIHRocmVhZHM9MSBsb29rYWhlYWRfdGhyZWFkcz0xIHNsaWNlZF90aHJlYWRzPTAgbnI9MCBkZWNpbWF0ZT0xIGludGVybGFjZWQ9MCBibHVyYXlf" +
-                "Y29tcGF0PTAgY29uc3RyYWluZWRfaW50cmE9MCBiZnJhbWVzPTAgd2VpZ2h0cD0wIGtleWludD0yNTAga2V5aW50X21pbj00IHNjZW5lY3V0PTAgaW50cmFf" +
+                "Y29tcGF0PTAgY29uc3RyYWluZWRfaW50cmE9MCBiZnJhbWVzPTAgd2VpZ2h0cD0wIGtleWludD0yNTAga2V5aW50X21pbj00IHNjZW5lY3V0PTAgaW5 0cmFf" +
                 "cmVmcmVzaD0wIHJjPWNyZiBtYnRyZWU9MCBjcmY9MjMuMCBxY29tcD0wLjYwIHFwbWluPTAgcXBtYXg9NjkgcXBzdGVwPTQgaXBfcmF0aW89MS40MCBhcT0w" +
                 "AIAAAAFliIQ6EYoAAhjxwABA9jgACHlJycnXXXXXXXXXXXXg"
         const val MIME_TYPE = "video/avc"
