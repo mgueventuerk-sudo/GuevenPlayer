@@ -213,10 +213,9 @@ fun LiveScreen(modifier: Modifier = Modifier) {
                             ChannelRow(
                                 channel = channel,
                                 number = channel.listNumber(index),
-                                nowMsProvider = nowMsProvider,
+                                nowMs = nowMsProvider,
                                 measuredResolution = previewResolution?.takeIf { it.channelId == channel.id }?.label,
                                 onClick = { openChannel(channel) },
-                                // Einheitliches Kontextmenü: alles, was mit dem Sender geht.
                                 onLongClick = {
                                     scope.launch {
                                         val favorite = vm.isFavoriteNow(channel)
