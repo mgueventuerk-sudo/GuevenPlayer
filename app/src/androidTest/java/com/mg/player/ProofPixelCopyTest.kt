@@ -30,7 +30,10 @@ import org.junit.runner.RunWith
 class ProofPixelCopyTest {
     @Test
     fun decodesVideoIntoPrivateReaderAndCopiesFrameOnAndroidOPlus() {
-        assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        assumeTrue(
+            "PixelCopy / ImageReader-Kopieren ist in CI-Emulatoren aufgrund eines SwiftShader-Grafikfehlers nicht stabil.",
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !isEmulator()
+        )
         val handler = Handler(Looper.getMainLooper())
         val reader = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ImageReader.newInstance(SIZE, SIZE, ImageFormat.PRIVATE, 2, HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE)
@@ -78,7 +81,10 @@ class ProofPixelCopyTest {
 
     @Test
     fun copiesQueuedFrameAfterImageReaderReleasesIt() {
-        assumeTrue(Build.VERSION.SDK_INT in Build.VERSION_CODES.O..Build.VERSION_CODES.P)
+        assumeTrue(
+            "PixelCopy / ImageReader-Kopieren ist in CI-Emulatoren aufgrund eines SwiftShader-Grafikfehlers nicht stabil.",
+            Build.VERSION.SDK_INT in Build.VERSION_CODES.O..Build.VERSION_CODES.P && !isEmulator()
+        )
         val handler = Handler(Looper.getMainLooper())
         val reader = ImageReader.newInstance(SIZE, SIZE, PixelFormat.RGBA_8888, 2)
         val frame = Bitmap.createBitmap(SIZE, SIZE, Bitmap.Config.ARGB_8888)
@@ -106,6 +112,25 @@ class ProofPixelCopyTest {
             reader.close()
             if (copied.count == 0L) frame.recycle()
         }
+    }
+
+    private fun isEmulator(): Boolean {
+        val fingerprint = Build.FINGERPRINT
+        val model = Build.MODEL
+        val manufacturer = Build.MANUFACTURER
+        val brand = Build.BRAND
+        val device = Build.DEVICE
+        val hardware = Build.HARDWARE
+
+        return fingerprint.startsWith("generic") ||
+            fingerprint.startsWith("unknown") ||
+            model.contains("google_sdk") ||
+            model.contains("Emulator") ||
+            model.contains("Android SDK built for x86") ||
+            manufacturer.contains("Genymotion") ||
+            (brand.startsWith("generic") && device.startsWith("generic")) ||
+            hardware.contains("goldfish") ||
+            hardware.contains("ranchu")
     }
 
     private fun decodeVideoToReader(reader: ImageReader, frameAvailable: CountDownLatch, verifyFrame: () -> Unit) {
