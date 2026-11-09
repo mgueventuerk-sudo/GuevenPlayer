@@ -3,6 +3,9 @@ package com.mg.player.data.parser
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.io.IOException
 import java.util.Random
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -109,6 +112,90 @@ class ParserFuzzTest {
             if (case % 4 == 1) assertTrue("truncated XML was accepted", rejected)
             assertTrue("input emitted too many callbacks", channels <= 1 && programmes <= 1)
         }
+    }
+
+    /**
+     * „Billion laughs“: verschachtelte interne Entities verdoppeln sich je Ebene. Eine boesartige oder kaputte
+     * EPG-Quelle koennte damit den Speicher sprengen, bevor der Parser ueberhaupt Text herausgibt. Die vorhandenen
+     * Fuzz-Faelle decken XXE und kaputtes XML ab, diese Klasse aber nicht.
+     *
+     * Zwoelf Ebenen sind 4096 Wiederholungen von 64 Zeichen (rund 256 KB), also gross genug, um eine fehlende
+     * Begrenzung zu zeigen, und klein genug, um den Testlauf nicht zu gefaehrden. Erwartet wird eines von beiden:
+     * Der Parser lehnt das Dokument ab, oder der Titel bleibt auf 600 Zeichen begrenzt. Was nicht passieren darf,
+     * ist ein unbegrenzt wachsender Titel oder ein Absturz.
+     *
+     * Das beweist die Begrenzung fuer diese Groessenordnung, nicht die Unverwundbarkeit gegen beliebig tiefe
+     * Verschachtelung - dafuer waere eine Obergrenze fuer die Eingabe noetig.
+     */
+    @Test(timeout = 30_000)
+    fun recursiveEntityExpansionStaysBounded() = runBlocking {
+        val levels = 12
+        val doc = buildString {
+            append("<!DOCTYPE tv [")
+            append("<!ENTITY e0 \"").append("x".repeat(64)).append("\">")
+            for (level in 1..levels) append("<!ENTITY e$level \"&e${level - 1};&e${level - 1};\">")
+            append("]>")
+            append("<tv><programme channel=\"c\" start=\"20261101050000 +0000\" stop=\"20261101060000 +0000\">")
+            append("<title>&e$levels;</title></programme></tv>")
+        }
+        var programmes = 0
+        val callback = object : XmltvParser.Callback {
+            override suspend fun onChannel(id: String, displayNames: List<String>) = Unit
+
+            override suspend fun onProgramme(channelId: String, startMs: Long, endMs: Long, title: String, description: String?) {
+                programmes++
+                assertTrue("expanded title is not capped: ${title.length}", title.length <= 600)
+            }
+        }
+        try {
+            XmltvParser.parse(doc.byteInputStream(), callback)
+        } catch (error: XmlPullParserException) {
+            // Ein Parser, der DTDs mit verschachtelten Entities ablehnt, ist das bessere Ergebnis.
+            assertTrue("XML parser returned an empty error: $error", error.toString().isNotBlank())
+        } catch (error: IOException) {
+            assertTrue("XML input returned an empty error: $error", error.toString().isNotBlank())
+        }
+        assertTrue("input emitted too many callbacks", programmes <= 1)
+    }
+
+    /**
+     * Abbruch mitten im Parsen: Eine grosse Quelle liefert Millionen Zeilen, von denen der Importer nur einen
+     * Bruchteil uebernimmt - der verworfene Pfad enthaelt keinen Aufhaengepunkt. Ohne regelmaessiges yield lief das
+     * Parsen nach einem cancel() die ganze Datei zu Ende und hielt das Geraet sekundenlang beschaeftigt.
+     *
+     * Der Test baut ein Dokument mit [total] Sendungen, bricht nach der ersten Rueckmeldung ab und erwartet, dass
+     * deutlich weniger als alle verarbeitet wurden. Deterministisch: feste Groesse, kein Zufall, keine Zeitmessung.
+     */
+    @Test(timeout = 30_000)
+    fun cancellingTheParseStopsItEarly() = runBlocking {
+        val total = 40_000
+        val doc = buildString {
+            append("<tv>")
+            repeat(total) { i ->
+                append("<programme channel=\"c$i\" start=\"20261101050000 +0000\" stop=\"20261101060000 +0000\">")
+                append("<title>T$i</title></programme>")
+            }
+            append("</tv>")
+        }
+        var seen = 0
+        val job = Job()
+        val scope = CoroutineScope(coroutineContext + job)
+        val work = scope.launch {
+            XmltvParser.parse(
+                doc.byteInputStream(),
+                object : XmltvParser.Callback {
+                    override suspend fun onChannel(id: String, displayNames: List<String>) = Unit
+
+                    override suspend fun onProgramme(channelId: String, startMs: Long, endMs: Long, title: String, description: String?) {
+                        seen++
+                        if (seen == 1) job.cancel()
+                    }
+                },
+            )
+        }
+        work.join()
+        assertTrue("parse was cancelled but ran to the end: $seen von $total", seen < total / 2)
+        assertTrue("parse did not start", seen >= 1)
     }
 
     private fun randomText(random: Random, length: Int): String {

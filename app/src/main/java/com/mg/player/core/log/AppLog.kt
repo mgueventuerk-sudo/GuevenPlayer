@@ -33,7 +33,12 @@ object AppLog {
     private var crashMarker: File? = null
 
     fun init(context: Context) {
-        file = File(context.filesDir, "logs/app.log").apply { parentFile?.mkdirs() }
+        val target = File(context.filesDir, "logs/app.log")
+        // mkdirs() ist ein Datentraegerzugriff und lief bisher im Hauptthread in Application.onCreate. Der Schreiber
+        // ist ein Single-Thread-Executor, seine Reihenfolge ist also garantiert: Das Verzeichnis existiert, bevor der
+        // erste append() laeuft.
+        writer.execute { target.parentFile?.mkdirs() }
+        file = target
         crashMarker = File(context.filesDir, "logs/last_crash.txt")
         installCrashHandler()
         log("App", "Start · Version ${BuildConfig.VERSION_NAME} · Android ${Build.VERSION.RELEASE} · ${Build.MANUFACTURER} ${Build.MODEL}")
@@ -142,6 +147,10 @@ object AppLog {
 
     private fun append(target: File, line: String) {
         try {
+            // Das Verzeichnis legt init() im Schreib-Thread an. Der Absturzbehandler schreibt aber synchron auf dem
+            // abstuerzenden Thread - trifft ihn ein Absturz in den ersten Millisekunden, war der Ordner sonst noch
+            // nicht da und der Bericht ging verloren. mkdirs() ist billig und tut nichts, wenn es ihn schon gibt.
+            if (!target.exists()) target.parentFile?.mkdirs()
             if (target.exists() && target.length() > MAX_BYTES) {
                 // Ältere Hälfte verwerfen, damit die Datei klein bleibt.
                 val text = target.readText()
