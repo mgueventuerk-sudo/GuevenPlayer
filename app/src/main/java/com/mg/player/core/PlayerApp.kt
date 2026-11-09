@@ -46,8 +46,12 @@ open class PlayerApp :
     override fun onCreate() {
         super.onCreate()
         StartupClock.touch()
-        AppLog.init(this)
+        // StrictMode zuerst: Vorher lagen AppLog.init, SecretCipher.init und der AppContainer-Konstruktor in einem
+        // Fenster, das der Labor-Build (-PlabStrict=true, penaltyDeath) nicht sehen konnte - genau dort steckte der
+        // mkdirs()-Zugriff von AppLog. DebugChecks.record() protokolliert ueber AppLog, das vertraegt ein noch
+        // nicht gesetztes Ziel (write() bricht dann nach Log.i ab).
         if (BuildConfig.DEBUG) DebugChecks.install()
+        AppLog.init(this)
         SecretCipher.init(this)
         container = createContainer()
         // Alles, was Dateien, Einstellungen oder die Datenbank anfasst, läuft im Hintergrund: Auf dem Fire TV

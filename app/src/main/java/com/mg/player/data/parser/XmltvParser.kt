@@ -5,12 +5,16 @@ import android.util.JsonToken
 import android.util.Xml
 import com.mg.player.core.util.TimeUtils
 import java.io.InputStream
+import kotlinx.coroutines.yield
 import org.xmlpull.v1.XmlPullParser
 
 /** Streaming-XMLTV-Parser auf Basis von XmlPullParser (funktioniert auch für .xml.gz). */
 object XmltvParser {
 
     private const val INITIAL_TEXT_CAPACITY = 256
+
+    /** So viele XML-Ereignisse zwischen zwei Abbruchpruefungen - gross genug, um nicht ins Gewicht zu fallen. */
+    private const val YIELD_EVERY = 4_096
 
     interface Callback {
         suspend fun onChannel(id: String, displayNames: List<String>)
@@ -22,7 +26,12 @@ object XmltvParser {
         parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
         parser.setInput(input, null)
         var event = parser.eventType
+        var events = 0
         while (event != XmlPullParser.END_DOCUMENT) {
+            // Abbrechbar bleiben: Sendungen, die der Aufrufer verwirft, enthalten keinen Aufhaengepunkt. Ein grosser
+            // Anbieter liefert Millionen Zeilen, von denen nur ein Bruchteil uebernommen wird (siehe EpgImporter) -
+            // ohne dieses yield liefe das Parsen nach einem Abbruch die ganze Datei zu Ende weiter.
+            if (++events % YIELD_EVERY == 0) yield()
             if (event == XmlPullParser.START_TAG) {
                 when (parser.name) {
                     "channel" -> readChannel(parser, callback)
