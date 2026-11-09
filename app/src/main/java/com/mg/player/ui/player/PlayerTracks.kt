@@ -39,7 +39,7 @@ fun PlayerViewModel.panelOptions(panel: OverlayPanel): List<TrackOption> {
             val playable = ui.value.playable
             // „Alle Zugänge“ (Film/Folge): Zugang · Qualität · Sprache je Quelle.
             if (!playable?.vodSources.isNullOrEmpty()) {
-                return playable!!.vodSources.mapIndexed { index, source ->
+                return playable.vodSources.mapIndexed { index, source ->
                     val label = listOfNotNull("Quelle ${index + 1}", source.fullLabel.ifBlank { null }, if (index == 0) "beste" else null).joinToString(" · ")
                     TrackOption(index.toString(), label, index == playable.variantIndex)
                 }

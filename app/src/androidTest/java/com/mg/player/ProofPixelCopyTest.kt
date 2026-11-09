@@ -118,10 +118,15 @@ class ProofPixelCopyTest {
             decoder.configure(MediaFormat.createVideoFormat(MIME_TYPE, SIZE, SIZE), reader.surface, null, 0)
             decoder.start()
             started = true
+            // Nutzdaten und Stream-Ende getrennt einreihen. Beides im selben Puffer ist laut API erlaubt, der
+            // Software-Decoder von Android 17 lehnt es aber mit einer leeren CodecException ab (CI, API 37).
             val inputIndex = decoder.dequeueInputBuffer(CODEC_TIMEOUT_US)
             assertTrue("Decoder nahm keinen H.264-Eingabepuffer an", inputIndex >= 0)
             requireNotNull(decoder.getInputBuffer(inputIndex)).put(payload)
-            decoder.queueInputBuffer(inputIndex, 0, payload.size, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
+            decoder.queueInputBuffer(inputIndex, 0, payload.size, 0, 0)
+            val endIndex = decoder.dequeueInputBuffer(CODEC_TIMEOUT_US)
+            assertTrue("Decoder nahm das Stream-Ende nicht an", endIndex >= 0)
+            decoder.queueInputBuffer(endIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
 
             val info = MediaCodec.BufferInfo()
             val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(WAIT_SECONDS)

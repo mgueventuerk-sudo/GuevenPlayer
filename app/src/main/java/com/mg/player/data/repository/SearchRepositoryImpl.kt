@@ -7,6 +7,7 @@ import com.mg.player.data.db.AppDatabase
 import com.mg.player.data.db.entity.ChannelEntity
 import com.mg.player.data.db.entity.MovieEntity
 import com.mg.player.data.db.entity.SeriesEntity
+import com.mg.player.data.db.entity.PlaylistEntity
 import com.mg.player.data.search.SearchIndexer
 import com.mg.player.data.search.SearchText
 import com.mg.player.data.search.SourceHits
@@ -22,9 +23,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Collections
@@ -76,39 +77,78 @@ class SearchRepositoryImpl(private val db: AppDatabase, private val indexer: Sea
 
     override suspend fun searchAll(query: String, activePlaylistId: Long?): List<SearchHit> = searchPages(query, activePlaylistId).all
 
-    override suspend fun searchPages(query: String, activePlaylistId: Long?): SearchPages =
-        observeSearchPages(query, activePlaylistId).last()
+    /**
+     * Einmalige Suche: Sie braucht nur das Endergebnis. Ueber [observeSearchPages] gefuehrt, waere je fertigem
+     * Zugang ein vollstaendiger [mergeAcrossPlaylists] angefallen - bei vier Zugaengen vier Merges statt einem,
+     * von denen drei weggeworfen werden.
+     */
+    override suspend fun searchPages(query: String, activePlaylistId: Long?): SearchPages = withContext(Dispatchers.IO) {
+        combinedPages(query, activePlaylistId)?.let { return@withContext it }
+        val playlists = orderedPlaylists(activePlaylistId)
+        if (playlists.isEmpty()) return@withContext SearchPages(emptyList(), emptyList())
+        val completed = ArrayList<SourceHits>(playlists.size)
+        searchEachPlaylist(playlists, query).collect(completed::add)
+        pagesOf(playlists, completed.associateBy { it.playlistId }, query, pending = emptySet())
+    }
 
+    /**
+     * Suche mit Zwischenstaenden: Jeder fertige Zugang erscheint sofort, die noch laufenden stehen in
+     * [SearchPages.pending]. Hier ist der Merge je Emission gewollt - die angezeigte Liste muss stimmen.
+     *
+     * `buffer()` entkoppelt Suche und Zusammenfuehrung: Ohne ihn haengt ein fertiger Arbeiter im `send`, bis der
+     * Verbraucher seinen Merge beendet hat - die Parallelitaet waere teilweise wieder serialisiert.
+     */
     override fun observeSearchPages(query: String, activePlaylistId: Long?): Flow<SearchPages> = flow {
-        if (Combined.isCombined(activePlaylistId)) {
-            val hits = search(Combined.ID, query)
-            emit(SearchPages(hits, listOf(PlaylistHits(Combined.ID, Combined.NAME, hits))))
+        combinedPages(query, activePlaylistId)?.let {
+            emit(it)
             return@flow
         }
-        val playlists = db.playlistDao().all().sortedBy { if (it.id == activePlaylistId) 0 else 1 }
+        val playlists = orderedPlaylists(activePlaylistId)
         if (playlists.isEmpty()) {
             emit(SearchPages(emptyList(), emptyList()))
             return@flow
         }
-
         val pending = playlists.mapTo(linkedSetOf()) { it.id }
-        val completedById = mutableMapOf<Long, SourceHits>()
-        parallelSearchResults(playlists, MAX_PARALLEL_PLAYLISTS) { playlist ->
-            SourceHits(playlist.id, playlist.name, search(playlist.id, query))
-        }.collect { completed ->
+        val completedById = LinkedHashMap<Long, SourceHits>(playlists.size)
+        searchEachPlaylist(playlists, query).buffer().collect { completed ->
             completedById[completed.playlistId] = completed
             pending.remove(completed.playlistId)
-            val sources = playlists.mapNotNull { completedById[it.id] }
-            val withHits = sources.filter { it.hits.isNotEmpty() }
-            val all = when {
-                withHits.isEmpty() -> emptyList()
-                playlists.size == 1 -> withHits.first().hits
-                else -> mergeAcrossPlaylists(withHits, query, LIMIT * 2)
-            }
-            val pages = sources.sortedBy { it.playlistId }.map { PlaylistHits(it.playlistId, it.name, it.hits) }
-            emit(SearchPages(all, pages, pending.toSet()))
+            emit(pagesOf(playlists, completedById, query, pending))
         }
     }.flowOn(Dispatchers.IO)
+
+    /** „Alle Zugaenge“: schon zusammengefuehrt, jeder Inhalt einmal - kein Merge noetig. */
+    private suspend fun combinedPages(query: String, activePlaylistId: Long?): SearchPages? {
+        if (!Combined.isCombined(activePlaylistId)) return null
+        val hits = search(Combined.ID, query)
+        return SearchPages(hits, listOf(PlaylistHits(Combined.ID, Combined.NAME, hits)))
+    }
+
+    /** Der aktive Zugang zuerst: Er soll als erster fertig sein, nicht als erster angezeigt werden. */
+    private suspend fun orderedPlaylists(activePlaylistId: Long?) =
+        db.playlistDao().all().sortedBy { if (it.id == activePlaylistId) 0 else 1 }
+
+    private fun searchEachPlaylist(playlists: List<PlaylistEntity>, query: String): Flow<SourceHits> =
+        parallelSearchResults(playlists, MAX_PARALLEL_PLAYLISTS) { playlist ->
+            SourceHits(playlist.id, playlist.name, search(playlist.id, query))
+        }
+
+    /** Seitenreihenfolge wie die Zugaenge (nach ID), nicht nach „aktiv zuerst“ - sonst springen die Tabs. */
+    private fun pagesOf(
+        playlists: List<PlaylistEntity>,
+        completedById: Map<Long, SourceHits>,
+        query: String,
+        pending: Set<Long>,
+    ): SearchPages {
+        val sources = playlists.mapNotNull { completedById[it.id] }
+        val withHits = sources.filter { it.hits.isNotEmpty() }
+        val all = when {
+            withHits.isEmpty() -> emptyList()
+            playlists.size == 1 -> withHits.first().hits
+            else -> mergeAcrossPlaylists(withHits, query, LIMIT * 2)
+        }
+        return SearchPages(all, sources.sortedBy { it.playlistId }.map { PlaylistHits(it.playlistId, it.name, it.hits) }, pending.toSet())
+    }
 
     /** Index für diesen Zugang vorbereiten, falls er fehlt (z. B. beim App-Start nach einem Update). */
     override suspend fun prepare(playlistId: Long) {

@@ -134,7 +134,9 @@ jobs:
   # der Build mit Gradle-Plugins und Abhängigkeiten läuft weiter nur mit Leserecht. Nur die letzten 5 Releases bleiben.
   release:
     needs: build
-    if: github.ref == 'refs/heads/main' && needs.build.outputs.release == 'true'
+    # Nicht gegen 'main' pruefen: Der Default-Branch dieses Repos heisst anders, damit waere nie wieder ein
+    # Release veroeffentlicht worden - genau die Falle, die schon die Geraetetests unsichtbar gemacht hat.
+    if: github.ref_name == github.event.repository.default_branch && needs.build.outputs.release == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
