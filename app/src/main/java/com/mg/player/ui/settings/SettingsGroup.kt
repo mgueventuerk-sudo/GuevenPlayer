@@ -34,6 +34,7 @@ import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.smoothShape
 import com.mg.player.ui.theme.AppIcon
 import com.mg.player.ui.theme.Dimens
+import com.mg.player.ui.theme.contentColorFor
 
 /*
  * Gruppierte Einstellungen: Zeilen, die zusammengehören, liegen in einem gemeinsamen Kasten mit feinen Trennlinien
@@ -109,19 +110,26 @@ internal fun SettingsPageHeader(title: String, lead: String?, breadcrumb: String
     }
 }
 
-/** Kleines Symbol-Kästchen links in einer Zeile; bei Gefahr rot, im Fokus in der Kontrastfarbe. */
+/**
+ * Kleines Symbol-Kästchen links in einer Zeile; bei Gefahr rot, im Fokus in der Kontrastfarbe.
+ * [altAccent]: Partnerfarbe statt Hauptakzent – nur für die Bereichsliste der Einstellungen gedacht
+ * (PhoneSettingsMenu), damit Kategorien sich auf einen Blick unterscheiden, nicht für einzelne Aktionen
+ * innerhalb eines Bereichs (dort bliebe eine zufällige Zweitfarbe bedeutungslos).
+ */
 @Composable
-internal fun RowIcon(icon: AppIcon, danger: Boolean = false) {
+internal fun RowIcon(icon: AppIcon, danger: Boolean = false, altAccent: Boolean = false) {
     val focused = LocalSurfaceFocused.current
+    val accent = if (altAccent) AppColors.AccentAlt else AppColors.Accent
+    val accentText = if (altAccent) contentColorFor(AppColors.AccentAlt) else AppColors.AccentText
     val tint = when {
         focused -> Color.White
         danger -> AppColors.Danger
-        else -> AppColors.AccentText
+        else -> accentText
     }
     val fill = when {
-        focused -> if (danger) AppColors.Danger else AppColors.Accent
+        focused -> if (danger) AppColors.Danger else accent
         danger -> AppColors.Danger.copy(alpha = 0.14f)
-        else -> AppColors.Accent.copy(alpha = 0.16f)
+        else -> accent.copy(alpha = 0.16f)
     }
     Box(Modifier.size(34.dp).clip(AppShapes.Small).background(fill), contentAlignment = Alignment.Center) {
         AnimatedIcon(icon, tint = tint, active = focused, size = 19.dp)

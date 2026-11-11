@@ -45,7 +45,14 @@ fun SettingsSection(title: String, modifier: Modifier = Modifier) {
 
 /** Gemeinsamer Aufbau aller Zeilen: Symbol-Kästchen, Titel, Beschreibung, rechts der Wert. */
 @Composable
-private fun RowLayout(label: String, description: String?, icon: AppIcon?, danger: Boolean = false, trailing: @Composable () -> Unit) {
+private fun RowLayout(
+    label: String,
+    description: String?,
+    icon: AppIcon?,
+    danger: Boolean = false,
+    altAccent: Boolean = false,
+    trailing: @Composable () -> Unit,
+) {
     val inGroup = LocalInGroup.current
     Row(
         Modifier
@@ -54,7 +61,7 @@ private fun RowLayout(label: String, description: String?, icon: AppIcon?, dange
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {
-            RowIcon(icon, danger)
+            RowIcon(icon, danger, altAccent)
             Spacer(Modifier.width(14.dp))
         }
         Column(Modifier.weight(1f)) {
@@ -110,9 +117,11 @@ fun ActionRow(
     icon: AppIcon? = null,
     danger: Boolean = false,
     chevron: Boolean = true,
+    /** Partnerfarbe statt Hauptakzent fürs Symbol – siehe [RowIcon]. */
+    altAccent: Boolean = false,
 ) {
     SettingsSurface(onClick) {
-        RowLayout(label, description, icon, danger) {
+        RowLayout(label, description, icon, danger, altAccent) {
             if (trailing != null) {
                 Text(trailing, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = RowColors.accent, maxLines = 1)
                 Spacer(Modifier.width(6.dp))
