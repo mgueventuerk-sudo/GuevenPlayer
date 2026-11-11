@@ -54,6 +54,17 @@ class MiniHttpServer(
     private var localNet: Pair<InetAddress, Int>? = null
     private var serverSocket: ServerSocket? = null
 
+    /**
+     * true, solange acceptLoop() tatsächlich auf Verbindungen wartet. Ein Netzwechsel (DHCP-Renew, AP-Roaming)
+     * kann die Schnittstelle unter dem gebundenen Socket wegziehen - accept() scheitert dann mit SocketException
+     * und die Schleife endet lautlos, ohne dass serverSocket selbst geschlossen wird. Aufrufer, die anhand von
+     * "schon ein Server da" entscheiden, ob start() erneut nötig ist, müssen das von hier erfahren.
+     */
+    @Volatile
+    private var accepting = false
+
+    fun isAccepting(): Boolean = accepting
+
     val token: String = SecureRandom().let { random ->
         (1..TOKEN_LENGTH).map { TOKEN_ALPHABET[random.nextInt(TOKEN_ALPHABET.length)] }.joinToString("")
     }
@@ -104,6 +115,15 @@ class MiniHttpServer(
     }
 
     private fun acceptLoop(socket: ServerSocket) {
+        accepting = true
+        try {
+            acceptUntilClosedOrBroken(socket)
+        } finally {
+            accepting = false
+        }
+    }
+
+    private fun acceptUntilClosedOrBroken(socket: ServerSocket) {
         while (!socket.isClosed) {
             val client = try {
                 socket.accept()
