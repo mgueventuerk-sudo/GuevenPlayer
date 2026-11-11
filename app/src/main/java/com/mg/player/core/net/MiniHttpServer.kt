@@ -2,6 +2,7 @@ package com.mg.player.core.net
 
 import androidx.core.net.toUri
 import com.mg.player.core.log.AppLog
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -53,6 +54,17 @@ class MiniHttpServer(
     private var localNet: Pair<InetAddress, Int>? = null
     private var serverSocket: ServerSocket? = null
 
+    /**
+     * true, solange acceptLoop() tatsächlich auf Verbindungen wartet. Ein Netzwechsel (DHCP-Renew, AP-Roaming)
+     * kann die Schnittstelle unter dem gebundenen Socket wegziehen - accept() scheitert dann mit SocketException
+     * und die Schleife endet lautlos, ohne dass serverSocket selbst geschlossen wird. Aufrufer, die anhand von
+     * "schon ein Server da" entscheiden, ob start() erneut nötig ist, müssen das von hier erfahren.
+     */
+    @Volatile
+    private var accepting = false
+
+    fun isAccepting(): Boolean = accepting
+
     val token: String = SecureRandom().let { random ->
         (1..TOKEN_LENGTH).map { TOKEN_ALPHABET[random.nextInt(TOKEN_ALPHABET.length)] }.joinToString("")
     }
@@ -103,6 +115,15 @@ class MiniHttpServer(
     }
 
     private fun acceptLoop(socket: ServerSocket) {
+        accepting = true
+        try {
+            acceptUntilClosedOrBroken(socket)
+        } finally {
+            accepting = false
+        }
+    }
+
+    private fun acceptUntilClosedOrBroken(socket: ServerSocket) {
         while (!socket.isClosed) {
             val client = try {
                 socket.accept()
@@ -174,6 +195,10 @@ class MiniHttpServer(
                 }
                 val request = Request(parts.getOrNull(0).orEmpty(), uri.path.orEmpty().ifEmpty { "/" }, query, String(body, 0, read, Charsets.UTF_8))
                 respond(s, handler(request))
+            } catch (e: CancellationException) {
+                // stop()/scope.cancel() kann mitten in einem suspend-Handler (z. B. Wiederherstellung) feuern -
+                // kooperativ weiterwerfen, sonst liefe die Coroutine als "erfolgreich beendet" statt abgebrochen.
+                throw e
             } catch (e: Exception) {
                 AppLog.debug("Heimnetz", "Anfrage fehlgeschlagen (${e.javaClass.simpleName})")
             }

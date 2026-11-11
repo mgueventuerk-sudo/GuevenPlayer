@@ -34,7 +34,7 @@ Projektordner. Alternativ in Android Studio: *Build → Generate APKs*.
 Das Macrobenchmark-Modul misst Kaltstart ohne/mit Baseline Profile und einen Rundgang durch Live-TV, Filme, Serien und
 Suche; Start, Navigation und Player erfassen zusätzlich den maximalen Speicherverbrauch. Für den Vergleich auf
 schwacher und starker Android-TV-Hardware dieselbe Test-Playlist einrichten und dann
-`tools/benchmark-device-info.sh <ADB-Seriennummer>` sowie `./gradlew :benchmark:connectedReleaseAndroidTest` auf jedem
+`tools/benchmark-device-info.sh <ADB-Seriennummer>` sowie `./gradlew :benchmark:connectedBenchmarkAndroidTest` auf jedem
 Gerät ausführen. Ein cloud-only Lauf benötigt eine Remote-Device-Farm; die Messwerte vom 31.10.2026 und der offene
 Gerätevergleich stehen in [benchmark/RESULTS-2026-10-31.md](benchmark/RESULTS-2026-10-31.md).
 

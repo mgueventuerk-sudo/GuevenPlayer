@@ -25,10 +25,10 @@ Android-Geräten ausführt. Lokal kann weiterhin jeweils ein Gerät angeschlosse
 ## Ausführen
 
 ```sh
-./gradlew :benchmark:connectedReleaseAndroidTest
+./gradlew :benchmark:connectedBenchmarkAndroidTest
 ```
 
-Gradle installiert die profileable Release-App und den Benchmark-Test auf dem verbundenen Gerät. Berichte und Rohdaten landen unter
+Gradle installiert die profileable Benchmark-App (R8-optimiert wie Release, eigener Build-Typ) und den Benchmark-Test auf dem verbundenen Gerät. Berichte und Rohdaten landen unter
 `benchmark/build/outputs/connected_android_test_additional_output/`.
 
 `coldStartWithoutCompilation` zeigt den Start ohne vorab optimierten App-Code. `coldStartWithBaselineProfile` zeigt den
@@ -43,6 +43,6 @@ Die JVM-/Compose-Suite lief mit 628 Tests ohne Fehler; neun Tests mit externen V
 gezielt ebenfalls erfolgreich ausgeführt. Der CH1-Parser benötigte auf der Cloud-VM 7,2 MB zusätzlichen lebenden Heap
 und 1.139 ms. Diese JVM-Messung ersetzt keine Gerätedaten.
 
-`connectedReleaseAndroidTest` benötigt ein verbundenes oder remote bereitgestelltes Android-Gerät. Der hier installierte
+`connectedBenchmarkAndroidTest` benötigt ein verbundenes oder remote bereitgestelltes Android-Gerät. Der hier installierte
 Android-TV-x86-Emulator kam ohne `/dev/kvm` nicht über ADB `offline` hinaus; daraus wurden keine Hardwarewerte abgeleitet.
 Der ausführliche Stand und der daraus folgende Plan stehen in [RESULTS-2026-10-31.md](RESULTS-2026-10-31.md).

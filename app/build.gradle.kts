@@ -78,12 +78,29 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            // Getrennt von der echten App: Ohne das waere ein aus dem Repo gebauter Debug-Build (eigener,
+            // oeffentlicher Debug-Schluessel) auf einem Geraet ohne Release-Installation nicht von "com.mg.player"
+            // zu unterscheiden - gleiche Kennung, gleicher Name in der App-Uebersicht.
+            applicationIdSuffix = ".debug"
+        }
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
-            isProfileable = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (hasReleaseSigning) signingConfig = signingConfigs.getByName("release")
+        }
+        // Fuer die Macrobenchmarks (benchmark-Modul): isMinifyEnabled/proguardFiles von "release" geerbt - dieselbe
+        // R8-optimierte Bytecode wie im echten Release, also dieselbe Messung. isProfileable steht nur hier, nicht
+        // mehr auf "release": Die an Nutzer ausgelieferte APK muss sich nicht anhaengen lassen (ADB/Shizuku).
+        // Mit dem Debug-Schluessel signiert statt mit dem echten Release-Schluessel - braucht dafuer keine
+        // Produktions-Geheimnisse und ist nie mit einer echten Auslieferung zu verwechseln.
+        create("benchmark") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            isDebuggable = false
+            isProfileable = true
         }
     }
 

@@ -1,7 +1,9 @@
 package com.mg.player.core.net
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -99,6 +101,21 @@ class MiniHttpServerTest {
         assertEquals(false, isSafeHeader("", "x"))
         assertEquals("Payload Too Large", reasonPhrase(413))
         assertEquals("Not Found", reasonPhrase(404))
+    }
+
+    /**
+     * HandoffServer/ProofShareServer entscheiden anhand davon, ob ein Neuaufbau nötig ist (ein Netzwechsel kann
+     * den gebundenen Socket wegziehen, ohne dass das Server-Objekt selbst verschwindet).
+     */
+    @Test
+    fun isAcceptingReflectsTheAcceptLoopLifecycle() = runBlocking {
+        assertEquals(false, server.isAccepting())
+        base()
+        withTimeout(2_000) { while (!server.isAccepting()) delay(10) }
+        assertTrue(server.isAccepting())
+        server.stop()
+        withTimeout(2_000) { while (server.isAccepting()) delay(10) }
+        assertEquals(false, server.isAccepting())
     }
 
     @Test

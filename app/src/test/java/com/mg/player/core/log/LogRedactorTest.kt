@@ -26,4 +26,22 @@ class LogRedactorTest {
         val line = "12.10. 20:15:00  [Player]  Start bis Bild: 850 ms"
         assertEquals(line, LogRedactor.redact(line))
     }
+
+    @Test
+    fun masksSecretAndCodeQueryParameters() {
+        assertEquals("GET /x?secret=***&page=2", LogRedactor.redact("GET /x?secret=abc123def&page=2"))
+        assertEquals("GET /oauth?code=***", LogRedactor.redact("GET /oauth?code=geheimercode"))
+        // Zusammengesetzte Namen bleiben unberührt – das sind keine Zugangsdaten.
+        val unrelated = "GET /x?postal_code=12345&area_code=030&status_code=200"
+        assertEquals(unrelated, LogRedactor.redact(unrelated))
+    }
+
+    @Test
+    fun masksAuthorizationCookieAndSetCookieHeaders() {
+        assertEquals("Authorization: ***", LogRedactor.redact("Authorization: Basic dXNlcjpwYXNz"))
+        assertEquals("Cookie: ***", LogRedactor.redact("Cookie: stb_lang=en; mac=00:1A:79:AB:CD:EF"))
+        assertEquals("Set-Cookie: ***", LogRedactor.redact("Set-Cookie: session=abcdef; Path=/"))
+        // Die Kopfzeilen-Regel schwärzt den ganzen Wert nach "Authorization:" – auch mit vorangestelltem Bearer.
+        assertEquals("Authorization: ***", LogRedactor.redact("Authorization: Bearer abcdefghijkl"))
+    }
 }

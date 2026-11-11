@@ -44,7 +44,9 @@ class HandoffServer(private val context: Context, private val onPlay: (PlayReque
     /** Lauschen. Ein geändertes Geheimnis wird sofort übernommen (Server neu anmelden). */
     fun start(secret: String) {
         if (secret.isBlank()) return
-        if (server != null && keyFor == secret) return
+        // Nicht nur "ein Server existiert", sondern "er nimmt noch Verbindungen an": Ein Netzwechsel kann den
+        // gebundenen Socket unter accept() wegziehen, ohne dass das Feld selbst null wird (MiniHttpServer.isAccepting).
+        if (server?.isAccepting() == true && keyFor == secret) return
         if (server != null) stop()
         key = HubAuth.key(secret)
         keyFor = secret

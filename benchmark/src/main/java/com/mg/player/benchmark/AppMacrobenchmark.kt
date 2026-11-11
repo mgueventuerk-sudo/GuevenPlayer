@@ -15,7 +15,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Release-Variante messen, nicht die langsamere Debug-Oberfläche. */
+/** Den "benchmark"-Build-Typ messen (R8-optimiert wie Release, aber ohne isProfileable auf dem echten Release). */
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalMetricApi::class)
 class AppMacrobenchmark {

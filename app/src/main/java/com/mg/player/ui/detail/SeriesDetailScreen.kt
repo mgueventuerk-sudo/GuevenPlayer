@@ -83,6 +83,9 @@ fun SeriesDetailScreen(seriesId: String) {
     BackHandler(enabled = candidates != null) { vm.tmdb.closeRematch() }
     val tmdbInfo = info
     val seasons = episodes.map { it.season }.distinct()
+    // Lief bisher im LazyColumn-Content-Lambda - das filtert bei jeder Rekomposition neu (z. B. wenn progress
+    // emittiert), statt nur wenn episodes oder season sich tatsächlich ändern.
+    val seasonEpisodes = remember(episodes, season) { episodes.filter { it.season == season } }
 
     Box(Modifier.fillMaxSize()) {
         DetailBackdrop(current.backdropUrl ?: tmdbInfo?.backdropUrl ?: current.posterUrl)
@@ -162,7 +165,7 @@ fun SeriesDetailScreen(seriesId: String) {
                             }
                         }
                     }
-                    items(episodes.filter { it.season == season }, key = { it.id }, contentType = { "episode" }) { ep ->
+                    items(seasonEpisodes, key = { it.id }, contentType = { "episode" }) { ep ->
                         EpisodeRow(ep, progress[ep.id], modifier = Modifier.fillMaxWidth(0.7f), onClick = {
                             val p = progress[ep.id]
                             play(ep, if (p != null && !p.watched) p.positionMs else 0)

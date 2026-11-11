@@ -65,6 +65,7 @@ import com.mg.player.data.sync.SyncManager
 import com.mg.player.data.tmdb.TmdbApi
 import com.mg.player.data.tmdb.TmdbRepositoryImpl
 import com.mg.player.data.update.AppUpdater
+import com.mg.player.domain.model.AppSettings
 import com.mg.player.domain.repository.CategoryRepository
 import com.mg.player.domain.repository.EpgRepository
 import com.mg.player.domain.repository.LiveRepository
@@ -83,6 +84,7 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -264,18 +266,41 @@ class AppContainer(context: Context, settingsOverride: SettingsRepository? = nul
     /**
      * Laeuft, solange die App lebt: lauschen, wenn der Schalter an ist - und sofort aufhoeren, wenn er ausgeht.
      * Das Geheimnis ist dasselbe wie beim Pruefgeraet: eine Kopplung je Haushalt, nicht zwei.
+     *
+     * Zwei nebenlaeufige Teile: Der erste reagiert sofort auf Einstellungsaenderungen (wie bisher). Der zweite
+     * prueft im Minutenabstand nach, ob der Server noch wirklich lauscht - ein Netzwechsel (DHCP-Renew,
+     * AP-Roaming) kann den gebundenen Socket wegziehen, ohne dass das sichtbar wuerde (MiniHttpServer.isAccepting,
+     * HandoffServer.start() baut dann neu auf). Ohne diesen zweiten Teil bliebe "Auf dem Fernseher weiterschauen"
+     * nach einem Netzwechsel tot, bis jemand den Schalter manuell aus- und wieder einschaltet.
      */
     suspend fun handoffLoop() {
-        settingsRepository.settings
-            .map { it.tvHandoff to (if (it.sportProofDevice) it.sportHubCode else it.sportHubJoinCode) }
-            .distinctUntilChanged()
-            .collect { (listening, secret) ->
-                withContext(Dispatchers.IO) {
-                    runCatching { if (listening) handoffServer.start(secret) else handoffServer.stop() }
-                        .onFailure { AppLog.log("Übergabe", "Fernseher nicht bereit: ${it.javaClass.simpleName}") }
+        coroutineScope {
+            launch {
+                settingsRepository.settings
+                    .map { it.tvHandoff to it.handoffSecret() }
+                    .distinctUntilChanged()
+                    .collect { (listening, secret) ->
+                        withContext(Dispatchers.IO) {
+                            runCatching { if (listening) handoffServer.start(secret) else handoffServer.stop() }
+                                .onFailure { AppLog.log("Übergabe", "Fernseher nicht bereit: ${it.javaClass.simpleName}") }
+                        }
+                    }
+            }
+            launch {
+                while (isActive) {
+                    delay(HANDOFF_RECHECK_MS)
+                    val settings = settingsRepository.current()
+                    if (!settings.tvHandoff) continue
+                    withContext(Dispatchers.IO) {
+                        runCatching { handoffServer.start(settings.handoffSecret()) }
+                            .onFailure { AppLog.log("Übergabe", "Fernseher nicht bereit: ${it.javaClass.simpleName}") }
+                    }
                 }
             }
+        }
     }
+
+    private fun AppSettings.handoffSecret(): String = if (sportProofDevice) sportHubCode else sportHubJoinCode
 
     val favoriteOrder: FavoriteOrderRepository by lazy { FavoriteOrderRepository(database) }
 
@@ -413,3 +438,6 @@ class AppContainer(context: Context, settingsOverride: SettingsRepository? = nul
 
     val accountVerifier by lazy { AccountVerifier(xtreamApi, httpFetcher) }
 }
+
+/** Wie oft handoffLoop() nachsieht, ob der Server nach einem Netzwechsel noch lauscht - selbes Intervall wie SportModule.shareLoop. */
+private const val HANDOFF_RECHECK_MS = 60_000L

@@ -6,6 +6,7 @@ import android.os.Environment
 import android.os.storage.StorageManager
 import com.mg.player.core.log.AppLog
 import com.mg.player.data.remote.StreamUrlResolver
+import com.mg.player.data.sync.syncErrorText
 import com.mg.player.domain.model.Channel
 import com.mg.player.domain.model.EpgProgram
 import com.mg.player.domain.model.Recording
@@ -231,7 +232,9 @@ class RecordingManager(
             throw e
         } catch (e: Exception) {
             AppLog.error("Aufnahme", "Aufnahme fehlgeschlagen", e)
-            error = e.message ?: "Unbekannter Fehler"
+            // syncErrorText() übersetzt bekannte Netzwerkfehler (Zeitüberschreitung, Server nicht erreichbar, …)
+            // ins Deutsche; für alles andere bleibt derselbe Rückfall wie vorher (e.message bzw. "Unbekannter Fehler").
+            error = syncErrorText(e)
         }
         val size = withContext(Dispatchers.IO) { File(recording.filePath).length() }
         val status = when {

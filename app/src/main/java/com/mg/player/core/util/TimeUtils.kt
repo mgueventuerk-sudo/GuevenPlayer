@@ -22,6 +22,8 @@ object TimeUtils {
     }
 
     fun formatClock(ms: Long): String {
+        // get() ist ein Java-Plattformtyp (T!), auch mit initialValue() ueberschrieben: Kotlin kennt die
+        // Nicht-Null-Garantie von ThreadLocal nicht, kann hier also nicht null sein.
         // Zeitzone jedes Mal übernehmen: Stellt jemand die Zeitzone um, stimmt die Uhr sofort.
         val format = clockFormat.get()!!.apply { timeZone = TimeZone.getDefault() }
         return format.format(Date(ms))

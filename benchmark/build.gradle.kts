@@ -17,7 +17,8 @@ android {
     experimentalProperties["android.experimental.self-instrumenting"] = true
 
     buildTypes {
-        create("release") {
+        // Name muss zum "benchmark"-Build-Typ in app/build.gradle.kts passen (targetProjectPath matcht per Name).
+        create("benchmark") {
             isDebuggable = true
             signingConfig = signingConfigs.getByName("debug")
         }

@@ -1,5 +1,8 @@
 package com.mg.player.data.parser
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -108,5 +111,31 @@ class M3uParserTest {
         val line = "y".repeat(M3uParser.MAX_LINE + 1) + "\n"
         val error = runCatching { parseText(line.repeat(M3uParser.MAX_DROPPED)) }.exceptionOrNull()
         assertEquals(M3uParser.NOT_M3U, error?.message)
+    }
+
+    /**
+     * Abbruch mitten im Parsen: onEntry im Importer suspendiert nicht selbst (sammelt nur) - ohne eigenen
+     * Abbruchpunkt im Parser lief das Lesen nach einem cancel() bisher bis zum Ende weiter. Deterministisch:
+     * feste Groesse, kein Zufall, keine Zeitmessung.
+     */
+    @Test(timeout = 30_000)
+    fun cancellingTheParseStopsItEarly() = runBlocking {
+        val total = 40_000
+        val text = buildString {
+            append("#EXTM3U\n")
+            repeat(total) { i -> append("#EXTINF:-1,T$i\n").append("http://s/$i.ts\n") }
+        }
+        var seen = 0
+        val job = Job()
+        val scope = CoroutineScope(coroutineContext + job)
+        val work = scope.launch {
+            M3uParser.parse(text.byteInputStream(), onHeaderEpg = {}, onEntry = {
+                seen++
+                if (seen == 1) job.cancel()
+            })
+        }
+        work.join()
+        assertEquals(true, seen < total / 2)
+        assertEquals(true, seen >= 1)
     }
 }

@@ -105,24 +105,6 @@ jobs:
       - name: Gradle einrichten
         uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
-      # The profile test builds the app's release variant, which must never use the repository debug key.
-      - name: Release-Schlüssel bereitstellen
-        env:
-          KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
-          STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-        run: |
-          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
-            echo "::error::Baseline-Profil braucht die SIGNING_* Release-Secrets, weil es die Release-App baut."
-            exit 1
-          fi
-          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
-          echo "SIGNING_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
-          echo "SIGNING_STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
-          echo "SIGNING_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
-          echo "SIGNING_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
-
       # Der erste echte Lauf scheiterte hier: "Not enough space to create userdata partition.
       # Available: 7149.41 MB, need 7372.80 MB". Der Build davor baut mit vier ABIs
       # (-PbenchmarkEmulator=true) und LibVLC bringt ~86 MB native Bibliotheken mit - danach fehlen dem
@@ -153,7 +135,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
             chmod +x gradlew
-            ./gradlew :benchmark:connectedReleaseAndroidTest -PbenchmarkEmulator=true -Pandroid.testInstrumentationRunnerArguments.class=com.mg.player.benchmark.BaselineProfileGenerator --stacktrace
+            ./gradlew :benchmark:connectedBenchmarkAndroidTest -PbenchmarkEmulator=true -Pandroid.testInstrumentationRunnerArguments.class=com.mg.player.benchmark.BaselineProfileGenerator --stacktrace
 
       - name: Profil hochladen
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
