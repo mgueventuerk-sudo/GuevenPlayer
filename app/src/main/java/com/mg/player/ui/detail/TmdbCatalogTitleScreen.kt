@@ -113,6 +113,8 @@ fun TmdbCatalogTitleScreen(recommendation: TmdbRecommendation) {
                     LoadingIndicator(Modifier, size = 24.dp)
                     Text("Alle Playlists werden durchsucht …", color = AppColors.TextSecondary)
                 }
+                // searchError ist ein "by"-delegierter State<String?>.value - Kotlin smart-castet das trotz der
+                // Null-Prüfung oben nicht (kein stabiler Getter), daher hier das !! statt einer weiteren Variable.
                 searchError != null -> Text(searchError!!, color = AppColors.TextSecondary, style = MaterialTheme.typography.bodyLarge)
                 copies.isEmpty() -> Text(
                     "Dieser Titel wurde in deinen Playlists nicht gefunden. Er bleibt im TMDB-Katalog sichtbar, ist hier aber nicht direkt abspielbar.",

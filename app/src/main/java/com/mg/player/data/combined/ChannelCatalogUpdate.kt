@@ -154,6 +154,8 @@ class ChannelCatalogUpdate(
             if (closed) return null
             val fields = listOf(id, name, country)
             if (fields.any { it.isNullOrBlank() }) return null
+            // Die Prüfung oben lief über die abgeleitete Liste "fields", nicht über id/name/country selbst -
+            // Kotlin kann daraus nicht auf deren Nicht-Null-Status schließen (kein Smart-Cast über die Kopie).
             return Channel(id!!.trim(), country!!.trim().uppercase(), listOf(name!!) + alt)
         }
 
