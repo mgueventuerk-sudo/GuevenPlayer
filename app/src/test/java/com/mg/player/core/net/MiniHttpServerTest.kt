@@ -91,6 +91,15 @@ class MiniHttpServerTest {
     }
 
     @Test
+    fun throttlingIsPerClientNotGlobal() {
+        // Mehr Fehlversuche als der Schwellwert jemals sein kann - exakte Zahl ist Implementierungsdetail.
+        repeat(50) { server.failed("10.0.0.5") }
+        assertTrue(server.throttled("10.0.0.5"))
+        // Ein anderes Gerät im selben WLAN darf davon nicht betroffen sein.
+        assertEquals(false, server.throttled("10.0.0.9"))
+    }
+
+    @Test
     fun headerValidationBlocksInjection() {
         assertTrue(isSafeHeader("Content-Disposition", "attachment; filename=\"a.json\""))
         assertTrue(isSafeHeader("User-Agent", "VLC/3.0\tLinux"))
