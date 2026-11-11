@@ -71,11 +71,6 @@ fun SetupScreen(onFinished: () -> Unit, firstSetup: Boolean = true) {
             title = state.progressText.ifBlank { "Lade Playlist…" },
             subtitle = if (state.progressCount > 0) "${state.progressCount} Einträge verarbeitet" else "Das kann bei großen Listen einen Moment dauern.",
             loading = true,
-            // Ohne diesen Knopf gab es bei der Erst-Einrichtung keinen Ausweg, wenn das Laden haengt: Screen.Setup
-            // ist dann die Navigationswurzel, "Zurück" hat keine vorherige Seite.
-            actionLabel = if (state.phase == SetupPhase.IMPORTING) "Abbrechen" else null,
-            onAction = if (state.phase == SetupPhase.IMPORTING) vm::cancelImport else null,
-            showActionWhileLoading = true,
         )
 
         SetupPhase.ERROR -> Column(

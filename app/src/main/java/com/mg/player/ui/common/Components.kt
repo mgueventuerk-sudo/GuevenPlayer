@@ -112,10 +112,6 @@ fun CenteredMessage(
     /** Leerer Zustand mit Ausweg (wie Apple TV): Knopf, der direkt weiterhilft, z. B. „Alle Sender zeigen“. */
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
-    /** Abbrechen-Knopf auch während loading zeigen (z. B. ein hängender Ladevorgang ohne anderen Ausweg).
-     *  Default false erhält das bisherige Verhalten für alle bestehenden Aufrufer (Leerzustand mit Aktion
-     *  blendet seine Aktion während des Ladens aus). */
-    showActionWhileLoading: Boolean = false,
 ) {
     Column(
         // Seitenrand: Am Handy liefen lange Texte sonst bis an den Bildschirmrand.
@@ -143,11 +139,9 @@ fun CenteredMessage(
                 modifier = Modifier.widthIn(max = 540.dp),
             )
         }
-        if (actionLabel != null && onAction != null) {
-            if (!loading || showActionWhileLoading) {
-                Spacer(Modifier.height(20.dp))
-                ActionButton(actionLabel, onClick = onAction, primary = true)
-            }
+        if (actionLabel != null && onAction != null && !loading) {
+            Spacer(Modifier.height(20.dp))
+            ActionButton(actionLabel, onClick = onAction, primary = true)
         }
     }
 }
