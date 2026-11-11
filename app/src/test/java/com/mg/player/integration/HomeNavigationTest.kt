@@ -241,7 +241,8 @@ class HomeNavigationTest {
         assertEquals(ThemeMode.LIGHT, runBlocking { container.settingsRepository.current().themeMode })
         assertFalse("Oberfläche ist jetzt hell", AppColors.isDark)
 
-        compose.onNode(hasContentDescription("Blau gewählt"), useUnmergedTree = true).assertExists()
+        // War "Blau gewählt" - der Standard-Akzent für Neuinstallationen ist jetzt die Markenfarbe, nicht Blau.
+        compose.onNode(hasContentDescription("Gelb-Rot gewählt"), useUnmergedTree = true).assertExists()
         compose.runOnUiThread { runBlocking { container.settingsRepository.update { it.copy(accent = AccentColor.ROSE) } } }
         compose.settle()
         assertEquals(accentGradient(AccentColor.ROSE).first(), AppColors.Accent)

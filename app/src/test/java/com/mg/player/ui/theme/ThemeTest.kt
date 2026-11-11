@@ -60,7 +60,9 @@ class ThemeTest {
                 assertContrast("$name Text/Glas", p.textPrimary, glass, 7.0)
                 assertContrast("$name Nebentext/Hintergrund", p.textSecondary, p.background, 4.5)
                 assertContrast("$name Nebentext/Glas", p.textSecondary, glass, 4.5)
-                assertContrast("$name Hinweistext/Hintergrund", p.textMuted, p.background, 3.0)
+                // War 3.0 (reine Dekorations-Schwelle) - Hinweistext zeigt echte Information (Jahr, Fortschritt),
+                // keine Dekoration: WCAG AA für Normaltext ist 4.5, nicht 3.0.
+                assertContrast("$name Hinweistext/Hintergrund", p.textMuted, p.background, 4.5)
                 assertContrast("$name Fokus", p.onFocus, p.focusFill, 4.5)
                 assertContrast("$name Akzenttext", p.accentText, p.background, 4.5)
                 assertContrast("$name Primärknopf", p.onAccent, p.accent, 3.0)

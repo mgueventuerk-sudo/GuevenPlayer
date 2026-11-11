@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +52,7 @@ import com.mg.player.ui.common.glass
 import com.mg.player.ui.live.ChannelLogo
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
+import com.mg.player.ui.theme.AppMotion
 import com.mg.player.ui.theme.AppShapes
 import com.mg.player.ui.theme.StaticIcon
 
@@ -106,7 +108,9 @@ internal fun GuideRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(number.toString(), modifier = Modifier.width(30.dp), style = MaterialTheme.typography.labelMedium, color = AppColors.TextMuted)
-            ChannelLogo(channel.logoUrl, channel.name, Modifier.size(width = 44.dp, height = 30.dp))
+            // Gleiche Größe wie in der Live-TV-Liste (ChannelRow) - 44x30 war für ein Senderlogo zu klein, um auf
+            // Abstand lesbar zu sein, und wich ohne Grund von der sonst identischen Senderspalte ab.
+            ChannelLogo(channel.logoUrl, channel.name, Modifier.size(width = 64.dp, height = 44.dp))
             MarqueeText(
                 channel.name,
                 modifier = Modifier.padding(start = 8.dp),
@@ -117,7 +121,11 @@ internal fun GuideRow(
         }
         Spacer(Modifier.width(6.dp))
         Box(Modifier.width(timelineWidth).fillMaxHeight()) {
-            val visible = programs.filter { it.endMs > windowStart && it.startMs < windowEnd }
+            // nowMs tickt alle 30 s (Jetzt-Linie) und rekomponiert GuideRow - ohne remember filterte das bei
+            // jedem Tick alle sichtbaren Zeilen neu, obwohl sich programs/windowStart/windowEnd dabei nicht ändern.
+            val visible = remember(programs, windowStart, windowEnd) {
+                programs.filter { it.endMs > windowStart && it.startMs < windowEnd }
+            }
             if (visible.isEmpty()) {
                 ProgramCell(
                     title = "Keine Programminfo – OK für Live",
@@ -309,7 +317,7 @@ internal fun GuideSkeleton(timelineWidth: Dp, rows: Int = 8) {
         val value by transition.animateFloat(
             initialValue = 0.55f,
             targetValue = 1f,
-            animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+            animationSpec = infiniteRepeatable(tween(AppMotion.AMBIENT_MS), RepeatMode.Reverse),
             label = "pulse",
         )
         value

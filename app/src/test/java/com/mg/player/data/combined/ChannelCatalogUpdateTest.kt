@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mg.player.core.network.HttpFetcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -17,6 +20,7 @@ import org.robolectric.annotation.Config
 import java.io.File
 import java.io.StringReader
 import java.io.StringWriter
+import java.io.Writer
 import java.util.zip.GZIPInputStream
 
 /** Internetabgleich des Senderkatalogs: richtig umwandeln, kaputte Downloads nie übernehmen. */
@@ -64,7 +68,7 @@ class ChannelCatalogUpdateTest {
     )
 
     @Test
-    fun convertsLikeTheBundledCatalog() {
+    fun convertsLikeTheBundledCatalog() = runBlocking {
         val out = StringWriter()
         val count = ChannelCatalogUpdate.convert(StringReader(json), out, small)
         assertEquals(3, count)
@@ -96,6 +100,39 @@ class ChannelCatalogUpdateTest {
             assertEquals(good, GZIPInputStream(file.inputStream()).bufferedReader().readText())
         }
         assertTrue(!File(dir, "${ChannelCatalogUpdate.FILE}.part").exists())
+    }
+
+    @Test
+    fun cancellingConvertStopsItEarly() = runBlocking {
+        val total = 40_000
+        val bulk = buildString {
+            append("[")
+            repeat(total) { i ->
+                if (i > 0) append(",")
+                append("""{"id":"C$i.de","name":"C$i","alt_names":[],"country":"DE","closed":null}""")
+            }
+            append("]")
+        }
+        var writes = 0
+        val job = Job()
+        val out = object : Writer() {
+            override fun write(cbuf: CharArray, off: Int, len: Int) {
+                writes++
+                // Nach dem Kopf (1 write) und dem ersten Sender (2 writes) abbrechen - weit vor dem ersten Yield-Punkt.
+                if (writes == 3) job.cancel()
+            }
+
+            override fun flush() = Unit
+
+            override fun close() = Unit
+        }
+        val scope = CoroutineScope(coroutineContext + job)
+        val noCheck = ChannelCatalogUpdate.Check(minChannels = 0, mustContain = emptySet())
+        val work = scope.launch {
+            ChannelCatalogUpdate.convert(StringReader(bulk), out, noCheck)
+        }
+        work.join()
+        assertTrue(writes < total)
     }
 
     @Test

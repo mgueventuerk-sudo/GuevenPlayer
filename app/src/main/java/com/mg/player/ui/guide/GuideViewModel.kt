@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.mg.player.core.di.AppContainer
+import com.mg.player.core.log.AppLog
 import com.mg.player.core.util.TimeUtils
 import com.mg.player.core.util.runCatchingCancellable
 import com.mg.player.data.remote.StreamUrlResolver
@@ -127,6 +128,7 @@ class GuideViewModel(private val container: AppContainer) : ViewModel() {
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            AppLog.error("EPG", "Programm für ${channel.name} nicht ladbar", e)
             emptyList()
         }
         // Leere Antwort nicht merken: Kommt das EPG später (Import läuft noch), lädt die Zeile beim nächsten Mal neu.

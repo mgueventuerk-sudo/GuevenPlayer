@@ -48,6 +48,9 @@ internal fun focusGlow(elevation: Dp): Glow =
 @ReadOnlyComposable
 internal fun liftShadow(): Glow = if (AppColors.reducedEffects) Glow.None else Glow(elevationColor = Color.Black.copy(alpha = 0.6f), elevation = 26.dp)
 
+/** Dauer des einmaligen Lichtreflexes bei Fokus/Antippen. */
+private const val SHEEN_SWEEP_MS = 750
+
 /** true, solange die umgebende Fläche den Fokus hat – für Texte, die ihre Farbe anpassen. */
 val LocalSurfaceFocused = compositionLocalOf { false }
 
@@ -87,7 +90,7 @@ fun FocusSurface(
     LaunchedEffect(focused || pressed) {
         if ((focused || pressed) && sheenOn) {
             sweep.snapTo(0f)
-            sweep.animateTo(1f, tween(750, easing = FastOutSlowInEasing))
+            sweep.animateTo(1f, tween(SHEEN_SWEEP_MS, easing = FastOutSlowInEasing))
         } else {
             sweep.snapTo(0f)
         }

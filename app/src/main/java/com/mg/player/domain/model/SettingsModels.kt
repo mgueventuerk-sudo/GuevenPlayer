@@ -98,7 +98,7 @@ data class AppSettings(
     val updateToken: String = "",
     val tmdbEnabled: Boolean = true,
     val themeMode: ThemeMode = ThemeMode.AUTO,
-    val accent: AccentColor = AccentColor.BLUE,
+    val accent: AccentColor = AccentColor.BRAND,
     /**
      * Hardware-Tunneling im ExoPlayer: entlastet die CPU auf TV-Sticks. Standard aus – auf Fire-TV-Geräten
      * blieb damit bei vielen Sendern der Ton stumm.

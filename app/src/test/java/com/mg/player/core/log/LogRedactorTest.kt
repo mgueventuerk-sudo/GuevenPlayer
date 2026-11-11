@@ -44,4 +44,34 @@ class LogRedactorTest {
         // Die Kopfzeilen-Regel schwärzt den ganzen Wert nach "Authorization:" – auch mit vorangestelltem Bearer.
         assertEquals("Authorization: ***", LogRedactor.redact("Authorization: Bearer abcdefghijkl"))
     }
+
+    @Test
+    fun masksJsonFormCredentials() {
+        assertEquals("""{"password":"***","page":2}""", LogRedactor.redact("""{"password":"geheim123","page":2}"""))
+        // Leerraum nach dem Doppelpunkt bleibt nicht erhalten - wie bei der "="-Form auch.
+        assertEquals("""{"token":"***"}""", LogRedactor.redact("""{"token": "abcdefghijkl"}"""))
+        // Zusammengesetzte Namen bleiben unberührt – wie bei den URL-Parametern.
+        val unrelated = """{"postal_code":"12345"}"""
+        assertEquals(unrelated, LogRedactor.redact(unrelated))
+    }
+
+    @Test
+    fun masksFreetextKeyValueCredentials() {
+        assertEquals("Felder: password: ***", LogRedactor.redact("Felder: password: geheim123 (Länge 10)"))
+        assertEquals("Antwort: token: ***", LogRedactor.redact("Antwort: token: abcdef123456 gültig"))
+        // Das Schlüsselwort muss unmittelbar vor dem Doppelpunkt stehen - Fließtext mit dem Wort bleibt unberührt.
+        val unrelated = "Der Benutzer meldet: alles in Ordnung"
+        assertEquals(unrelated, LogRedactor.redact(unrelated))
+    }
+
+    @Test
+    fun masksXtreamPathsWithoutTypeSegment() {
+        assertEquals(
+            "Lade http://tv.example:8080/***/***/987654.ts jetzt",
+            LogRedactor.redact("Lade http://tv.example:8080/max/geheimwort/987654.ts jetzt"),
+        )
+        // Gewöhnliche REST-Pfade mit zwei Segmenten, aber ohne numerische Stream-ID, bleiben unberührt.
+        val unrelated = "GET https://api.example.com/v2/users.json"
+        assertEquals(unrelated, LogRedactor.redact(unrelated))
+    }
 }

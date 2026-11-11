@@ -73,15 +73,24 @@ class MiniHttpServer(
     fun isAuthorized(candidate: String?): Boolean =
         candidate != null && MessageDigest.isEqual(candidate.toByteArray(Charsets.UTF_8), token.toByteArray(Charsets.UTF_8))
 
-    private val failures = ArrayDeque<Long>()
+    // Pro Gerät (IP), nicht global: sonst könnte ein Gerät mit falschem Code im selben WLAN das echte
+    // Gerät aussperren, indem es die gemeinsame Drossel für alle auslöst.
+    private val failuresByClient = HashMap<String, ArrayDeque<Long>>()
 
-    private fun throttled(): Boolean = synchronized(failures) {
+    /** internal statt private: direkt testbar, ohne den Umweg über echte Sockets mit verschiedenen Quell-IPs. */
+    internal fun throttled(clientKey: String): Boolean = synchronized(failuresByClient) {
         val now = System.currentTimeMillis()
-        while (failures.isNotEmpty() && failures.first() < now - FAIL_WINDOW_MS) failures.removeFirst()
-        failures.size >= MAX_FAILURES
+        val queue = failuresByClient[clientKey]
+        if (queue != null) {
+            while (queue.isNotEmpty() && queue.first() < now - FAIL_WINDOW_MS) queue.removeFirst()
+            if (queue.isEmpty()) failuresByClient.remove(clientKey)
+        }
+        (failuresByClient[clientKey]?.size ?: 0) >= MAX_FAILURES
     }
 
-    private fun failed() = synchronized(failures) { failures.addLast(System.currentTimeMillis()) }
+    internal fun failed(clientKey: String) = synchronized(failuresByClient) {
+        failuresByClient.getOrPut(clientKey) { ArrayDeque() }.addLast(System.currentTimeMillis())
+    }
 
     /** Startet den Server und liefert die Basis-Adresse (z. B. http://192.168.1.20:8765) oder null ohne Netzwerk. */
     fun start(): String? {
@@ -158,10 +167,12 @@ class MiniHttpServer(
                 val uri = ("http://x" + parts.getOrNull(1).orEmpty()).toUri()
                 val query = uri.queryParameterNames.associateWith { uri.getQueryParameter(it).orEmpty() }
                 // Token prüfen, BEVOR Kopfzeilen und Inhalt gelesen werden (kein Speicher für fremde Anfragen).
-                // Viele Fehlversuche kurz hintereinander: eine Weile alles ablehnen (kein Durchprobieren von Codes).
-                val blocked = throttled()
+                // Viele Fehlversuche kurz hintereinander von derselben IP: eine Weile diese IP ablehnen
+                // (kein Durchprobieren von Codes) – ohne andere Geräte im selben WLAN mit auszusperren.
+                val clientKey = client.inetAddress.hostAddress ?: client.inetAddress.toString()
+                val blocked = throttled(clientKey)
                 if (blocked || !(authorize?.invoke(uri.path.orEmpty(), query) ?: isAuthorized(query["t"]))) {
-                    if (!blocked) failed()
+                    if (!blocked) failed(clientKey)
                     respond(s, Response.html(403, "<h1>Abgelehnt</h1><p>Bitte den QR-Code am Fernseher erneut scannen.</p>"))
                     discardRest(s, input)
                     return

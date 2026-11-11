@@ -119,7 +119,9 @@ fun paletteFor(dark: Boolean, accent: AccentColor): Palette {
             // Schrift über Deckkraft abgestuft (wie Apples „Vibrancy“): passt sich jedem Hintergrundbild an.
             textPrimary = Color(0xFFF5F7FB),
             textSecondary = Color.White.copy(alpha = 0.68f),
-            textMuted = Color.White.copy(alpha = 0.44f),
+            // War 0.44 (4,32:1) - unter WCAG AA (4,5:1) für echten Informationstext (Jahr, Fortschritt), nicht nur
+            // Dekoration. 0.50 ergibt 5,31:1, aus den Hex-Werten dieser Datei berechnet (keine Schätzung).
+            textMuted = Color.White.copy(alpha = 0.50f),
             accent = a.main,
             accentAlt = a.partner,
             accentText = a.textOnDark,
@@ -133,7 +135,10 @@ fun paletteFor(dark: Boolean, accent: AccentColor): Palette {
             dark = false,
             background = Color(0xFFE9EDF5),
             backgroundAlt = Color(0xFFF7F8FC),
-            auroraA = a.main.copy(alpha = 0.20f),
+            // War 0.20 (Abstand zum Hintergrund nur 43,7 statt 81,5 im Dunklen - der Blob war gegen den schon
+            // bläulichen hellen Hintergrund knapp halb so gut wahrnehmbar). 0.30 gleicht das Verhältnis zu
+            // auroraB (0.16 in beiden Themes) an das dunkle Theme an.
+            auroraA = a.main.copy(alpha = 0.30f),
             auroraB = a.partner.copy(alpha = 0.16f),
             glass = Color.White.copy(alpha = 0.64f),
             glassRaised = Color.White.copy(alpha = 0.82f),
@@ -148,7 +153,8 @@ fun paletteFor(dark: Boolean, accent: AccentColor): Palette {
             shadow = Color(0xFF1B2440).copy(alpha = 0.22f),
             textPrimary = Color(0xFF0B1220),
             textSecondary = Color(0xFF0B1220).copy(alpha = 0.70f),
-            textMuted = Color(0xFF0B1220).copy(alpha = 0.50f),
+            // War 0.50 (3,40:1) - unter WCAG AA (4,5:1) für echten Informationstext. 0.62 ergibt 4,97:1.
+            textMuted = Color(0xFF0B1220).copy(alpha = 0.62f),
             accent = a.main,
             accentAlt = a.partner,
             accentText = a.textOnLight,
@@ -176,7 +182,7 @@ fun isDarkFor(mode: ThemeMode, hourOfDay: Int = Calendar.getInstance().get(Calen
  * oder der Akzentfarbe färbt die ganze Oberfläche sofort um, ohne Neustart.
  */
 object AppColors {
-    private var current by mutableStateOf(paletteFor(dark = true, accent = AccentColor.BLUE))
+    private var current by mutableStateOf(paletteFor(dark = true, accent = AccentColor.BRAND))
     private var darkVariant by mutableStateOf(current)
     private var videoScopes by mutableIntStateOf(0)
 

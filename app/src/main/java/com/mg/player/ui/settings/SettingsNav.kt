@@ -101,7 +101,9 @@ internal fun PhoneSettingsMenu(c: SettingsContext, vpnLine: String, onOpen: (Set
         settingsGroup("menu") {
             SettingsPage.entries.forEach { page ->
                 row("menu-${page.name}") {
-                    ActionRow(page.label, { onOpen(page) }, page.status(c, vpnLine), icon = page.icon)
+                    // Abwechselnd Haupt-/Partnerfarbe statt für alle Bereiche derselbe Kachelfarbe - sonst sind
+                    // "Sicherheit" und "Darstellung" auf den ersten Blick nicht zu unterscheiden.
+                    ActionRow(page.label, { onOpen(page) }, page.status(c, vpnLine), icon = page.icon, altAccent = page.ordinal % 2 == 1)
                 }
             }
         }

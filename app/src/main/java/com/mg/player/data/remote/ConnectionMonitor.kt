@@ -92,12 +92,22 @@ class ConnectionMonitor(
 
     /** Frische Einzelabfrage (vor dem Abspielen); null = unbekannt (M3U ohne Angaben, offline, Zeitüberschreitung). */
     suspend fun checkNow(playlistId: Long, timeoutMs: Long = 1_500): ConnectionStatus? {
-        // Eigener Job: Ein blockierender HTTP-Aufruf lässt sich nicht abbrechen – mit withContext hätte die Frist erst nach
-        // dem Ende des Aufrufs gegriffen (bis zur vollen Netz-Zeitüberschreitung vor dem Abspielen).
+        // Eigener Job auf [scope], nicht auf dem Aufrufer: Ein blockierender HTTP-Aufruf lässt sich nicht abbrechen –
+        // mit withContext hätte die Frist erst nach dem Ende des Aufrufs gegriffen (bis zur vollen Netz-Zeitüberschreitung
+        // vor dem Abspielen).
         val fetch = scope.async(Dispatchers.IO) { db.playlistDao().get(playlistId)?.let { refreshOne(it, force = true) } }
-        return withTimeoutOrNull(timeoutMs) {
-            fetch.await()
-            _status.value[playlistId]
+        return try {
+            withTimeoutOrNull(timeoutMs) {
+                fetch.await()
+                _status.value[playlistId]
+            }
+        } finally {
+            // fetch läuft auf [scope], nicht auf dem Aufrufer - ohne das hier bliebe sie nach einer Zeitüberschreitung
+            // oder einem Abbruch des Aufrufers (schnelles Umschalten zwischen Sendern) als verwaistes Kind von scope
+            // bestehen. Cancel() stoppt den schon laufenden Netzaufruf selbst nicht sofort (dieselbe Grenze wie bei
+            // jedem blockierenden HttpFetcher-Aufruf), verhindert aber, dass sich solche Kinder unbegrenzt anhäufen,
+            // und unterdrückt eine verspätete Status-Aktualisierung für einen längst verlassenen Sender.
+            fetch.cancel()
         }
     }
 
