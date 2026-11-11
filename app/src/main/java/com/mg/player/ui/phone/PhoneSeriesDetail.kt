@@ -84,6 +84,9 @@ fun PhoneSeriesDetail(seriesId: String) {
     BackHandler(enabled = candidates != null) { vm.tmdb.closeRematch() }
     val tmdb = info
     val seasons = episodes.map { it.season }.distinct()
+    // Lief bisher im LazyColumn-Content-Lambda - das filtert bei jeder Rekomposition neu (z. B. wenn progress
+    // emittiert), statt nur wenn episodes oder season sich tatsächlich ändern.
+    val seasonEpisodes = remember(episodes, season) { episodes.filter { it.season == season } }
 
     Box(Modifier.fillMaxSize()) {
         if (candidates == null) {
@@ -159,7 +162,7 @@ fun PhoneSeriesDetail(seriesId: String) {
                             }
                         }
                     }
-                    items(episodes.filter { it.season == season }, key = { it.id }, contentType = { "episode" }) { ep ->
+                    items(seasonEpisodes, key = { it.id }, contentType = { "episode" }) { ep ->
                         EpisodeRow(ep, progress[ep.id], modifier = Modifier.padding(horizontal = 12.dp).fillMaxWidth(), onClick = {
                             val p = progress[ep.id]
                             play(ep, if (p != null && !p.watched) p.positionMs else 0)
