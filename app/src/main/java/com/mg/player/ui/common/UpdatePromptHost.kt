@@ -41,7 +41,13 @@ fun UpdatePromptHost(container: AppContainer) {
             updater.dismissedVersion = update.versionCode
             dismissed = update.versionCode
         },
-        message = "Version ${update.versionName} ist da. Die App lädt sie herunter und öffnet den Installer – " +
-            "dort einmal „Installieren“ bestätigen. Fortschritt unter Einstellungen → System → App-Updates.",
+        message = buildString {
+            append("Version ${update.versionName} ist da.")
+            update.notes?.let { append("\n\n").append(it) }
+            append(
+                "\n\nDie App lädt sie herunter und öffnet den Installer – dort einmal „Installieren“ bestätigen. " +
+                    "Fortschritt unter Einstellungen → System → App-Updates.",
+            )
+        },
     )
 }

@@ -10,8 +10,8 @@ import org.junit.Test
 /** Releases aus dem privaten Repo lesen – und nur eine Release-APK von GitHub akzeptieren (dorthin geht der Schlüssel). */
 class AppUpdaterTest {
 
-    private fun release(tag: String, vararg assets: Pair<String, String>) = JSONObject(
-        """{"tag_name":"$tag","name":"Player 3.52.261106.1200","assets":[""" +
+    private fun release(tag: String, vararg assets: Pair<String, String>, body: String = "") = JSONObject(
+        """{"tag_name":"$tag","name":"Player 3.52.261106.1200","body":${JSONObject.quote(body)},"assets":[""" +
             assets.joinToString(",") { (name, url) -> """{"name":"$name","url":"$url","size":52428800}""" } + "]}",
     )
 
@@ -24,6 +24,33 @@ class AppUpdaterTest {
         assertEquals("3.52.261106.1200", update.versionName)
         assertEquals("$api/2", update.assetUrl)
         assertEquals(52428800L, update.sizeBytes)
+    }
+
+    @Test
+    fun readsAndCleansReleaseNotes() {
+        val body = """
+            ## What's Changed
+            * Farbsystem: Markenfarbe als Standard by @mgueventuerk-sudo in https://github.com/owner/repo/pull/11
+            * Bewegung: Ambient-Loop-Konstante by @mgueventuerk-sudo in https://github.com/owner/repo/pull/11
+
+            **Full Changelog**: https://github.com/owner/repo/compare/build-119...build-120
+        """.trimIndent()
+        val update = AppUpdater.parseRelease(release("build-120", "Player-30.apk" to "$api/2", body = body))!!
+        assertEquals("• Farbsystem: Markenfarbe als Standard\n• Bewegung: Ambient-Loop-Konstante", update.notes)
+    }
+
+    @Test
+    fun hasNoNotesWithoutAUsableChangelog() {
+        assertNull(AppUpdater.parseRelease(release("build-120", "Player-30.apk" to "$api/2", body = ""))!!.notes)
+        // Vollautomatisches Release ohne Pull-Request-Zeilen (nur Metadaten) - nichts Lesbares übrig.
+        assertNull(AppUpdater.cleanChangelog("Build 120 · ccr-67aaff33-ogct3s · 7a5e667"))
+    }
+
+    @Test
+    fun capsTheNumberOfChangelogLines() {
+        val body = (1..10).joinToString("\n") { "* Punkt $it by @user in https://github.com/owner/repo/pull/$it" }
+        val notes = AppUpdater.cleanChangelog(body)!!
+        assertEquals(6, notes.lines().size)
     }
 
     @Test
