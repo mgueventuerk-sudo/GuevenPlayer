@@ -240,6 +240,23 @@ class PhoneShotTest {
         compose.shootBothThemes("handy_11b_einrichtung_tippen")
     }
 
+    /** Erst-Einrichtung hat keine vorherige Seite zum Zurückgehen - ohne diesen Knopf gäbe es keinen Ausweg. */
+    @Test
+    fun setupImportCanBeCancelledBackToTheForm() {
+        compose.setContent { PhoneHost(container) { SetupScreen(onFinished = {}, firstSetup = true) } }
+        compose.waitForText("Manuell eingeben")
+        listOf("Server-URL" to "http://127.0.0.1:9", "Benutzername" to "u", "Passwort" to "p").forEach { (field, text) ->
+            compose.onNodeWithContentDescription(field).performScrollTo().performClick()
+            compose.onNode(hasSetTextAction() and isFocused()).performTextInput(text)
+        }
+        compose.onNodeWithText("HTTP zulassen").performScrollTo().performClick()
+        compose.onNodeWithText("Speichern & laden").performScrollTo().performClick()
+        compose.waitForText("Abbrechen")
+        compose.onNodeWithText("Abbrechen").performClick()
+        compose.waitForText("Manuell eingeben")
+        compose.onNodeWithText("Laden fehlgeschlagen").assertDoesNotExist()
+    }
+
     @Test
     fun setupErrorFitsPortrait() {
         compose.setContent { PhoneHost(container) { SetupScreen(onFinished = {}, firstSetup = true) } }

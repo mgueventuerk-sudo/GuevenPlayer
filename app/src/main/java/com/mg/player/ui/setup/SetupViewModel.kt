@@ -13,6 +13,7 @@ import com.mg.player.domain.model.PlaylistType
 import com.mg.player.domain.repository.PlaylistInput
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -66,6 +67,9 @@ class SetupViewModel(private val container: AppContainer) : ViewModel() {
     private var previousActiveKnown = false
     private var importJob: Job? = null
 
+    /** Die äußere Coroutine (submit()/retry()), die runImport() aufruft - zum Abbrechen aus cancelImport(). */
+    private var importFlowJob: Job? = null
+
     init {
         viewModelScope.launch {
             val url = withContext(Dispatchers.IO) { runCatching { server.start() }.getOrNull() }
@@ -110,7 +114,7 @@ class SetupViewModel(private val container: AppContainer) : ViewModel() {
             }
             return
         }
-        viewModelScope.launch {
+        importFlowJob = viewModelScope.launch {
             _state.update { it.copy(phase = SetupPhase.IMPORTING, error = null, progressText = "Speichere Zugangsdaten…") }
             if (!previousActiveKnown) {
                 previousActiveId = container.settingsRepository.current().activePlaylistId
@@ -132,11 +136,43 @@ class SetupViewModel(private val container: AppContainer) : ViewModel() {
     fun retry() {
         // Noch kein Zugang gespeichert (z. B. Verschlüsselung scheiterte): komplett neu versuchen.
         val id = lastPlaylistId ?: return submitForm()
-        viewModelScope.launch { runImport(id) }
+        importFlowJob = viewModelScope.launch { runImport(id) }
     }
 
     fun backToForm() {
         _state.update { it.copy(phase = SetupPhase.FORM) }
+    }
+
+    /**
+     * Mitten im Laden abbrechen. Bei der Erst-Einrichtung (Screen.Setup ist die Navigationswurzel) gibt es keine
+     * vorherige Seite, über die "Zurück" das sonst zuverlässige onCleared() ausloesen würde - ohne diese Funktion
+     * konnte ein hängender Import nur durchgestanden werden.
+     *
+     * Reihenfolge wichtig: importFlowJob (die äußere submit()/retry()-Coroutine) zuerst abbrechen, sonst würde ihr
+     * Code nach job.join() in runImport() noch laufen und den Zustand hier gleich wieder auf ERROR/DONE setzen.
+     * importJob (der eigentliche Sync in SyncManager - eigener, app-weiter Bereich, kein Kind von viewModelScope)
+     * separat abbrechen, sonst liefe die Netzwerkarbeit im Hintergrund weiter.
+     */
+    fun cancelImport() {
+        if (_state.value.phase != SetupPhase.IMPORTING) return
+        val flow = importFlowJob
+        val running = importJob
+        val unfinished = lastPlaylistId
+        val restore = previousActiveId
+        viewModelScope.launch {
+            flow?.cancelAndJoin()
+            running?.cancelAndJoin()
+            if (unfinished != null) {
+                deleteAndRestore(unfinished, restore)
+                lastPlaylistId = null
+            }
+            _state.update { it.copy(phase = SetupPhase.FORM, error = null, progressText = "", progressCount = 0) }
+        }
+    }
+
+    private suspend fun deleteAndRestore(unfinished: Long, restore: Long?) {
+        container.playlistRepository.deletePlaylist(unfinished)
+        container.settingsRepository.update { s -> if (s.activePlaylistId == unfinished) s.copy(activePlaylistId = restore) else s }
     }
 
     private suspend fun runImport(id: Long) {
@@ -169,10 +205,7 @@ class SetupViewModel(private val container: AppContainer) : ViewModel() {
         container.appScope.launch {
             // Läuft der Import noch, erst sein Ende abwarten – sonst schriebe er in einen gelöschten Zugang.
             running?.join()
-            container.playlistRepository.deletePlaylist(unfinished)
-            container.settingsRepository.update { s ->
-                if (s.activePlaylistId == unfinished) s.copy(activePlaylistId = restore) else s
-            }
+            deleteAndRestore(unfinished, restore)
         }
     }
 }
