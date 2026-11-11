@@ -144,18 +144,14 @@ fun GuideScreen(modifier: Modifier = Modifier) {
                         val channel = channels[index] ?: return@items
                         LaunchedEffect(channel.id, windowStart, epgVersion) { vm.loadPrograms(channel) }
                         val programs by vm.programsFor(channel.id)
-                        GuideRow(
-                            channel = channel,
-                            number = channel.listNumber(index),
-                            programs = programs,
-                            windowStart = windowStart,
-                            timelineWidth = timelineWidth,
-                            nowMs = nowMs,
-                            onFocus = { program -> vm.onFocus(channel, program) },
-                            onClick = { program -> openProgram(channel, program) },
-                            onShift = vm::shiftWindow,
-                            // Einheitliches Kontextmenü: Ansehen/Erinnern und Aufnehmen an einer Stelle.
-                            onLongClick = { program ->
+                        // Ohne remember wären das pro Rekomposition neue Lambda-Instanzen - GuideRow könnte dann
+                        // nie überspringen, selbst wenn sich für diese Zeile nichts änderte (z. B. bei einem
+                        // epgVersion-Sprung, der diesen ganzen Block neu durchläuft). onLongClick hängt zusätzlich
+                        // von recordingKeys ab, sonst zeigte das Kontextmenü nach einer Änderung einen alten Stand.
+                        val onFocusChannel = remember(channel) { { program: EpgProgram? -> vm.onFocus(channel, program) } }
+                        val onClickChannel = remember(channel) { { program: EpgProgram? -> openProgram(channel, program) } }
+                        val onLongClickChannel = remember(channel, recordingKeys) {
+                            { program: EpgProgram? ->
                                 val recording = program != null && Recording.programKey(channel.id, program.startMs) in recordingKeys
                                 contextMenu.show(
                                     title = program?.title ?: channel.name,
@@ -167,7 +163,20 @@ fun GuideScreen(modifier: Modifier = Modifier) {
                                         },
                                     ),
                                 )
-                            },
+                            }
+                        }
+                        GuideRow(
+                            channel = channel,
+                            number = channel.listNumber(index),
+                            programs = programs,
+                            windowStart = windowStart,
+                            timelineWidth = timelineWidth,
+                            nowMs = nowMs,
+                            onFocus = onFocusChannel,
+                            onClick = onClickChannel,
+                            onShift = vm::shiftWindow,
+                            // Einheitliches Kontextmenü: Ansehen/Erinnern und Aufnehmen an einer Stelle.
+                            onLongClick = onLongClickChannel,
                             recordingKeys = recordingKeys,
                             reminderKeys = reminderKeys,
                         )

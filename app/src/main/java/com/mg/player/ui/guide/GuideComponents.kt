@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -117,7 +118,11 @@ internal fun GuideRow(
         }
         Spacer(Modifier.width(6.dp))
         Box(Modifier.width(timelineWidth).fillMaxHeight()) {
-            val visible = programs.filter { it.endMs > windowStart && it.startMs < windowEnd }
+            // nowMs tickt alle 30 s (Jetzt-Linie) und rekomponiert GuideRow - ohne remember filterte das bei
+            // jedem Tick alle sichtbaren Zeilen neu, obwohl sich programs/windowStart/windowEnd dabei nicht ändern.
+            val visible = remember(programs, windowStart, windowEnd) {
+                programs.filter { it.endMs > windowStart && it.startMs < windowEnd }
+            }
             if (visible.isEmpty()) {
                 ProgramCell(
                     title = "Keine Programminfo – OK für Live",
