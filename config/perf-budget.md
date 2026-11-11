@@ -11,7 +11,7 @@ API-Stufe, Datum und Commit danebenstehen.
 Messen:
 
 ```
-./gradlew :benchmark:connectedReleaseAndroidTest -PbenchmarkEmulator=true \
+./gradlew :benchmark:connectedBenchmarkAndroidTest -PbenchmarkEmulator=true \
   -Pandroid.testInstrumentationRunnerArguments.class=com.mg.player.benchmark.AppMacrobenchmark
 ```
 

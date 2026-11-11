@@ -55,7 +55,7 @@ Fünf Macrobenchmarks liegen fertig im Repo, in
 Aufruf (braucht einen Emulator oder ein angeschlossenes Gerät):
 
 ```
-./gradlew :benchmark:connectedReleaseAndroidTest -PbenchmarkEmulator=true \
+./gradlew :benchmark:connectedBenchmarkAndroidTest -PbenchmarkEmulator=true \
   -Pandroid.testInstrumentationRunnerArguments.class=com.mg.player.benchmark.AppMacrobenchmark
 ```
 

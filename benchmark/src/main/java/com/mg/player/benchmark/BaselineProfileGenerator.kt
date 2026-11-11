@@ -13,7 +13,7 @@ import org.junit.runner.RunWith
  * Labor wurde beim Start viel per JIT übersetzt, Voll-AOT war 22 % schneller bis „Inhalt sichtbar“.
  *
  * Erzeugen (Emulator/Gerät mit root, eingerichtete Test-Playlist):
- * `./gradlew :benchmark:connectedReleaseAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.mg.player.benchmark.BaselineProfileGenerator`
+ * `./gradlew :benchmark:connectedBenchmarkAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.mg.player.benchmark.BaselineProfileGenerator`
  * Ergebnis `*-baseline-prof.txt` aus build/outputs/connected_android_test_additional_output nach
  * app/src/main/baseline-prof.txt kopieren.
  */
