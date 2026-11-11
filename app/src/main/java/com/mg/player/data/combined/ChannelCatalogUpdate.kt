@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import java.io.File
 import java.io.IOException
 import java.io.Reader
@@ -62,7 +63,7 @@ class ChannelCatalogUpdate(
         withContext(Dispatchers.IO) { download() }
     }
 
-    private fun download(): Outcome {
+    private suspend fun download(): Outcome {
         val target = File(dir, FILE)
         val temp = File(dir, "$FILE.part")
         return try {
@@ -102,17 +103,22 @@ class ChannelCatalogUpdate(
         internal const val MIN_CHANNELS = 20_000
         internal val MUST_CONTAIN = setOf("DasErste.de", "BBCOne.uk", "TRT1.tr")
 
+        /** So viele Sender zwischen zwei Abbruchprüfungen - groß genug, um nicht ins Gewicht zu fallen. */
+        private const val YIELD_EVERY_CHANNELS = 4_096
+
         /**
          * `channels.json` (Feld für Feld gelesen, nie als Ganzes im Speicher) → Zeilen wie im mitgelieferten Katalog.
          * Geschlossene Sender und Sender ohne Land fallen weg. Wirft [IOException], wenn das Ergebnis nicht plausibel ist.
          */
-        fun convert(input: Reader, out: Writer, check: Check = Check()): Int {
+        suspend fun convert(input: Reader, out: Writer, check: Check = Check()): Int {
             out.write("# iptv-org/api channels.json – gemeinfrei (Unlicense). Spalten: id, land, namen (;)\n")
             var count = 0
             val seen = HashSet<String>()
             JsonReader(input).use { json ->
                 json.beginArray()
                 while (json.hasNext()) {
+                    // Abbrechbar bleiben: ~30.000 Sender ohne Suspend-Punkt liefen nach cancel() bis zum Ende weiter.
+                    if (count > 0 && count % YIELD_EVERY_CHANNELS == 0) yield()
                     val channel = readChannel(json) ?: continue
                     out.write(channel.line())
                     out.write("\n")

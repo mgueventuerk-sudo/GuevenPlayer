@@ -1,6 +1,7 @@
 package com.mg.player.data.combined
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.runBlocking
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -13,7 +14,7 @@ import java.io.StringWriter
 @Config(sdk = [34])
 class OnlineCatalogCheckTest {
     @Test
-    fun realDownloadConverts() {
+    fun realDownloadConverts() = runBlocking {
         val path = System.getProperty("catalogJson")?.takeIf(String::isNotBlank)
         assumeTrue(path != null && File(path).isFile)
         val out = StringWriter()
