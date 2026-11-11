@@ -135,7 +135,10 @@ fun paletteFor(dark: Boolean, accent: AccentColor): Palette {
             dark = false,
             background = Color(0xFFE9EDF5),
             backgroundAlt = Color(0xFFF7F8FC),
-            auroraA = a.main.copy(alpha = 0.20f),
+            // War 0.20 (Abstand zum Hintergrund nur 43,7 statt 81,5 im Dunklen - der Blob war gegen den schon
+            // bläulichen hellen Hintergrund knapp halb so gut wahrnehmbar). 0.30 gleicht das Verhältnis zu
+            // auroraB (0.16 in beiden Themes) an das dunkle Theme an.
+            auroraA = a.main.copy(alpha = 0.30f),
             auroraB = a.partner.copy(alpha = 0.16f),
             glass = Color.White.copy(alpha = 0.64f),
             glassRaised = Color.White.copy(alpha = 0.82f),
