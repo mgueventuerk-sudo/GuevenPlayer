@@ -4,6 +4,7 @@ import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
+import kotlinx.coroutines.yield
 
 /**
  * Streaming-M3U-Parser: liest Zeile für Zeile über einen BufferedReader,
@@ -37,6 +38,9 @@ object M3uParser {
     /** Ab so vielen verworfenen Zeilen ist es keine M3U: abbrechen statt weiterzulesen. */
     internal const val MAX_DROPPED = 100
 
+    /** So viele Zeilen zwischen zwei Abbruchpruefungen - gross genug, um nicht ins Gewicht zu fallen. */
+    private const val YIELD_EVERY_LINES = 4_096
+
     const val NOT_M3U = "Die Antwort des Anbieters ist keine gültige M3U-Liste (Fehlerseite oder beschädigte Datei)."
 
     private val attributeRegex = Regex("([A-Za-z0-9_-]+)=\"([^\"]*)\"")
@@ -49,7 +53,12 @@ object M3uParser {
             var defaults = CatchupDefaults(null, 0, null)
             val scanner = LineScanner(reader)
             var dropped = 0
+            var lines = 0
             while (true) {
+                // Abbrechbar bleiben, auch wenn eine Zeile nie zu onEntry führt (Kommentare, #EXTGRP, leere
+                // Zeilen): Eine lange Kopfzeilen-Strecke ohne Stream-URL hätte das Parsen nach einem cancel()
+                // sonst bis zum Ende weiterlaufen lassen - wie bei XmltvParser, dort schon mit yield() behoben.
+                if (++lines % YIELD_EVERY_LINES == 0) yield()
                 // readLine() hätte eine Datei ohne Zeilenumbruch komplett in den Speicher geladen (OOM).
                 val raw = when (scanner.next()) {
                     LineResult.END -> break
