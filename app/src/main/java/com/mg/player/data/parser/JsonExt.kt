@@ -4,6 +4,7 @@ import android.util.JsonReader
 import android.util.JsonToken
 import java.io.InputStream
 import java.io.InputStreamReader
+import kotlinx.coroutines.yield
 
 fun jsonReader(input: InputStream): JsonReader = JsonReader(InputStreamReader(input, Charsets.UTF_8)).apply { isLenient = true }
 
@@ -67,17 +68,23 @@ fun JsonReader.readFlatObject(): Map<String, String?> {
     return map
 }
 
+/** So viele Objekte zwischen zwei Abbruchpruefungen - gross genug, um nicht ins Gewicht zu fallen. */
+private const val YIELD_EVERY = 4_096
+
 /**
  * Ruft [onItem] für jedes Objekt einer Liste auf. Manche Panels liefern statt eines
  * Arrays ein Objekt mit Index-Schlüsseln – beides wird unterstützt. Speicherbedarf bleibt konstant.
+ *
+ * Abbrechbar bleiben, auch wenn [onItem] selbst nie suspendiert: XtreamImporter.importCategories sammelt
+ * z. B. nur in einer ArrayList und schreibt erst am Ende in die Datenbank - ohne dieses yield() liefe ein
+ * grosses oder kaputtes Kategorien-JSON nach einem cancel() trotzdem bis zum Ende durch.
  */
 suspend fun JsonReader.forEachObject(onItem: suspend (Map<String, String?>) -> Unit) {
+    var items = 0
     when (peek()) {
         JsonToken.BEGIN_ARRAY -> {
             beginArray()
-            while (hasNext()) {
-                if (peek() == JsonToken.BEGIN_OBJECT) onItem(readFlatObject()) else skipValue()
-            }
+            while (hasNext()) items = consumeObjectOrSkip(items, onItem)
             endArray()
         }
 
@@ -85,13 +92,25 @@ suspend fun JsonReader.forEachObject(onItem: suspend (Map<String, String?>) -> U
             beginObject()
             while (hasNext()) {
                 nextName()
-                if (peek() == JsonToken.BEGIN_OBJECT) onItem(readFlatObject()) else skipValue()
+                items = consumeObjectOrSkip(items, onItem)
             }
             endObject()
         }
 
         else -> skipValue()
     }
+}
+
+/** Ein Objekt lesen und [onItem] geben, oder den Wert verwerfen; [items] ist der bisherige Zaehlstand. */
+private suspend fun JsonReader.consumeObjectOrSkip(items: Int, onItem: suspend (Map<String, String?>) -> Unit): Int {
+    if (peek() != JsonToken.BEGIN_OBJECT) {
+        skipValue()
+        return items
+    }
+    onItem(readFlatObject())
+    val next = items + 1
+    if (next % YIELD_EVERY == 0) yield()
+    return next
 }
 
 fun Map<String, String?>.str(key: String): String? = this[key]?.takeIf { it.isNotBlank() && it != "null" }

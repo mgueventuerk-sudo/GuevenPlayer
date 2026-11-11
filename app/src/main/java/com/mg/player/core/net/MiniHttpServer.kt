@@ -2,6 +2,7 @@ package com.mg.player.core.net
 
 import androidx.core.net.toUri
 import com.mg.player.core.log.AppLog
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -174,6 +175,10 @@ class MiniHttpServer(
                 }
                 val request = Request(parts.getOrNull(0).orEmpty(), uri.path.orEmpty().ifEmpty { "/" }, query, String(body, 0, read, Charsets.UTF_8))
                 respond(s, handler(request))
+            } catch (e: CancellationException) {
+                // stop()/scope.cancel() kann mitten in einem suspend-Handler (z. B. Wiederherstellung) feuern -
+                // kooperativ weiterwerfen, sonst liefe die Coroutine als "erfolgreich beendet" statt abgebrochen.
+                throw e
             } catch (e: Exception) {
                 AppLog.debug("Heimnetz", "Anfrage fehlgeschlagen (${e.javaClass.simpleName})")
             }

@@ -113,6 +113,7 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
 
     override val settings: Flow<AppSettings> = flow {
         migratePlaintextTmdbKey()
+        migratePlaintextSportHubSecrets()
         emitAll(store.data.map { it.toSettings() })
     }
 
@@ -167,8 +168,8 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
             sportGuide = this[Keys.SPORT_GUIDE] ?: defaults.sportGuide,
             sportSourcesOff = this[Keys.SPORT_SOURCES_OFF] ?: defaults.sportSourcesOff,
             sportProofDevice = this[Keys.SPORT_PROOF_DEVICE] ?: defaults.sportProofDevice,
-            sportHubCode = this[Keys.SPORT_HUB_CODE] ?: defaults.sportHubCode,
-            sportHubJoinCode = this[Keys.SPORT_HUB_JOIN] ?: defaults.sportHubJoinCode,
+            sportHubCode = this[Keys.SPORT_HUB_CODE]?.let(SecretCipher::decrypt) ?: defaults.sportHubCode,
+            sportHubJoinCode = this[Keys.SPORT_HUB_JOIN]?.let(SecretCipher::decrypt) ?: defaults.sportHubJoinCode,
             sportCountries = this[Keys.SPORT_COUNTRIES]?.takeIf { it.isNotEmpty() } ?: defaults.sportCountries,
             dohFallback = this[Keys.DOH] ?: defaults.dohFallback,
             noHistory = this[Keys.NO_HISTORY] ?: defaults.noHistory,
@@ -215,8 +216,6 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         this[Keys.SPORT_GUIDE] = s.sportGuide
         this[Keys.SPORT_SOURCES_OFF] = s.sportSourcesOff
         this[Keys.SPORT_PROOF_DEVICE] = s.sportProofDevice
-        this[Keys.SPORT_HUB_CODE] = s.sportHubCode
-        this[Keys.SPORT_HUB_JOIN] = s.sportHubJoinCode
         this[Keys.SPORT_COUNTRIES] = s.sportCountries
         this[Keys.DOH] = s.dohFallback
         this[Keys.NO_HISTORY] = s.noHistory
@@ -231,6 +230,11 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         putSecret(Keys.BZZOIRO_TOKEN, s.bzzoiroToken)
         putSecret(Keys.TMDB_KEY, s.tmdbApiKey)
         putSecret(Keys.UPDATE_TOKEN, s.updateToken)
+        // Pairing-Geheimnis für Spiel-Finder-Austausch und TV-Handoff (HubAuth): wie die Zugriffsschlüssel oben
+        // verschlüsselt speichern, nicht im Klartext der DataStore-Datei – wer es lesen kann, gibt sich im
+        // Heimnetz als Prüfgerät oder Fernseher aus.
+        putSecret(Keys.SPORT_HUB_CODE, s.sportHubCode)
+        putSecret(Keys.SPORT_HUB_JOIN, s.sportHubJoinCode)
     }
 
     private fun MutablePreferences.putSecret(key: Preferences.Key<String>, value: String) {
@@ -250,6 +254,21 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
                 .onSuccess { prefs[Keys.TMDB_KEY] = it }
                 .onFailure { prefs.remove(Keys.TMDB_KEY) }
         }
+    }
+
+    /** Vor diesem Fix im Klartext gespeichert (Pairing-Geheimnis für Spiel-Finder/TV-Handoff): einmalig nachrüsten. */
+    private suspend fun migratePlaintextSportHubSecrets() {
+        store.edit { prefs ->
+            migratePlaintextSecretIfNeeded(prefs, Keys.SPORT_HUB_CODE)
+            migratePlaintextSecretIfNeeded(prefs, Keys.SPORT_HUB_JOIN)
+        }
+    }
+
+    private fun migratePlaintextSecretIfNeeded(prefs: MutablePreferences, key: Preferences.Key<String>) {
+        val stored = prefs[key]?.takeIf { it.isNotBlank() && !it.startsWith("enc1:") && !it.startsWith("enc0:") } ?: return
+        runCatching { SecretCipher.encrypt(stored) }
+            .onSuccess { prefs[key] = it }
+            .onFailure { prefs.remove(key) }
     }
 
     private inline fun <reified T : Enum<T>> enumOr(value: String?, default: T): T = value?.let { v -> enumValues<T>().firstOrNull { it.name == v } } ?: default

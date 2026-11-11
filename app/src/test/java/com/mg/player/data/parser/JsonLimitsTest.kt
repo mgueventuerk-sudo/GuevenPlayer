@@ -1,6 +1,9 @@
 package com.mg.player.data.parser
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -45,5 +48,32 @@ class JsonLimitsTest {
         assertEquals("false", item["adult"])
         assertTrue("x" in item && item["x"] == null)
         assertTrue("info" !in item)
+    }
+
+    /**
+     * Abbruch mitten im Lesen: XtreamImporter.importCategories sammelt nur in einer ArrayList (kein eigener
+     * Suspend-Aufruf je Objekt) - ohne das yield() in forEachObject liefe das Lesen eines grossen Kategorien-
+     * JSON nach cancel() trotzdem bis zum Ende durch. Deterministisch: feste Groesse, kein Zufall, keine Zeit.
+     */
+    @Test(timeout = 30_000)
+    fun cancellingForEachObjectStopsItEarly() = runBlocking {
+        val total = 20_000
+        val json = (0 until total).joinToString(",", prefix = "[", postfix = "]") { i ->
+            """{"category_id":"$i","category_name":"K$i"}"""
+        }
+        var seen = 0
+        val job = Job()
+        val scope = CoroutineScope(coroutineContext + job)
+        val work = scope.launch {
+            jsonReader(json.byteInputStream()).use { reader ->
+                reader.forEachObject {
+                    seen++
+                    if (seen == 1) job.cancel()
+                }
+            }
+        }
+        work.join()
+        assertTrue("forEachObject war abgebrochen, lief aber bis zum Ende: $seen von $total", seen < total / 2)
+        assertTrue("forEachObject hat gar nicht erst gestartet", seen >= 1)
     }
 }

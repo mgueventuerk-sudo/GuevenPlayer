@@ -105,4 +105,57 @@ class SettingsSecretStorageTest {
             scope.cancel()
         }
     }
+
+    /**
+     * Das Pairing-Geheimnis für Spiel-Finder-Austausch und TV-Handoff (HubAuth) gehört verschlüsselt auf die
+     * Platte – wer es im Klartext liest, gibt sich im Heimnetz als Prüfgerät oder Fernseher aus.
+     */
+    @Test
+    fun sportHubSecretsAreEncryptedAtRestAndReadableByRepository() = runBlocking {
+        SecretCipher.init(ApplicationProvider.getApplicationContext<Context>())
+        val file = folder.newFile("sport-hub-settings.preferences_pb")
+        val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        try {
+            val store: DataStore<Preferences> = PreferenceDataStoreFactory.create(scope = scope) { file }
+            val repository = SettingsRepositoryImpl(store)
+            val code = "sport-hub-pairing-secret"
+            val joinCode = "sport-hub-join-secret"
+            repository.update { it.copy(sportHubCode = code, sportHubJoinCode = joinCode) }
+
+            val onDisk = String(file.readBytes(), Charsets.ISO_8859_1)
+            assertFalse(onDisk.contains(code))
+            assertFalse(onDisk.contains(joinCode))
+            assertEquals(code, repository.current().sportHubCode)
+            assertEquals(joinCode, repository.current().sportHubJoinCode)
+        } finally {
+            scope.cancel()
+        }
+    }
+
+    @Test
+    fun existingPlaintextSportHubSecretsAreMigratedBeforeSettingsAreEmitted() = runBlocking {
+        SecretCipher.init(ApplicationProvider.getApplicationContext<Context>())
+        val file = folder.newFile("legacy-sport-hub-settings.preferences_pb")
+        val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        try {
+            val store: DataStore<Preferences> = PreferenceDataStoreFactory.create(scope = scope) { file }
+            val codeKey = stringPreferencesKey("sport_hub_code")
+            val joinKey = stringPreferencesKey("sport_hub_join")
+            val code = "legacy-sport-hub-secret"
+            val joinCode = "legacy-sport-hub-join-secret"
+            store.edit {
+                it[codeKey] = code
+                it[joinKey] = joinCode
+            }
+
+            val repository = SettingsRepositoryImpl(store)
+            assertEquals(code, repository.current().sportHubCode)
+            assertEquals(joinCode, repository.current().sportHubJoinCode)
+            val onDisk = String(file.readBytes(), Charsets.ISO_8859_1)
+            assertFalse(onDisk.contains(code))
+            assertFalse(onDisk.contains(joinCode))
+        } finally {
+            scope.cancel()
+        }
+    }
 }
