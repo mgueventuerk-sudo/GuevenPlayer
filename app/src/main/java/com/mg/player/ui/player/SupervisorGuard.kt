@@ -51,6 +51,7 @@ internal class SupervisorGuard(private val vm: PlayerViewModel) : PlaybackGuard 
             if (level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW || level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL) {
                 vm.scope.launch {
                     vm.standby.releaseForDevicePressure()
+                    vm.habitPreload.releaseForDevicePressure()
                     supervisor.onDevicePressure()
                 }
             }
@@ -67,6 +68,7 @@ internal class SupervisorGuard(private val vm: PlayerViewModel) : PlaybackGuard 
             if (status >= PowerManager.THERMAL_STATUS_SEVERE) {
                 vm.scope.launch {
                     vm.standby.releaseForDevicePressure()
+                    vm.habitPreload.releaseForDevicePressure()
                     supervisor.onDevicePressure()
                 }
             }

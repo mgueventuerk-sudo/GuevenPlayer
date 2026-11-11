@@ -24,6 +24,8 @@ class LiveSession(
     /** Zustand des Players, den die Live-Logik mitpflegt (Sendernummer, EPG, Favorit). */
     private val ui: MutableStateFlow<PlayerUiState>,
     private val start: suspend (Playable) -> Unit,
+    /** Sehgewohnheits-Vorladung anstoßen (siehe [HabitPreloader]) - erst, wenn ein Sender ruhig eine Weile lief. */
+    private val predictHabit: (Channel) -> Unit = {},
 ) {
 
     private val resolver = PlayableResolver(container)
@@ -89,6 +91,7 @@ class LiveSession(
             delay(HABIT_MS - SETTLE_MS)
             if (currentChannelId == channel.id && !container.settingsRepository.current().noHistory) {
                 withContext(Dispatchers.IO) { container.channelHabits.record(channel.id) }
+                predictHabit(channel)
             }
         }
         observeChannel(channel)

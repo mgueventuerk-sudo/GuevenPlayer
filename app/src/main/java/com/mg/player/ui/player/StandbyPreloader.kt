@@ -27,6 +27,9 @@ internal class StandbyPreloader(private val vm: PlayerViewModel) {
     private var loading: Job? = null
     private var played = false
 
+    /** Hält gerade eine Engine auf Vorrat oder lädt eine - für [HabitPreloader]: beide zusammen wären ein dritter Decoder. */
+    val isActive: Boolean get() = engine != null || loading?.isActive == true
+
     /** Eine zweite Engine samt Decoder und Puffer bleibt Geräten der höchsten Leistungsklasse vorbehalten. */
     private val allowed = supportsStandbyPreload(DeviceTier.of(vm.container.appContext))
 

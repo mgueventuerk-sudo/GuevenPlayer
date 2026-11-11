@@ -46,7 +46,7 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
     internal val accounts = AccountGate(container)
     internal var switchingAccount = false
     internal val progress = PlayerProgress(container)
-    internal val live = LiveSession(container, scope, uiState) { playable -> startPlayable(playable) }
+    internal val live = LiveSession(container, scope, uiState, { playable -> startPlayable(playable) }, { channel -> habitPreload.predict(channel) })
     internal val bingeSession = BingeSession(container, scope)
     val binge: StateFlow<BingeState> = bingeSession.state
     internal val audioRestorer = AudioTrackRestorer(container.playback.trackMemory)
@@ -69,6 +69,9 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
 
     /** Lädt bei einem Hänger die nächste Variante stumm vor, wenn ihr Zugang einen freien Platz hat. */
     internal val standby = StandbyPreloader(this)
+
+    /** Lädt nach ruhiger Wiedergabe leise den Sehgewohnheits-Sender eines ANDEREN Zugangs mit freiem Platz vor. */
+    internal val habitPreload = HabitPreloader(this)
     internal val livePauseWatchdog = LivePauseWatchdog()
     internal var userPaused = false
 
@@ -156,6 +159,7 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
         preparedAt = SystemClock.elapsedRealtime()
         sourceHealth.onPrepared(playable)
         standby.onPrepared()
+        habitPreload.release()
         guard?.onEnginePrepared()
         if (skipNextPrepare) {
             skipNextPrepare = false
@@ -274,6 +278,7 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
         uiState.value.playable?.let { it.activePlaylistId ?: playlistIdOf(it.id) }?.let(container.connectionMonitor::markOwnUse)
         accounts.answer(AccountChoice.Cancel)
         standby.release()
+        habitPreload.release()
         guard?.release()
         infoSampler.stop()
         engineHolder.value?.let { engine ->

@@ -25,8 +25,11 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.util.concurrent.TimeUnit
 
-/** Eine neuere Version im privaten Repo. [assetUrl]: API-Adresse der APK (nur mit Schlüssel abrufbar). */
-data class AppUpdate(val versionCode: Int, val versionName: String, val assetUrl: String, val sizeBytes: Long)
+/**
+ * Eine neuere Version im privaten Repo. [assetUrl]: API-Adresse der APK (nur mit Schlüssel abrufbar).
+ * [notes]: bereinigte Stichpunkte aus den GitHub-Release-Notizen (null = keine vorhanden oder nichts übrig).
+ */
+data class AppUpdate(val versionCode: Int, val versionName: String, val assetUrl: String, val sizeBytes: Long, val notes: String? = null)
 
 /** Was der Updater gerade weiß bzw. tut – für Einstellungen und Hinweis beim Start. */
 sealed interface UpdateStatus {
@@ -202,8 +205,25 @@ class AppUpdater(private val context: Context, http: HttpFetcher, private val cl
             val url = apk?.optString("url")?.takeIf { it.startsWith("$API/") }
             if (code == null || apk == null || url == null) return null
             val name = json.optString("name").removePrefix("Player ").ifBlank { "Build $code" }
-            return AppUpdate(code, name, url, apk.optLong("size"))
+            return AppUpdate(code, name, url, apk.optLong("size"), cleanChangelog(json.optString("body")))
         }
+
+        /**
+         * GitHubs automatisch erzeugte Release-Notizen ("## What's Changed", "* Titel by @user in #123",
+         * "**Full Changelog**: …") auf reine Stichpunkte ohne Markdown/Benutzernamen/Links reduziert.
+         * Höchstens [MAX_NOTES_LINES] Zeilen – mehr passt nicht lesbar in den Hinweis-Dialog.
+         */
+        internal fun cleanChangelog(raw: String): String? {
+            val lines = raw.lines()
+                .mapNotNull { line -> PR_LINE.find(line.trim())?.groupValues?.get(1)?.trim() }
+                .filter { it.isNotBlank() }
+                .take(MAX_NOTES_LINES)
+            return lines.takeIf { it.isNotEmpty() }?.joinToString("\n") { "• $it" }
+        }
+
+        /** "* Titel by @user in https://…/pull/123" bzw. "- Titel in #123" → nur "Titel". */
+        private val PR_LINE = Regex("""^[*-]\s+(.*?)(?:\s+by\s+@\S+)?\s+in\s+\S+$""")
+        private const val MAX_NOTES_LINES = 6
 
         internal fun problem(e: Throwable): String = when (val code = (e as? HttpStatusException)?.code) {
             401 -> "Schlüssel ungültig oder abgelaufen (HTTP 401)"

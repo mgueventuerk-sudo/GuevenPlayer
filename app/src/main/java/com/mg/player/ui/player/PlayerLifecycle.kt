@@ -28,6 +28,7 @@ fun PlayerViewModel.onLifecycleStop() {
     stoppedByLifecycle = true
     sourceHealth.onInterrupted()
     standby.release()
+    habitPreload.release()
     frameRate.cancelPending()
     infoSampler.stop()
     val engine = engineHolder.value ?: return

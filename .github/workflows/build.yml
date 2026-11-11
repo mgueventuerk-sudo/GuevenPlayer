@@ -159,7 +159,6 @@ jobs:
           CODE=$(echo "$BADGING" | sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p" | head -1)
           NAME=$(echo "$BADGING" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p" | head -1)
           test -n "$CODE"
-          gh release create "build-$CODE" "$APK" --title "Player $NAME" --target "$GITHUB_SHA" --latest \
-            --notes "Build ${{ github.run_number }} · ${{ github.ref_name }} · $GITHUB_SHA"
+          gh release create "build-$CODE" "$APK" --title "Player $NAME" --target "$GITHUB_SHA" --latest --generate-notes
           gh release list --limit 100 --json tagName --jq '.[].tagName' | grep '^build-' | sort -t- -k2 -n -r | tail -n +6 \
             | while read -r tag; do gh release delete "$tag" --yes --cleanup-tag; done

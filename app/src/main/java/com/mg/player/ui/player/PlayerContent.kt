@@ -143,6 +143,14 @@ internal suspend fun PlayerViewModel.startPlayable(playable: Playable) {
     lastKnownPosition = playable.startPositionMs
     positionState.value = PlaybackPosition(playable.startPositionMs, 0)
     uiState.update { it.copy(playable = playable, nextEpisode = null) }
+    if (playable.kind == PlayableKind.LIVE) {
+        habitPreload.take(playable)?.let { ready ->
+            AppLog.log("Player", "Sehgewohnheits-Sender war vorgeladen · ${playable.title}")
+            adoptEngine(ready, PlayerEngineType.MEDIA3)
+            ready.setMuted(false)
+            ready.play()
+        }
+    }
     beginPlayback(playable, playable.startPositionMs)
     when (playable.kind) {
         PlayableKind.LIVE -> live.onChannelStarted(playable, (request as? PlayRequest.Live)?.categoryId)
