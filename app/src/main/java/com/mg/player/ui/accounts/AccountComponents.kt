@@ -43,6 +43,7 @@ import java.net.URI
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 /** Liefert alle Zugänge und den aktiven – für Navigationsleiste und Umschalter. */
 class AccountsViewModel(container: AppContainer) : ViewModel() {
@@ -154,8 +155,15 @@ internal fun Playlist.detailLabel(): String = if (Combined.isCombined(id)) {
     listOfNotNull(typeLabel(), hostLabel(), "unverschlüsselt (HTTP)".takeIf { isPlainHttp() }, updatedLabel()).joinToString("  ·  ")
 }
 
+/** Je Thread ein Formatierer: Die Zugangsliste ruft das pro Zeile auf, ein neuer SimpleDateFormat kostet jedes Mal. */
+private val updatedFormat = object : ThreadLocal<SimpleDateFormat>() {
+    override fun initialValue() = SimpleDateFormat("dd.MM. HH:mm", Locale.GERMANY)
+}
+
 internal fun Playlist.updatedLabel(): String = if (lastUpdatedMs == 0L) {
     "noch nicht geladen"
 } else {
-    "aktualisiert " + SimpleDateFormat("dd.MM. HH:mm", Locale.GERMANY).format(Date(lastUpdatedMs))
+    // get() ist ein Java-Plattformtyp (T!): Kotlin kennt ThreadLocals Nicht-Null-Garantie durch initialValue()
+    // nicht, kann hier also nicht null sein (wie TimeUtils.formatClock).
+    "aktualisiert " + updatedFormat.get()!!.apply { timeZone = TimeZone.getDefault() }.format(Date(lastUpdatedMs))
 }

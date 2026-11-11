@@ -61,6 +61,7 @@ import com.mg.player.ui.theme.StaticIcon
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
@@ -334,7 +335,15 @@ internal fun unmatchedHint(stations: List<String>): String = when {
     else -> "läuft auf ${stations.take(2).joinToString(", ", transform = ::stationLabel)} – nicht in deinem Zugang"
 }
 
+/** Je Thread ein Formatierer: Die Ereignisliste ruft das pro Zeile auf, ein neuer SimpleDateFormat kostet jedes Mal. */
+private val kickoffFormat = object : ThreadLocal<SimpleDateFormat>() {
+    override fun initialValue() = SimpleDateFormat("EE dd.MM. HH:mm", Locale.GERMANY)
+}
+
 /** „Sa 31.10. 18:30“ (Ortszeit). */
-internal fun kickoff(ms: Long): String = SimpleDateFormat("EE dd.MM. HH:mm", Locale.GERMANY).format(Date(ms))
+internal fun kickoff(ms: Long): String =
+    // get() ist ein Java-Plattformtyp (T!): Kotlin kennt ThreadLocals Nicht-Null-Garantie durch initialValue()
+    // nicht, kann hier also nicht null sein (wie TimeUtils.formatClock).
+    kickoffFormat.get()!!.apply { timeZone = TimeZone.getDefault() }.format(Date(ms))
 
 const val LIST_TAG = "sport-list"
