@@ -85,6 +85,10 @@ fun ProgressBar(progress: Float, modifier: Modifier = Modifier, height: Dp = 4.d
 @Composable
 fun LoadingIndicator(modifier: Modifier = Modifier, size: Dp = 40.dp) {
     val transition = rememberInfiniteTransition(label = "loading")
+    // Zwei absichtlich verschiedene Perioden (1100/900 ms): Liefen Drehung und Bogenlänge im selben Takt, träfen
+    // sich beide Zyklen ständig an derselben Stelle wieder - das sieht mechanisch aus statt organisch. Deshalb
+    // bewusst NICHT auf AppMotion.AMBIENT_MS vereinheitlicht (anders als die Einzel-Puls-Effekte in VpnIndicators
+    // und GuideComponents, wo nur eine Animation läuft).
     val angle by transition.animateFloat(0f, 360f, infiniteRepeatable(tween(1_100, easing = LinearEasing), RepeatMode.Restart), label = "angle")
     val sweep by transition.animateFloat(60f, 280f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "sweep")
     val colors = AppColors.BrandGradient

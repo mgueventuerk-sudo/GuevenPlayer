@@ -81,4 +81,11 @@ object AppMotion {
 
     /** Größere Flächen (Leiste ein-/ausfahren, Menüs): etwas weicher, ein Hauch Nachschwingen. */
     fun <T> surface(): FiniteAnimationSpec<T> = spring(dampingRatio = 0.86f, stiffness = Spring.StiffnessLow)
+
+    /**
+     * Endlosschleifen (Puls, Ladeanzeige, Lichtreflex) - dafür reicht keine Feder, die läuft auf ein Ziel zu statt
+     * endlos zu wiederholen. Vorher sechs verschiedene Werte (600/700/750/900/900/1100 ms) über sechs Dateien ohne
+     * gemeinsame Skala; diese Stufe ersetzt sie alle.
+     */
+    const val AMBIENT_MS: Int = 900
 }

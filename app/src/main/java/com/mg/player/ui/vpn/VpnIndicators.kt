@@ -56,6 +56,7 @@ import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.glass
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
+import com.mg.player.ui.theme.AppMotion
 import com.mg.player.ui.theme.StaticIcon
 import kotlinx.coroutines.delay
 
@@ -210,7 +211,7 @@ private fun CollapsedHint(modifier: Modifier) {
     val pulse by rememberInfiniteTransition(label = "vpn-blink").animateFloat(
         initialValue = 1f,
         targetValue = 0.35f,
-        animationSpec = infiniteRepeatable(tween(700), RepeatMode.Reverse),
+        animationSpec = infiniteRepeatable(tween(AppMotion.AMBIENT_MS), RepeatMode.Reverse),
         label = "vpn-blink-alpha",
     )
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {

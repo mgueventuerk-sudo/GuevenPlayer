@@ -122,7 +122,7 @@ fun AmbientBackground(modifier: Modifier = Modifier, artworkUrl: String? = null,
             if (artworkUrl != null) delay(ARTWORK_DELAY_MS)
             shown = artworkUrl
         }
-        Crossfade(targetState = shown, animationSpec = tween(600), label = "artwork") { url ->
+        Crossfade(targetState = shown, animationSpec = tween(ARTWORK_CROSSFADE_MS), label = "artwork") { url ->
             if (!url.isNullOrBlank() && !plain) BlurredArtwork(url)
         }
         content()
@@ -192,3 +192,6 @@ private const val ARTWORK_DELAY_MS = 350L
 
 /** Überblendzeit des Ambient-Lichts: langsam, damit Schnitte im Bild nicht flackern. */
 private const val AMBIENT_FADE_MS = 1_400
+
+/** Überblendzeit des Vorschaubilds selbst: deutlich schneller als das Ambient-Licht, sonst wirkt der Wechsel träge. */
+private const val ARTWORK_CROSSFADE_MS = 600
