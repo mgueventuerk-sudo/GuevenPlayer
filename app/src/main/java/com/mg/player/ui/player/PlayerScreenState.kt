@@ -193,7 +193,18 @@ internal class PlayerScreenState(
 
             OverlayAction.HISTORY -> openList(Category.RECENT)
 
-            else -> moreOpen = false
+            OverlayAction.HANDOFF -> {
+                moreOpen = false
+                vm.handoffToTv()
+            }
+
+            // Diese Aktionen bietet moreSections() im "Mehr"-Panel nicht an - absichtlich kein else, damit eine
+            // neue Aktion dort (wie zuvor HANDOFF) bei Vergessen nicht lautlos ohne Wirkung bleibt, sondern nicht baut.
+            OverlayAction.PLAY_PAUSE, OverlayAction.SEEK_BACK, OverlayAction.SEEK_FORWARD, OverlayAction.AUDIO,
+            OverlayAction.SUBTITLES, OverlayAction.NEXT_EPISODE, OverlayAction.MARK_INTRO, OverlayAction.PREVIOUS_CHANNEL,
+            OverlayAction.GO_LIVE, OverlayAction.RECORD, OverlayAction.STOP_RECORDING, OverlayAction.CHANNEL_LIST,
+            OverlayAction.TRACKS, OverlayAction.MORE, OverlayAction.CLOSE,
+            -> moreOpen = false
         }
     }
 }
