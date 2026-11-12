@@ -39,6 +39,9 @@ import java.io.InputStream
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Trailer-Vorschlag bei Film/Serie: YouTubes eigene, schlanke Embed-Seite läuft eingebettet in GuevenPlayer weiter -
@@ -125,11 +128,27 @@ internal class TrailerLocalServer(private val youtubeKey: String) {
     private var running = false
     private var socket: ServerSocket? = null
 
-    fun start(): String? = runCatching {
-        val server = ServerSocket(0, BACKLOG, InetAddress.getLoopbackAddress())
-        socket = server
-        running = true
+    /**
+     * ServerSocket(...) bindet - das ist für Android ab API 11 immer eine Netzwerkoperation, auch auf Loopback.
+     * Direkt auf dem Hauptthread (TrailerScreen ruft start() aus DisposableEffect auf) wirft das eine
+     * NetworkOnMainThreadException - lautlos verschluckt vom runCatching, start() lieferte dann immer null
+     * zurück (Fehlerkarte bei jedem Titel, nicht nur manchen; auf Robolectric nicht nachstellbar, das erzwingt
+     * diese Regel nicht). Bind UND Annahme-Schleife laufen deshalb beide im selben Hintergrund-Thread; start()
+     * wartet nur auf das Ergebnis des Bindens, nicht auf Netzwerk-E/A.
+     */
+    fun start(): String? {
+        val result = AtomicReference<String?>(null)
+        val bound = CountDownLatch(1)
         Thread {
+            val server = runCatching { ServerSocket(0, BACKLOG, InetAddress.getLoopbackAddress()) }.getOrNull()
+            if (server == null) {
+                bound.countDown()
+                return@Thread
+            }
+            socket = server
+            running = true
+            result.set("http://127.0.0.1:${server.localPort}/")
+            bound.countDown()
             while (running) {
                 val client = try {
                     server.accept()
@@ -141,8 +160,9 @@ internal class TrailerLocalServer(private val youtubeKey: String) {
                 runCatching { respond(client) }
             }
         }.apply { isDaemon = true }.start()
-        "http://127.0.0.1:${server.localPort}/"
-    }.getOrNull()
+        bound.await(BIND_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+        return result.get()
+    }
 
     fun stop() {
         running = false
@@ -193,5 +213,6 @@ internal class TrailerLocalServer(private val youtubeKey: String) {
     private companion object {
         const val BACKLOG = 8
         const val REQUEST_TIMEOUT_MS = 5_000
+        const val BIND_TIMEOUT_MS = 2_000L
     }
 }
