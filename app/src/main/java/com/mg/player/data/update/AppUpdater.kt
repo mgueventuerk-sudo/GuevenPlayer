@@ -11,10 +11,12 @@ import com.mg.player.core.log.AppLog
 import com.mg.player.core.network.HttpFetcher
 import com.mg.player.core.network.HttpStatusException
 import com.mg.player.core.util.runCatchingCancellable
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import okhttp3.Request
@@ -52,7 +54,13 @@ sealed interface UpdateStatus {
  * Download-Server entfernt OkHttp ihn. Android installiert das Update nur, wenn es mit demselben Schlüssel signiert ist
  * wie die laufende App; eine untergeschobene APK wird abgelehnt.
  */
-class AppUpdater(private val context: Context, http: HttpFetcher, private val clock: () -> Long = System::currentTimeMillis) {
+class AppUpdater(
+    private val context: Context,
+    http: HttpFetcher,
+    /** App-weiter Scope für den Download - nicht der eines Screens, sonst stirbt er beim Verlassen der Komposition. */
+    private val scope: CoroutineScope,
+    private val clock: () -> Long = System::currentTimeMillis,
+) {
 
     // Keine Weiterleitung von HTTPS auf HTTP; großzügige Zeit für den Download, aber nicht endlos.
     private val client = http.client.newBuilder().followSslRedirects(false).readTimeout(READ_TIMEOUT_S, TimeUnit.SECONDS).build()
@@ -66,6 +74,10 @@ class AppUpdater(private val context: Context, http: HttpFetcher, private val cl
     /** „Später“ beim Start-Hinweis: für diese Version nicht erneut fragen (gilt bis zum App-Neustart). */
     @Volatile
     var dismissedVersion: Int? = null
+
+    /** „Ausblenden“ bei der Fortschritts-Karte: für dieses Update nicht mehr zeigen, bis der Download neu startet. */
+    @Volatile
+    var hiddenProgressFor: Int? = null
 
     /** Ein Download zur Zeit (Start-Hinweis und Einstellungen könnten sonst dieselbe Datei gleichzeitig schreiben). */
     private val downloadLock = Mutex()
@@ -92,6 +104,17 @@ class AppUpdater(private val context: Context, http: HttpFetcher, private val cl
         )
         _status.value = result
         result
+    }
+
+    /**
+     * Startet den Download im eigenen, app-weiten Scope statt im Scope des Aufrufers: AppRoot nimmt den Start-Hinweis
+     * aus der Komposition, sobald die Wiedergabe beginnt (nicht mitten im Film fragen) - ein dort gestarteter Download
+     * lief bisher mit und riss sofort ab, sobald man weiterschaute. [hiddenProgressFor] wird zurückgesetzt, damit ein
+     * neuer Versuch die Fortschritts-Karte wieder zeigt, auch wenn ein vorheriger Durchlauf ausgeblendet wurde.
+     */
+    fun startDownload(token: String, update: AppUpdate) {
+        hiddenProgressFor = null
+        scope.launch { downloadAndInstall(token, update) }
     }
 
     /** APK laden (mit Fortschritt) und den Installer öffnen. */

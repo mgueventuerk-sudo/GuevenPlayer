@@ -63,6 +63,7 @@ import com.mg.player.ui.common.isTouch
 import com.mg.player.ui.detail.MovieDetailScreen
 import com.mg.player.ui.detail.SeriesDetailScreen
 import com.mg.player.ui.detail.TmdbCatalogTitleScreen
+import com.mg.player.ui.detail.TrailerScreen
 import com.mg.player.ui.home.HomeScreen
 import com.mg.player.ui.live.MosaicScreen
 import com.mg.player.ui.phone.PhoneHomeScreen
@@ -208,6 +209,8 @@ fun AppRoot(container: AppContainer) {
                         is Screen.SportAssign -> SportAssignScreen(screen.leagueKey)
 
                         is Screen.Mosaic -> MosaicScreen(screen.categoryId, screen.startChannelId)
+
+                        is Screen.Trailer -> TrailerScreen(screen.youtubeKey)
                     }
                 }
             }

@@ -48,7 +48,7 @@ private fun UpdateActionRow(token: String) {
             }
             when {
                 s is UpdateStatus.Downloading || s == UpdateStatus.Checking -> Unit
-                update != null -> scope.launch { updater.downloadAndInstall(token, update) }
+                update != null -> updater.startDownload(token, update)
                 else -> scope.launch { updater.check(token) }
             }
         },

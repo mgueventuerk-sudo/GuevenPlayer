@@ -125,7 +125,7 @@ class AppContainer(context: Context, settingsOverride: SettingsRepository? = nul
     internal val xtreamApi: XtreamApi by lazy { XtreamApi(httpFetcher) }
 
     /** App-Updates aus dem privaten GitHub-Repo (Schlüssel in den Einstellungen). */
-    val appUpdater: AppUpdater by lazy { AppUpdater(appContext, httpFetcher) }
+    val appUpdater: AppUpdater by lazy { AppUpdater(appContext, httpFetcher, appScope) }
 
     val settingsRepository: SettingsRepository by lazy { settingsOverride ?: SettingsRepositoryImpl(appContext) }
 

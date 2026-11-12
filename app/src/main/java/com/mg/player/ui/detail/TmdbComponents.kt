@@ -1,8 +1,5 @@
 package com.mg.player.ui.detail
 
-import android.content.ActivityNotFoundException
-import android.content.Context
-import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,7 +28,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
@@ -145,21 +141,4 @@ fun TmdbAttribution(modifier: Modifier = Modifier) {
         color = AppColors.TextMuted,
         fontWeight = FontWeight.Normal,
     )
-}
-
-/** Öffnet den Trailer in der YouTube-App (oder im Browser). */
-fun openTrailer(context: Context, youtubeKey: String): Boolean {
-    val intents = listOf(
-        Intent(Intent.ACTION_VIEW, "vnd.youtube:$youtubeKey".toUri()),
-        Intent(Intent.ACTION_VIEW, "https://www.youtube.com/watch?v=$youtubeKey".toUri()),
-    )
-    for (intent in intents) {
-        try {
-            context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            return true
-        } catch (e: ActivityNotFoundException) {
-            continue
-        }
-    }
-    return false
 }

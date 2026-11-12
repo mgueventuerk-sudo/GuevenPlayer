@@ -26,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -54,7 +53,6 @@ import com.mg.player.ui.theme.AppIcons
 fun SeriesDetailScreen(seriesId: String) {
     val vm = appViewModel(key = seriesId) { SeriesDetailViewModel(it, seriesId) }
     val navigator = LocalNavigator.current
-    val context = LocalContext.current
     val series by vm.series.collectAsStateWithLifecycle()
     val loading by vm.loading.collectAsStateWithLifecycle()
     val episodes by vm.episodes.collectAsStateWithLifecycle()
@@ -70,7 +68,6 @@ fun SeriesDetailScreen(seriesId: String) {
     val candidates by vm.tmdb.candidates.collectAsStateWithLifecycle()
     val searching by vm.tmdb.searching.collectAsStateWithLifecycle()
     var showEnginePicker by rememberSaveable { mutableStateOf(false) }
-    var trailerError by remember { mutableStateOf(false) }
     val continueRequester = remember { FocusRequester() }
 
     val current = series
@@ -113,7 +110,7 @@ fun SeriesDetailScreen(seriesId: String) {
                             style = MaterialTheme.typography.bodyMedium,
                             expandedLines = 10,
                         )
-                        (message ?: if (trailerError) "Keine App zum Abspielen des Trailers gefunden" else null)?.let {
+                        message?.let {
                             Text(it, color = AppColors.AccentText, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 6.dp))
                         }
                     }
@@ -130,7 +127,7 @@ fun SeriesDetailScreen(seriesId: String) {
                             )
                         }
                         tmdbInfo?.trailerKey?.let { key ->
-                            IconActionButton(AppIcons.Movie, "Trailer", onClick = { trailerError = !openTrailer(context, key) })
+                            IconActionButton(AppIcons.Movie, "Trailer", onClick = { navigator.push(Screen.Trailer(key)) })
                         }
                         IconActionButton(
                             icon = if (isFavorite) AppIcons.HeartFilled else AppIcons.Heart,

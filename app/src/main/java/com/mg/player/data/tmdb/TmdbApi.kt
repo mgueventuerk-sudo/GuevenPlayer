@@ -160,12 +160,14 @@ class TmdbApi(client: OkHttpClient, private val baseUrl: String = BASE) {
         .firstOrNull { it.optString("iso_3166_1") == "DE" }
         ?.optStringOrNull("rating")
 
+    /**
+     * Nur ein echter Trailer, nie ein Teaser oder sonstiges Video als Ersatz: Der Knopf im Titel heißt „Trailer“ -
+     * zeigt er etwas anderes, stimmt die Zusage nicht mehr. Ohne Trailer bleibt der Knopf lieber ganz weg (null).
+     */
     private fun trailer(json: JSONObject): String? {
-        val videos = json.optJSONObject("videos")?.optJSONArray("results").objects()
-            .filter { it.optString("site") == "YouTube" && it.optString("type") in setOf("Trailer", "Teaser") }
-        val best = videos.firstOrNull { it.optString("iso_639_1") == "de" && it.optString("type") == "Trailer" }
-            ?: videos.firstOrNull { it.optString("type") == "Trailer" }
-            ?: videos.firstOrNull()
+        val trailers = json.optJSONObject("videos")?.optJSONArray("results").objects()
+            .filter { it.optString("site") == "YouTube" && it.optString("type") == "Trailer" }
+        val best = trailers.firstOrNull { it.optString("iso_639_1") == "de" } ?: trailers.firstOrNull()
         return best?.optStringOrNull("key")
     }
 
