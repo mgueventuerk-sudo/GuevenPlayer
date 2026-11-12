@@ -45,6 +45,9 @@ import com.mg.player.ui.common.TvTextField
 import com.mg.player.ui.common.appViewModel
 import com.mg.player.ui.common.glass
 import com.mg.player.ui.common.isTouch
+import com.mg.player.ui.navigation.LocalNavigator
+import com.mg.player.ui.navigation.Screen
+import com.mg.player.ui.settings.ShareMode
 import com.mg.player.ui.theme.AppShapes
 import com.mg.player.ui.theme.AnimatedIcon
 import com.mg.player.ui.theme.AppColors
@@ -109,6 +112,7 @@ fun SetupScreen(onFinished: () -> Unit, firstSetup: Boolean = true) {
 
 @Composable
 private fun SetupFormContent(state: SetupUiState, vm: SetupViewModel, firstSetup: Boolean) {
+    val navigator = LocalNavigator.current
     if (isTouch) {
         // Am Handy gibt es keinen QR-Code (man hält das Gerät ja schon in der Hand) – nur das Formular.
         Column(
@@ -125,6 +129,7 @@ private fun SetupFormContent(state: SetupUiState, vm: SetupViewModel, firstSetup
                 color = AppColors.TextSecondary,
                 modifier = Modifier.padding(top = 6.dp, bottom = 16.dp),
             )
+            if (firstSetup) RestoreBackupOption(onClick = { navigator.push(Screen.Share(ShareMode.BACKUP_IMPORT)) })
             Column(Modifier.fillMaxWidth().glass(AppShapes.Panel).padding(20.dp)) { ManualForm(state, vm) }
         }
         return
@@ -142,6 +147,7 @@ private fun SetupFormContent(state: SetupUiState, vm: SetupViewModel, firstSetup
                 color = AppColors.TextSecondary,
                 modifier = Modifier.padding(top = 6.dp, bottom = 16.dp),
             )
+            if (firstSetup) RestoreBackupOption(onClick = { navigator.push(Screen.Share(ShareMode.BACKUP_IMPORT)) })
             Box(
                 Modifier
                     .size(200.dp)
@@ -184,6 +190,22 @@ private fun SetupFormContent(state: SetupUiState, vm: SetupViewModel, firstSetup
         ) {
             ManualForm(state, vm)
         }
+    }
+}
+
+/**
+ * Schon eine Sicherung vorhanden (z. B. Neuinstallation)? Dann gleich dort weiter statt erst Zugangsdaten
+ * einzutippen, die die Sicherung ohnehin gleich ersetzt.
+ */
+@Composable
+private fun RestoreBackupOption(onClick: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 16.dp)) {
+        Text(
+            "Schon eine Sicherung? ",
+            style = MaterialTheme.typography.bodyLarge,
+            color = AppColors.TextSecondary,
+        )
+        ActionButton("Wiederherstellen", onClick = onClick, icon = AppIcons.Download, compact = true)
     }
 }
 

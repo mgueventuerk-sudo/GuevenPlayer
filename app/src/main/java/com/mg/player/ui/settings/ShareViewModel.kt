@@ -34,10 +34,16 @@ enum class ShareMode(val title: String, val path: String) {
  * - Erstellen: erst Kennwort am TV festlegen, dann zeigt der QR-Code die Download-Seite.
  * - Wiederherstellen: Datei vom Handy hochladen, danach fragt der Fernseher nach dem Kennwort.
  */
-class ShareViewModel(private val container: AppContainer, private val mode: ShareMode) : ViewModel() {
+class ShareViewModel(private val container: AppContainer, private val mode: ShareMode, private val touch: Boolean = false) : ViewModel() {
 
     /** Nur für „VPN einrichten“: Schlüssel steht im QR-Code (#k=…), nie im Netz. */
     private val vpnKey = if (mode == ShareMode.VPN_IMPORT) ShareKey() else null
+
+    /**
+     * Am Handy braucht eine Sicherung kein Zweitgerät - ein echter Dateiauswahl-Dialog (Speichern/Öffnen) ersetzt
+     * das Scannen des eigenen Bildschirms mit der eigenen Kamera. Der Heimnetz-Server bleibt dafür aus.
+     */
+    private val usesDeviceBridge = !(touch && (mode == ShareMode.BACKUP_EXPORT || mode == ShareMode.BACKUP_IMPORT))
 
     private val server = DeviceShareServer(
         exportBackup = { exportPassphrase?.let { container.backupManager.export(it) } },
@@ -79,15 +85,33 @@ class ShareViewModel(private val container: AppContainer, private val mode: Shar
 
     init {
         viewModelScope.launch {
-            val base = withContext(Dispatchers.IO) { runCatching { server.start() }.getOrNull() }
-            if (base == null) {
-                _status.value = "Kein Netzwerk gefunden – Fernseher mit dem WLAN verbinden."
-            } else {
-                val link = server.urlFor(base, mode.path) + (vpnKey?.let { "#k=${it.fragment}" } ?: "")
-                _url.value = link
-                _qr.value = withContext(Dispatchers.Default) { QrCodeGenerator.create(link).asImageBitmap() }
+            if (usesDeviceBridge) {
+                val base = withContext(Dispatchers.IO) { runCatching { server.start() }.getOrNull() }
+                if (base == null) {
+                    _status.value = "Kein Netzwerk gefunden – Fernseher mit dem WLAN verbinden."
+                } else {
+                    val link = server.urlFor(base, mode.path) + (vpnKey?.let { "#k=${it.fragment}" } ?: "")
+                    _url.value = link
+                    _qr.value = withContext(Dispatchers.Default) { QrCodeGenerator.create(link).asImageBitmap() }
+                }
             }
             if (mode == ShareMode.LOG || mode == ShareMode.NAMES) reloadLog()
+        }
+    }
+
+    /** Verschlüsselte Sicherung als Text - für den nativen „Speichern unter“-Dialog am Handy. */
+    suspend fun exportText(): String? = exportPassphrase?.let { container.backupManager.export(it) }
+
+    /** Datei direkt auf diesem Gerät ausgewählt - derselbe Ablauf wie eine vom Fernseher empfangene Sicherung. */
+    fun loadPickedBackup(text: String) {
+        viewModelScope.launch {
+            if (!BackupCrypto.isEncrypted(text)) {
+                restore(text, null)
+                return@launch
+            }
+            pendingBackup = text
+            _awaitingPassphrase.value = true
+            _status.value = "Sicherung geladen – bitte das Kennwort eingeben."
         }
     }
 

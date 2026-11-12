@@ -1,5 +1,7 @@
 package com.mg.player.ui.settings
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -24,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,13 +59,15 @@ import com.mg.player.ui.theme.AnimatedIcon
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
 import com.mg.player.ui.theme.Dimens
+import kotlinx.coroutines.launch
 
 /** Sicherung und Fehlerprotokoll übers Handy: QR-Code scannen, Datei laden oder hochladen. */
 @Composable
 fun ShareScreen(mode: ShareMode) {
     // Sicherung: Kennwort und QR-Code nicht als Bildschirmfoto (das Fehlerprotokoll darf man fotografieren).
     if (mode != ShareMode.LOG) SecureContent()
-    val vm = appViewModel(key = mode.name) { ShareViewModel(it, mode) }
+    val touch = isTouch
+    val vm = appViewModel(key = mode.name) { ShareViewModel(it, mode, touch) }
     val navigator = LocalNavigator.current
     val url by vm.url.collectAsStateWithLifecycle()
     val status by vm.status.collectAsStateWithLifecycle()
@@ -71,7 +76,6 @@ fun ShareScreen(mode: ShareMode) {
     val awaitingPassphrase by vm.awaitingPassphrase.collectAsStateWithLifecycle()
     LocalNetworkPermissionEffect(needed = true, deniedHint = "Ohne „Geräte in der Nähe“ erreicht das Handy den Fernseher nicht.")
 
-    val touch = isTouch
     val info: @Composable () -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(52.dp).glass(CircleShape, raised = true), contentAlignment = Alignment.Center) {
@@ -91,14 +95,18 @@ fun ShareScreen(mode: ShareMode) {
             Text(mode.title, style = MaterialTheme.typography.headlineMedium)
         }
         Text(
-            description(mode, exportReady),
+            description(mode, exportReady, touch),
             style = MaterialTheme.typography.bodyLarge,
             color = AppColors.TextSecondary,
             modifier = Modifier.padding(top = 8.dp, bottom = 20.dp),
         )
         if (exportReady) {
-            QrBox(vm)
-            url?.let { Text(it.substringBefore("?"), modifier = Modifier.padding(top = 12.dp), style = MaterialTheme.typography.titleSmall) }
+            if (touch && (mode == ShareMode.BACKUP_EXPORT || mode == ShareMode.BACKUP_IMPORT)) {
+                NativeBackupAction(mode, vm)
+            } else {
+                QrBox(vm)
+                url?.let { Text(it.substringBefore("?"), modifier = Modifier.padding(top = 12.dp), style = MaterialTheme.typography.titleSmall) }
+            }
         }
         // VPN: Rückmeldung rechts beim Formular (links ist unter dem QR-Code am Fernseher kein Platz).
         if (mode != ShareMode.VPN_IMPORT) {
@@ -143,17 +151,25 @@ fun ShareScreen(mode: ShareMode) {
     }
 }
 
-private fun description(mode: ShareMode, exportReady: Boolean): String = when (mode) {
+private fun description(mode: ShareMode, exportReady: Boolean, touch: Boolean): String = when (mode) {
     ShareMode.BACKUP_EXPORT -> if (exportReady) {
-        "Scanne den Code mit dem Handy und lade die verschlüsselte Sicherung herunter."
+        if (touch) {
+            "Wähle, wo die verschlüsselte Sicherung gespeichert wird."
+        } else {
+            "Scanne den Code mit dem Handy und lade die verschlüsselte Sicherung herunter."
+        }
     } else {
         "Die Sicherung enthält deine Zugangsdaten. Lege hier auf diesem Gerät ein Kennwort fest – es verlässt das Gerät " +
             "nie. Ohne dieses Kennwort lässt sich die Sicherung nicht wiederherstellen."
     }
 
-    ShareMode.BACKUP_IMPORT ->
+    ShareMode.BACKUP_IMPORT -> if (touch) {
+        "Wähle die Sicherungsdatei auf diesem Gerät aus. Das Kennwort gibst du danach ein. Playlists und " +
+            "Einstellungen auf diesem Gerät werden dabei ersetzt."
+    } else {
         "Scanne den Code mit dem Handy und wähle dort die Sicherungsdatei aus. Das Kennwort gibst du " +
             "danach hier ein. Playlists und Einstellungen auf diesem Gerät werden dabei ersetzt."
+    }
 
     ShareMode.LOG -> "Scanne den Code, um das Protokoll auf dem Handy zu öffnen und weiterzuschicken."
     ShareMode.NAMES -> "Scanne den Code: Gruppen- und Sendernamen, Titel und EPG-IDs aller Zugänge – ohne Zugangsdaten und Adressen."
@@ -162,6 +178,44 @@ private fun description(mode: ShareMode, exportReady: Boolean): String = when (m
         "Scanne den Code mit dem Handy und wähle dort die WireGuard-Datei (.conf) aus deinem VPN-Konto – " +
             "oder füge ihren Inhalt ein. Danach läuft nur GuevenPlayer durchs VPN, andere Apps bleiben unberührt."
 }
+
+/**
+ * Am Handy: echter „Speichern unter“- bzw. „Öffnen“-Dialog statt QR-Code - das Gerät ist schon da,
+ * ein zweites zum Scannen wird nicht gebraucht.
+ */
+@Composable
+private fun NativeBackupAction(mode: ShareMode, vm: ShareViewModel) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var fileStatus by remember { mutableStateOf<String?>(null) }
+    if (mode == ShareMode.BACKUP_EXPORT) {
+        val createDoc = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch {
+                val text = vm.exportText()
+                fileStatus = if (text == null) {
+                    "Sicherung konnte nicht erstellt werden."
+                } else {
+                    val saved = runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray(Charsets.UTF_8)) } }.isSuccess
+                    if (saved) "Sicherung gespeichert ✓" else "Speichern fehlgeschlagen."
+                }
+            }
+        }
+        ActionButton("Datei speichern", onClick = { createDoc.launch(BACKUP_FILE_NAME) }, primary = true, icon = AppIcons.Upload)
+    } else {
+        val openDoc = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch {
+                val text = runCatching { context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } }.getOrNull()
+                if (text.isNullOrBlank()) fileStatus = "Datei konnte nicht gelesen werden." else vm.loadPickedBackup(text)
+            }
+        }
+        ActionButton("Datei auswählen", onClick = { openDoc.launch(arrayOf("*/*")) }, primary = true, icon = AppIcons.Download)
+    }
+    fileStatus?.let { Text(it, color = AppColors.AccentText, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 12.dp)) }
+}
+
+private const val BACKUP_FILE_NAME = "guevenplayer-sicherung.json"
 
 @Composable
 private fun QrBox(vm: ShareViewModel) {
