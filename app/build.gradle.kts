@@ -300,4 +300,8 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.test.junit)
+    // Erster echter Compose-UI-Test (TrailerFocusDeviceTest) - ui-test-manifest ist über debugImplementation
+    // oben bereits auf dem androidTest-Klassenpfad (gilt für die debug-Variante, die androidTest testet).
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
 }
