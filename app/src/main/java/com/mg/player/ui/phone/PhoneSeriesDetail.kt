@@ -22,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -46,7 +45,6 @@ import com.mg.player.ui.detail.SeriesDetailViewModel
 import com.mg.player.ui.detail.SimilarRow
 import com.mg.player.ui.detail.TmdbAttribution
 import com.mg.player.ui.detail.TmdbMeta
-import com.mg.player.ui.detail.openTrailer
 import com.mg.player.ui.navigation.LocalNavigator
 import com.mg.player.ui.navigation.Screen
 import com.mg.player.ui.theme.AppColors
@@ -57,7 +55,6 @@ import com.mg.player.ui.theme.AppIcons
 fun PhoneSeriesDetail(seriesId: String) {
     val vm = appViewModel(key = seriesId) { SeriesDetailViewModel(it, seriesId) }
     val navigator = LocalNavigator.current
-    val context = LocalContext.current
     val series by vm.series.collectAsStateWithLifecycle()
     val loading by vm.loading.collectAsStateWithLifecycle()
     val episodes by vm.episodes.collectAsStateWithLifecycle()
@@ -73,7 +70,6 @@ fun PhoneSeriesDetail(seriesId: String) {
     val candidates by vm.tmdb.candidates.collectAsStateWithLifecycle()
     val searching by vm.tmdb.searching.collectAsStateWithLifecycle()
     var showEnginePicker by rememberSaveable { mutableStateOf(false) }
-    var trailerError by remember { mutableStateOf(false) }
 
     val current = series
     if (current == null) {
@@ -116,7 +112,7 @@ fun PhoneSeriesDetail(seriesId: String) {
                         }
                         PhoneActionRow {
                             tmdb?.trailerKey?.let { key ->
-                                IconActionButton(AppIcons.Movie, "Trailer", onClick = { trailerError = !openTrailer(context, key) })
+                                IconActionButton(AppIcons.Movie, "Trailer", onClick = { navigator.push(Screen.Trailer(key)) })
                             }
                             IconActionButton(
                                 icon = if (isFavorite) AppIcons.HeartFilled else AppIcons.Heart,
@@ -134,7 +130,7 @@ fun PhoneSeriesDetail(seriesId: String) {
                                 modifier = Modifier.padding(top = 10.dp).horizontalScroll(rememberScrollState()),
                             )
                         }
-                        (message ?: if (trailerError) "Keine App zum Abspielen des Trailers gefunden" else null)?.let {
+                        message?.let {
                             Text(it, color = AppColors.AccentText, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 10.dp))
                         }
                         val plot = tmdb?.overview ?: current.plot

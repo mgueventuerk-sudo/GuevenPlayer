@@ -33,6 +33,9 @@ sealed interface Screen {
 
     /** [leagueKey]: gleich die Senderauswahl dieser Liga öffnen. */
     data class SportAssign(val leagueKey: String? = null) : Screen
+
+    /** Trailer-Vorschlag bei Film/Serie: die echte YouTube-Seite eingebettet, nicht die App und kein externer Browser. */
+    data class Trailer(val youtubeKey: String) : Screen
 }
 
 /** Ein Eintrag im Back-Stack mit eigenem ViewModel-Speicher (ViewModels leben nur so lange wie der Screen). */

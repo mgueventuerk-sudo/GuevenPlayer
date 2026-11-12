@@ -18,7 +18,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -41,7 +40,6 @@ import com.mg.player.ui.detail.RematchPanel
 import com.mg.player.ui.detail.SimilarRow
 import com.mg.player.ui.detail.TmdbAttribution
 import com.mg.player.ui.detail.TmdbMeta
-import com.mg.player.ui.detail.openTrailer
 import com.mg.player.ui.navigation.LocalNavigator
 import com.mg.player.ui.navigation.Screen
 import com.mg.player.ui.theme.AppColors
@@ -52,7 +50,6 @@ import com.mg.player.ui.theme.AppIcons
 fun PhoneMovieDetail(movieId: String) {
     val vm = appViewModel(key = movieId) { MovieDetailViewModel(it, movieId) }
     val navigator = LocalNavigator.current
-    val context = LocalContext.current
     val movie by vm.movie.collectAsStateWithLifecycle()
     val loading by vm.loading.collectAsStateWithLifecycle()
     val progress by vm.progress.collectAsStateWithLifecycle()
@@ -65,7 +62,6 @@ fun PhoneMovieDetail(movieId: String) {
     val candidates by vm.tmdb.candidates.collectAsStateWithLifecycle()
     val searching by vm.tmdb.searching.collectAsStateWithLifecycle()
     var showEnginePicker by rememberSaveable { mutableStateOf(false) }
-    var trailerError by remember { mutableStateOf(false) }
 
     val current = movie
     if (current == null) {
@@ -113,7 +109,7 @@ fun PhoneMovieDetail(movieId: String) {
                             )
                         }
                         tmdb?.trailerKey?.let { key ->
-                            IconActionButton(AppIcons.Movie, "Trailer", onClick = { trailerError = !openTrailer(context, key) })
+                            IconActionButton(AppIcons.Movie, "Trailer", onClick = { navigator.push(Screen.Trailer(key)) })
                         }
                         IconActionButton(
                             icon = if (isFavorite) AppIcons.HeartFilled else AppIcons.Heart,
@@ -131,7 +127,7 @@ fun PhoneMovieDetail(movieId: String) {
                             modifier = Modifier.padding(top = 10.dp).horizontalScroll(rememberScrollState()),
                         )
                     }
-                    (message ?: if (trailerError) "Keine App zum Abspielen des Trailers gefunden" else null)?.let {
+                    message?.let {
                         Text(it, color = AppColors.AccentText, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 10.dp))
                     }
                     SpoilerDescription(

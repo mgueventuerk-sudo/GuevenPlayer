@@ -24,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -54,7 +53,6 @@ import com.mg.player.ui.theme.AppIcons
 fun MovieDetailScreen(movieId: String) {
     val vm = appViewModel(key = movieId) { MovieDetailViewModel(it, movieId) }
     val navigator = LocalNavigator.current
-    val context = LocalContext.current
     val movie by vm.movie.collectAsStateWithLifecycle()
     val loading by vm.loading.collectAsStateWithLifecycle()
     val progress by vm.progress.collectAsStateWithLifecycle()
@@ -67,7 +65,6 @@ fun MovieDetailScreen(movieId: String) {
     val candidates by vm.tmdb.candidates.collectAsStateWithLifecycle()
     val searching by vm.tmdb.searching.collectAsStateWithLifecycle()
     var showEnginePicker by rememberSaveable { mutableStateOf(false) }
-    var trailerError by remember { mutableStateOf(false) }
     val playRequester = remember { FocusRequester() }
     // Zurück aus Player, Trailer oder Engine-Auswahl: Fokus wieder auf den zuletzt gewählten Knopf.
     val memory = rememberFocusMemory()
@@ -113,7 +110,7 @@ fun MovieDetailScreen(movieId: String) {
                         style = MaterialTheme.typography.bodyLarge,
                         expandedLines = 12,
                     )
-                    (message ?: if (trailerError) "Keine App zum Abspielen des Trailers gefunden" else null)?.let {
+                    message?.let {
                         Text(it, color = AppColors.AccentText, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
                     }
                     Spacer(Modifier.height(24.dp))
@@ -147,9 +144,12 @@ fun MovieDetailScreen(movieId: String) {
                         )
                     }
                     info?.trailerKey?.let { key ->
-                        IconActionButton(AppIcons.Movie, "Trailer", onClick = {
-                            trailerError = !openTrailer(context, key)
-                        }, modifier = Modifier.remembered(memory, "trailer"))
+                        IconActionButton(
+                            AppIcons.Movie,
+                            "Trailer",
+                            onClick = { navigator.push(Screen.Trailer(key)) },
+                            modifier = Modifier.remembered(memory, "trailer"),
+                        )
                     }
                     IconActionButton(
                         icon = if (isFavorite) AppIcons.HeartFilled else AppIcons.Heart,
