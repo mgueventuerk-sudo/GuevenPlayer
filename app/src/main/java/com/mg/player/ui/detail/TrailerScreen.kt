@@ -39,6 +39,9 @@ import java.io.InputStream
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Trailer-Vorschlag bei Film/Serie: YouTubes eigene, schlanke Embed-Seite läuft eingebettet in GuevenPlayer weiter -
@@ -61,12 +64,18 @@ import java.net.Socket
 fun TrailerScreen(youtubeKey: String) {
     val navigator = LocalNavigator.current
     var failed by remember { mutableStateOf(false) }
+    var failDetail by remember { mutableStateOf<String?>(null) }
     var baseUrl by remember { mutableStateOf<String?>(null) }
 
     DisposableEffect(youtubeKey) {
         val server = TrailerLocalServer(youtubeKey)
         val url = server.start()
-        if (url == null) failed = true else baseUrl = url
+        if (url == null) {
+            failed = true
+            failDetail = server.lastFailureReason
+        } else {
+            baseUrl = url
+        }
         onDispose { server.stop() }
     }
 
@@ -75,6 +84,11 @@ fun TrailerScreen(youtubeKey: String) {
         if (failed) {
             Column(Modifier.align(Alignment.Center).padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Trailer konnte nicht geladen werden", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                // Vorübergehend sichtbar, bis die Ursache auf echten Geräten bestätigt ist - siehe Klassenkommentar.
+                failDetail?.let {
+                    Box(Modifier.height(8.dp))
+                    Text(it, color = Color.Gray, style = MaterialTheme.typography.bodySmall)
+                }
                 Box(Modifier.height(16.dp))
                 ActionButton("Zurück", onClick = navigator::pop, primary = true)
             }
@@ -91,7 +105,10 @@ fun TrailerScreen(youtubeKey: String) {
                             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
                                 // Nur die eigene Wrapper-Seite zählt als Fehlschlag - ein vom Video selbst
                                 // abgelehntes Iframe zeigt YouTubes eigene, verständliche Fehlerseite darin an.
-                                if (request.isForMainFrame) failed = true
+                                if (request.isForMainFrame) {
+                                    failed = true
+                                    failDetail = "WebView-Fehler ${error.errorCode}: ${error.description}"
+                                }
                             }
                         }
                         loadUrl(url)
@@ -125,11 +142,48 @@ internal class TrailerLocalServer(private val youtubeKey: String) {
     private var running = false
     private var socket: ServerSocket? = null
 
-    fun start(): String? = runCatching {
-        val server = ServerSocket(0, BACKLOG, InetAddress.getLoopbackAddress())
-        socket = server
-        running = true
+    /**
+     * Nur gesetzt, wenn [start] zuletzt mit `null` zurückkam - der Grund dafür, zur Anzeige in der Fehlerkarte
+     * und zur Fehlersuche. Reicht ein gemeldetes "Trailer konnte nicht geladen werden" nicht zur Diagnose
+     * (wie beim Fund vom 2026-11-12: lief auf allen drei CI-Emulatoren, aber nicht auf einem bestimmten
+     * echten Gerät), zeigt das hier den tatsächlichen Grund, statt erneut zu raten.
+     */
+    var lastFailureReason: String? = null
+        private set
+
+    /**
+     * ServerSocket(...) bindet - das ist für Android ab API 11 immer eine Netzwerkoperation, auch auf Loopback.
+     * Direkt auf dem Hauptthread (TrailerScreen ruft start() aus DisposableEffect auf) wirft das eine
+     * NetworkOnMainThreadException - lautlos verschluckt vom runCatching, start() lieferte dann immer null
+     * zurück (Fehlerkarte bei jedem Titel, nicht nur manchen; auf Robolectric nicht nachstellbar, das erzwingt
+     * diese Regel nicht). Bind UND Annahme-Schleife laufen deshalb beide im selben Hintergrund-Thread; start()
+     * wartet nur auf das Ergebnis des Bindens, nicht auf Netzwerk-E/A.
+     *
+     * Bindet jetzt ausdrücklich auf die IPv4-Loopback-Adresse (vorher InetAddress.getLoopbackAddress() - deren
+     * Rückgabe ist laut Javadoc Implementierungssache, IPv4 oder IPv6) und baut die URL aus der tatsächlich
+     * gebundenen Adresse, nicht aus einem festen "127.0.0.1"-String: Ein Auseinanderlaufen beider Werte würde
+     * den WebView auf eine Adresse zugreifen lassen, an der gar nichts horcht - ununterscheidbar von jedem
+     * anderen Fehlschlag, ohne dass eine Exception auftritt. Ob das die Ursache auf dem gemeldeten Gerät war,
+     * ist unbestätigt [Vermutung] - deshalb bleibt [lastFailureReason] bis zur Bestätigung sichtbar.
+     */
+    fun start(): String? {
+        lastFailureReason = null
+        val result = AtomicReference<String?>(null)
+        val bound = CountDownLatch(1)
         Thread {
+            val server = runCatching {
+                ServerSocket(0, BACKLOG, InetAddress.getByName(LOOPBACK_IP))
+            }.onFailure { e ->
+                lastFailureReason = "Binden gescheitert: ${e.javaClass.simpleName}: ${e.message}"
+            }.getOrNull()
+            if (server == null) {
+                bound.countDown()
+                return@Thread
+            }
+            socket = server
+            running = true
+            result.set("http://${server.inetAddress.hostAddress}:${server.localPort}/")
+            bound.countDown()
             while (running) {
                 val client = try {
                     server.accept()
@@ -141,8 +195,12 @@ internal class TrailerLocalServer(private val youtubeKey: String) {
                 runCatching { respond(client) }
             }
         }.apply { isDaemon = true }.start()
-        "http://127.0.0.1:${server.localPort}/"
-    }.getOrNull()
+        val inTime = bound.await(BIND_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+        if (!inTime && result.get() == null) {
+            lastFailureReason = "Zeitüberschreitung beim Starten (> ${BIND_TIMEOUT_MS}ms)"
+        }
+        return result.get()
+    }
 
     fun stop() {
         running = false
@@ -191,7 +249,9 @@ internal class TrailerLocalServer(private val youtubeKey: String) {
         """.trimIndent()
 
     private companion object {
+        const val LOOPBACK_IP = "127.0.0.1"
         const val BACKLOG = 8
         const val REQUEST_TIMEOUT_MS = 5_000
+        const val BIND_TIMEOUT_MS = 2_000L
     }
 }
