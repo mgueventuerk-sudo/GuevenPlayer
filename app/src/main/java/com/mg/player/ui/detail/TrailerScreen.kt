@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,12 +27,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import com.mg.player.core.log.AppLog
 import com.mg.player.ui.common.ActionButton
 import com.mg.player.ui.common.glass
 import com.mg.player.ui.navigation.LocalNavigator
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
 import com.mg.player.ui.theme.StaticIcon
+import java.io.IOException
+import java.io.InputStream
+import java.net.InetAddress
+import java.net.ServerSocket
+import java.net.Socket
 
 /**
  * Trailer-Vorschlag bei Film/Serie: YouTubes eigene, schlanke Embed-Seite läuft eingebettet in GuevenPlayer weiter -
@@ -41,26 +48,37 @@ import com.mg.player.ui.theme.StaticIcon
  * den globalen BackHandler in AppRoot) kehrt sofort zum Titel zurück.
  *
  * JavaScript ist für YouTubes Embed-Player zwingend - unbedenklich, weil dieses WebView nie eine fremde oder
- * nutzergesteuerte Adresse lädt, nur das feste "youtube.com/embed/<key>" unten.
+ * nutzergesteuerte Adresse lädt, nur die feste, selbst erzeugte Seite unten.
  *
- * Nicht direkt per loadUrl() auf die Embed-Adresse: Ohne einen gültigen YouTube-Origin/Referrer lehnt YouTubes
- * Einbettungs-Prüfung jedes Video ab (Fehler 153 "Fehler bei der Konfiguration des Videoplayers", unabhängig vom
- * Video selbst). loadDataWithBaseURL() mit https://www.youtube.com als Basisadresse gibt dem WebView genau diesen
- * Origin, als läge die Seite tatsächlich auf youtube.com.
+ * Weder loadUrl() direkt auf die Embed-Adresse noch loadDataWithBaseURL() mit youtube.com als Basis funktionieren
+ * (an echten YouTube-Servern nachgewiesen, Fehler 153 bzw. 152): Eine Seite, die nie wirklich über eine Adresse
+ * navigiert wurde, schickt für das eingebettete Iframe gar keinen Referer, egal welcher Origin-Wert angegeben wird -
+ * YouTubes Einbettungs-Prüfung lehnt das ab. [TrailerLocalServer] liefert die Wrapper-Seite deshalb wirklich über
+ * HTTP aus (nur Loopback), genau wie ein echter Browser-Tab.
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun TrailerScreen(youtubeKey: String) {
     val navigator = LocalNavigator.current
     var failed by remember { mutableStateOf(false) }
+    var baseUrl by remember { mutableStateOf<String?>(null) }
+
+    DisposableEffect(youtubeKey) {
+        val server = TrailerLocalServer(youtubeKey)
+        val url = server.start()
+        if (url == null) failed = true else baseUrl = url
+        onDispose { server.stop() }
+    }
+
     Box(Modifier.fillMaxSize().background(Color.Black)) {
+        val url = baseUrl
         if (failed) {
             Column(Modifier.align(Alignment.Center).padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Trailer konnte nicht geladen werden", color = Color.White, style = MaterialTheme.typography.titleMedium)
                 Box(Modifier.height(16.dp))
                 ActionButton("Zurück", onClick = navigator::pop, primary = true)
             }
-        } else {
+        } else if (url != null) {
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
                 factory = { context ->
@@ -71,20 +89,12 @@ fun TrailerScreen(youtubeKey: String) {
                         settings.mediaPlaybackRequiresUserGesture = false
                         webViewClient = object : WebViewClient() {
                             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
+                                // Nur die eigene Wrapper-Seite zählt als Fehlschlag - ein vom Video selbst
+                                // abgelehntes Iframe zeigt YouTubes eigene, verständliche Fehlerseite darin an.
                                 if (request.isForMainFrame) failed = true
                             }
                         }
-                        // youtube.com/embed statt /watch: nur der Player, kein Website-Drumherum (Kommentare, Vorschläge).
-                        // Als Iframe mit youtube.com als Basisadresse laden (siehe Klassenkommentar) - sonst Fehler 153.
-                        val html =
-                            """
-                            <html><body style="margin:0;padding:0;background:#000;">
-                            <iframe width="100%" height="100%" style="position:fixed;top:0;left:0;border:0;"
-                                src="https://www.youtube.com/embed/$youtubeKey?autoplay=1&playsinline=1"
-                                allow="autoplay; encrypted-media" allowfullscreen></iframe>
-                            </body></html>
-                            """.trimIndent()
-                        loadDataWithBaseURL("https://www.youtube.com", html, "text/html", "utf-8", null)
+                        loadUrl(url)
                     }
                 },
                 onRelease = { it.stopLoading(); it.destroy() },
@@ -101,5 +111,87 @@ fun TrailerScreen(youtubeKey: String) {
         ) {
             StaticIcon(AppIcons.Close, tint = AppColors.TextPrimary, size = 20.dp, contentDescription = "Zurück")
         }
+    }
+}
+
+/**
+ * Winziger Server nur auf Loopback (127.0.0.1) - liefert für jede Anfrage dieselbe feste Seite mit dem
+ * YouTube-Iframe aus. Anders als [com.mg.player.core.net.MiniHttpServer] (für die Fernseher-Übergabe absichtlich
+ * auf die Heimnetz-Adresse gebunden): Hier reicht Loopback, und dessen strenge Content-Security-Policy würde das
+ * YouTube-Iframe ohnehin blockieren (kein frame-src erlaubt).
+ */
+internal class TrailerLocalServer(private val youtubeKey: String) {
+    @Volatile
+    private var running = false
+    private var socket: ServerSocket? = null
+
+    fun start(): String? = runCatching {
+        val server = ServerSocket(0, BACKLOG, InetAddress.getLoopbackAddress())
+        socket = server
+        running = true
+        Thread {
+            while (running) {
+                val client = try {
+                    server.accept()
+                } catch (e: IOException) {
+                    // Erwartet beim Beenden (stop() schliesst den Socket) - alles andere waere ungewoehnlich genug fuers Protokoll.
+                    AppLog.debug("Trailer", "Loopback-Server beendet (${e.javaClass.simpleName})")
+                    break
+                }
+                runCatching { respond(client) }
+            }
+        }.apply { isDaemon = true }.start()
+        "http://127.0.0.1:${server.localPort}/"
+    }.getOrNull()
+
+    fun stop() {
+        running = false
+        runCatching { socket?.close() }
+    }
+
+    private fun respond(client: Socket) {
+        client.use { s ->
+            s.soTimeout = REQUEST_TIMEOUT_MS
+            runCatching { discardRequest(s.getInputStream()) }
+            val body = html().toByteArray(Charsets.UTF_8)
+            val header = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n" +
+                "Content-Length: ${body.size}\r\nConnection: close\r\n\r\n"
+            s.getOutputStream().apply {
+                write(header.toByteArray(Charsets.UTF_8))
+                write(body)
+                flush()
+            }
+        }
+    }
+
+    /** Nur bis zur Leerzeile lesen - der Inhalt der Antwort ist immer gleich, es gibt nur die eine Seite. */
+    private fun discardRequest(input: InputStream) {
+        var sawNewline = false
+        while (true) {
+            val b = input.read()
+            if (b < 0) return
+            when (b) {
+                '\n'.code -> {
+                    if (sawNewline) return
+                    sawNewline = true
+                }
+                '\r'.code -> Unit
+                else -> sawNewline = false
+            }
+        }
+    }
+
+    private fun html() =
+        """
+        <!doctype html><html><body style="margin:0;padding:0;background:#000;">
+        <iframe width="100%" height="100%" style="position:fixed;top:0;left:0;border:0;"
+            src="https://www.youtube.com/embed/$youtubeKey?autoplay=1&playsinline=1"
+            allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        </body></html>
+        """.trimIndent()
+
+    private companion object {
+        const val BACKLOG = 8
+        const val REQUEST_TIMEOUT_MS = 5_000
     }
 }
