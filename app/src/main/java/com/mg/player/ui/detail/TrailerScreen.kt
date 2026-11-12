@@ -42,6 +42,11 @@ import com.mg.player.ui.theme.StaticIcon
  *
  * JavaScript ist für YouTubes Embed-Player zwingend - unbedenklich, weil dieses WebView nie eine fremde oder
  * nutzergesteuerte Adresse lädt, nur das feste "youtube.com/embed/<key>" unten.
+ *
+ * Nicht direkt per loadUrl() auf die Embed-Adresse: Ohne einen gültigen YouTube-Origin/Referrer lehnt YouTubes
+ * Einbettungs-Prüfung jedes Video ab (Fehler 153 "Fehler bei der Konfiguration des Videoplayers", unabhängig vom
+ * Video selbst). loadDataWithBaseURL() mit https://www.youtube.com als Basisadresse gibt dem WebView genau diesen
+ * Origin, als läge die Seite tatsächlich auf youtube.com.
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -70,7 +75,16 @@ fun TrailerScreen(youtubeKey: String) {
                             }
                         }
                         // youtube.com/embed statt /watch: nur der Player, kein Website-Drumherum (Kommentare, Vorschläge).
-                        loadUrl("https://www.youtube.com/embed/$youtubeKey?autoplay=1&playsinline=1")
+                        // Als Iframe mit youtube.com als Basisadresse laden (siehe Klassenkommentar) - sonst Fehler 153.
+                        val html =
+                            """
+                            <html><body style="margin:0;padding:0;background:#000;">
+                            <iframe width="100%" height="100%" style="position:fixed;top:0;left:0;border:0;"
+                                src="https://www.youtube.com/embed/$youtubeKey?autoplay=1&playsinline=1"
+                                allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                            </body></html>
+                            """.trimIndent()
+                        loadDataWithBaseURL("https://www.youtube.com", html, "text/html", "utf-8", null)
                     }
                 },
                 onRelease = { it.stopLoading(); it.destroy() },
