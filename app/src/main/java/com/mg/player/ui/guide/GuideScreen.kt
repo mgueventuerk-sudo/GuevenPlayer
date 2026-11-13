@@ -99,9 +99,12 @@ fun GuideScreen(modifier: Modifier = Modifier) {
         Row(verticalAlignment = Alignment.Top) {
             GuideFocusInfo(focus, nowMs, Modifier.weight(1f))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Mehrtägige Vorschau (z. B. Sport am Wochenende) sonst nur stundenweise erreichbar.
+                ActionButton("1 Tag", onClick = { vm.shiftWindow(-24) }, icon = AppIcons.ChevronLeft, compact = true)
                 ActionButton("1 Std", onClick = { vm.shiftWindow(-1) }, icon = AppIcons.ChevronLeft, compact = true)
                 ActionButton("Jetzt", onClick = vm::resetWindow, icon = AppIcons.Clock, compact = true)
                 ActionButton("1 Std", onClick = { vm.shiftWindow(1) }, icon = AppIcons.ChevronRight, compact = true)
+                ActionButton("1 Tag", onClick = { vm.shiftWindow(24) }, icon = AppIcons.ChevronRight, compact = true)
             }
         }
         LazyRow(
