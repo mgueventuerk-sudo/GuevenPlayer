@@ -8,6 +8,7 @@ import com.mg.player.core.log.AppLog
 import com.mg.player.data.remote.StreamUrlResolver
 import com.mg.player.data.sync.syncErrorText
 import com.mg.player.domain.model.Channel
+import com.mg.player.domain.model.ConnectionStatus
 import com.mg.player.domain.model.EpgProgram
 import com.mg.player.domain.model.Recording
 import com.mg.player.domain.model.RecordingStatus
@@ -39,6 +40,8 @@ class RecordingManager(
     private val recorder: StreamRecorder,
     private val urls: StreamUrlResolver,
     private val channelLookup: suspend (String) -> Channel?,
+    /** Aktuell bekannter Verbindungsstand des Zugangs (zwischengespeichert, siehe ConnectionMonitor.status). */
+    private val connectionStatus: (playlistId: Long) -> ConnectionStatus? = { null },
 ) {
     private val store = RecordingStore(File(context.filesDir, "recordings.json"))
     private val alarms = RecordingAlarms(context)
@@ -209,6 +212,13 @@ class RecordingManager(
 
     /** Legt die Datei an und startet den eigentlichen Mitschnitt im App-Scope. */
     private suspend fun begin(template: Recording, channel: Channel, fromSchedule: Boolean): String? {
+        // Aufnahme braucht eine eigene, zweite Verbindung (auch wenn man den Sender gerade selbst schaut) - ohne
+        // diese Prüfung kommt erst der rohe Serverfehler, wenn der Anbieter die zusätzliche Verbindung ablehnt.
+        connectionStatus(channel.playlistId)?.takeIf { it.full }?.let { status ->
+            val message = "Verbindungslimit des Zugangs erreicht (${status.label} belegt)"
+            if (fromSchedule) store.update(template.id) { it.copy(status = RecordingStatus.FAILED, error = message) }
+            return message
+        }
         if (!withContext(Dispatchers.IO) { ensureSpace(MIN_FREE_BYTES) }) {
             val message = "Zu wenig freier Speicher für eine Aufnahme"
             if (fromSchedule) store.update(template.id) { it.copy(status = RecordingStatus.FAILED, error = message) }
