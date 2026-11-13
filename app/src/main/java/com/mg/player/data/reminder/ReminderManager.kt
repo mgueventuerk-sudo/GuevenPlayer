@@ -69,6 +69,15 @@ class ReminderManager(private val context: Context, private val clock: () -> Lon
         schedule(moved)
     }
 
+    /** Übernimmt Erinnerungen aus einer Sicherung (Vergangenes wird verworfen, Wecker neu gestellt). */
+    fun restore(list: List<Reminder>) {
+        val now = clock()
+        val fresh = list.filter { it.startMs > now }
+        _items.update { current -> (current + fresh).distinctBy { it.id }.sortedBy { it.startMs } }
+        save()
+        fresh.forEach(::schedule)
+    }
+
     fun remove(id: String) {
         _items.value.firstOrNull { it.id == id }?.let { cancel(it) }
         _items.update { list -> list.filterNot { it.id == id } }

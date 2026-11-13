@@ -226,7 +226,7 @@ class AppContainer(context: Context, settingsOverride: SettingsRepository? = nul
     /** App-Sperre (PIN beim Öffnen): gesperrt beim Start und beim Wechsel in den Hintergrund. */
     val appLock = AppLockState()
 
-    val backupManager: BackupManager by lazy { BackupManager(database, playlistRepository, settingsRepository, vpnImporter) }
+    val backupManager: BackupManager by lazy { BackupManager(database, playlistRepository, settingsRepository, vpnImporter, recordingManager, reminders) }
 
     val addPlaylist: AddPlaylistUseCase by lazy { AddPlaylistUseCase(playlistRepository, settingsRepository) }
     val refreshPlaylist: RefreshPlaylistUseCase by lazy {

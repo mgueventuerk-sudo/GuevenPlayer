@@ -16,6 +16,17 @@ class BackupDataTest {
         .put("favorites", JSONArray().put(JSONObject().put("type", "MOVIE").put("itemId", "7:M:42").put("addedAt", 5)))
         .put("progress", JSONArray().put(JSONObject().put("key", "movie:7:M:42").put("position", 1000).put("duration", 5000)))
         .put("categoryPrefs", JSONArray().put(JSONObject().put("categoryId", "7:L:3").put("playlistId", 7).put("hidden", true)))
+        .put(
+            "recordings",
+            JSONArray().put(
+                JSONObject().put("channelId", "7:L:9").put("channelName", "Das Erste").put("title", "Tatort")
+                    .put("startedAt", 1_000).put("plannedEnd", 2_000).put("programStart", 1_060),
+            ),
+        )
+        .put(
+            "reminders",
+            JSONArray().put(JSONObject().put("channelId", "7:L:9").put("channelName", "Das Erste").put("title", "Tatort").put("startMs", 1_000)),
+        )
         .toString()
 
     private fun xtream(id: Long) = JSONObject().put("id", id).put("name", "Test").put("type", "XTREAM")
@@ -41,6 +52,13 @@ class BackupDataTest {
         assertEquals("31:L:3", pref.categoryId)
         assertEquals(31L, pref.playlistId)
         assertTrue(pref.hidden)
+        val recording = data.recordingEntities(idMap).single()
+        assertEquals("31:L:9", recording.channelId)
+        assertEquals("Tatort", recording.title)
+        assertTrue(recording.isScheduled)
+        val reminder = data.reminderEntities(idMap).single()
+        assertEquals("31:L:9", reminder.channelId)
+        assertEquals("Tatort", reminder.title)
     }
 
     @Test

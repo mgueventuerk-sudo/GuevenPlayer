@@ -63,6 +63,19 @@ class RecordingManager(
     /** Wartet, bis die Aufnahmeliste geladen und geplante Aufnahmen wieder eingeplant sind. */
     suspend fun awaitReady() = ready.join()
 
+    /**
+     * Übernimmt geplante Aufnahmen aus einer Sicherung (nur [RecordingStatus.SCHEDULED] mit noch nicht
+     * verstrichenem Ende - Laufendes/Fertiges verweist auf eine Datei, die auf einem neuen Gerät nicht existiert).
+     */
+    suspend fun restoreScheduled(recordings: List<Recording>) {
+        awaitReady()
+        val now = System.currentTimeMillis()
+        recordings.filter { it.isScheduled && it.plannedEndMs > now }.forEach { recording ->
+            store.upsert(recording)
+            alarms.set(recording.id, recording.startedAtMs)
+        }
+    }
+
     /** Nach dem App-Start: Unterbrochenes markieren, Verpasstes melden, Geplantes neu einplanen. */
     private suspend fun recover() {
         val now = System.currentTimeMillis()
