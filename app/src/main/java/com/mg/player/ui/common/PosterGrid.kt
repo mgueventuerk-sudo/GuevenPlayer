@@ -27,11 +27,13 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemContentType
@@ -39,9 +41,6 @@ import androidx.paging.compose.itemKey
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.allowRgb565
-import coil3.request.crossfade
 import com.mg.player.ui.home.SkeletonCard
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcon
@@ -71,15 +70,17 @@ data class PosterItem(
  * und – weil Poster undurchsichtig sind – als RGB_565 gehalten (halber Bitmap-Speicher).
  */
 @Composable
-fun PosterCard(item: PosterItem, onClick: () -> Unit, modifier: Modifier = Modifier, onLongClick: (() -> Unit)? = null, onFocused: (() -> Unit)? = null) {
+fun PosterCard(
+    item: PosterItem,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
+    onFocused: (() -> Unit)? = null,
+    /** Meldet die Pixelgröße des Bildes – das Raster braucht sie, um Poster in genau dieser Größe vorzuladen. */
+    onImageSize: ((IntSize) -> Unit)? = null,
+) {
     val context = LocalContext.current
-    val request = remember(item.imageUrl) {
-        ImageRequest.Builder(context)
-            .data(item.imageUrl)
-            .allowRgb565(true)
-            .crossfade(false)
-            .build()
-    }
+    val request = remember(item.imageUrl) { ImageRequests.poster(context, item.imageUrl) }
     var focused by remember { mutableStateOf(false) }
     Column(modifier) {
         FocusSurface(
@@ -117,7 +118,7 @@ fun PosterCard(item: PosterItem, onClick: () -> Unit, modifier: Modifier = Modif
                     model = request,
                     contentDescription = item.title,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().onSizeChanged { if (it.width > 0 && it.height > 0) onImageSize?.invoke(it) },
                 )
             }
             if (item.badges.isNotEmpty()) {
@@ -207,7 +208,15 @@ fun <T : Any> PagingPosterGrid(
     }
 
     // Bilder der nächsten Kacheln vorladen, sobald das Raster ruht (nur mit genug freiem Speicher, siehe PreloadPolicy).
-    PrefetchAhead(gridState, PrefetchKind.POSTER, itemCount = { items.itemCount }, urlAt = { index -> items.peek(index)?.let { toPoster(it).imageUrl } })
+    // In den Arbeitsspeicher nur, wenn die Kachelgröße bekannt ist: Das Bild muss genau so groß dekodiert werden wie in der Anzeige.
+    var posterSize by remember { mutableStateOf<IntSize?>(null) }
+    PrefetchAhead(
+        state = gridState,
+        kind = PrefetchKind.POSTER,
+        itemCount = { items.itemCount },
+        urlAt = { index -> items.peek(index)?.let { toPoster(it).imageUrl } },
+        imageSize = { posterSize },
+    )
 
     if (items.itemCount == 0) {
         if (items.loadState.refresh is androidx.paging.LoadState.Loading) {
@@ -262,6 +271,7 @@ fun <T : Any> PagingPosterGrid(
                     onClick = { onClick(item) },
                     onLongClick = onLongClick?.let { handler -> { handler(item) } },
                     onFocused = { backdrop.url = poster.imageUrl },
+                    onImageSize = { posterSize = it },
                     modifier = Modifier
                         .then(if (isFirstFocusTarget) Modifier.focusRequester(firstPosterRequester) else Modifier)
                         .then(

@@ -27,11 +27,10 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.allowRgb565
 import com.mg.player.core.util.TimeUtils
 import com.mg.player.domain.model.Channel
 import com.mg.player.domain.model.EpgProgram
+import com.mg.player.ui.common.ImageRequests
 import com.mg.player.ui.common.ListSurface
 import com.mg.player.ui.common.LocalSurfaceFocused
 import com.mg.player.ui.common.MarqueeText
@@ -47,7 +46,7 @@ import com.mg.player.ui.theme.StaticIcon
 fun ChannelLogo(url: String?, name: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     // Senderlogos sind oft transparente PNGs: bewusst ARGB_8888 (kein RGB_565), sonst wird der Hintergrund schwarz.
-    val request = remember(url) { ImageRequest.Builder(context).data(url).size(160, 120).allowRgb565(false).build() }
+    val request = remember(url) { ImageRequests.channelLogo(context, url) }
     Box(
         modifier
             .clip(RoundedCornerShape(10.dp))

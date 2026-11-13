@@ -271,31 +271,48 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
-## Neu in 3.60 (Vorladen, erste Stufe)
+## Neu in 3.60 (Vorladen, erste Stufe: Bilder – auch in den Arbeitsspeicher, mit Freigabe)
 
-Wunsch: Alles vorladen, wenn genug Arbeitsspeicher da ist, damit es schneller läuft oder zumindest so wirkt. Gebaut ist die
-**erste Stufe** – Bilder –, weil sie am wenigsten kostet und am wenigsten schiefgehen kann:
+Wunsch: Vorladen, wenn genug Arbeitsspeicher da ist – und was nicht genutzt wird, soll wieder freigegeben werden, aber nur,
+wenn das sinnvoll ist. Gebaut ist die **erste Stufe: Bilder** in Raster (Filme, Serien) und Senderliste. Ruht die Liste kurz
+(0,4 s), werden die Bilder der **nächsten** Einträge hinter dem sichtbaren Bereich geladen; wird die Liste wieder bewegt,
+bricht das sofort ab. Höchstens zwei Bilder gleichzeitig.
 
-- **Was:** Ruht ein Raster (Filme, Serien) oder die Senderliste kurz (0,4 s), werden die Bilder der **nächsten** Einträge
-  hinter dem sichtbaren Bereich schon geladen, damit beim Weiterblättern nicht auf den Anbieter gewartet wird. Wird die Liste
-  wieder bewegt, bricht das Vorladen sofort ab. Höchstens zwei Bilder gleichzeitig, klein dekodiert.
-- **Nur in den Datei-Cache**, nicht in den Arbeitsspeicher: Die Größe, in der ein Bild später gezeigt wird, steht beim Vorladen
-  nicht fest; ein voll aufgelöstes Bild kostet auf einem Stick viel Speicher. Von der Festplatte statt aus dem Netz zu laden
-  spart trotzdem das Warten.
-- **Wie viel, entscheidet der freie Speicher** (nicht nur die Geräteklasse): Nichts bei „wenig Speicher“ laut Android, nach
-  einer Speicherwarnung (2 min Ruhe), unter Android-Schwelle + 200 MB oder unter 48 MB freiem Heap. Sonst „leicht“ (12 / 18 / 24
-  Einträge voraus je Geräteklasse schwach / mittel / stark) – oder „voll“ (30 / 60, nur mittel und stark), wenn Schwelle + 500 MB
-  und 96 MB Heap frei sind. **Diese Grenzwerte sind Startwerte, nicht gemessen.**
-- **Ausschalten:** *Einstellungen → Wiedergabe → Vorladen* (Standard: an).
-- **Nicht angefasst:** Die zusätzlichen Decoder (Ersatz-Variante auf Vorrat, Sehgewohnheits-Sender) gibt es weiter nur für die
-  Geräteklasse „stark“ (ab 3,5 GB RAM) – und nur über einen Zugang mit freier Verbindung. Ein Fire-TV-Stick oder -Cube mit 2 GB
-  gehört nicht dazu; das Bilder-Vorladen schon.
-- **Ungeprüft am Gerät.** Ob es spürbar schneller wirkt, ist nicht gemessen. Das Fehlerprotokoll schreibt (höchstens alle 20 s)
-  „Vorladen: N Bilder voraus (Stufe …, Gerät …, frei … MB, Heap frei … MB)“ – daran lassen sich die Grenzwerte nachstellen.
-  Vergleich nach `PRUEFLISTE.md` 16u (Zeile „Bildzeiten …“ mit und ohne Vorladen).
-- **Noch nicht gebaut (Vorschlag für die nächsten Stufen):** Serien-Detailseiten bei kurzem Verweilen vorladen
-  (`get_series_info` wird heute bei jedem Öffnen frisch geholt), Programmdaten der nächsten Sender, erste Seiten der anderen
-  Bereiche nach dem Start.
+**Wohin?** Immer (solange erlaubt) in den Datei-Cache. **Bei viel freiem Speicher zusätzlich fertig dekodiert in den
+Arbeitsspeicher**, in genau der Größe, in der die Anzeige das Bild braucht (das Raster misst die Kachel selbst; Poster, Logos
+mit fester Größe). Poster und Logo werden dafür aus derselben Quelle gebaut wie in der Anzeige (`ImageRequests`), sonst träfe
+die Anzeige den Eintrag nicht.
+
+**Wie viel, entscheidet der freie Speicher** (nicht nur die Geräteklasse):
+- *Aus:* „wenig Speicher“ laut Android, 2 min nach einer Speicherwarnung, unter Android-Schwelle + 200 MB oder unter 48 MB
+  freiem Heap – dann wird auch alles bisher Vorgeladene und nie Gezeigte sofort freigegeben.
+- *Leicht:* nur Datei-Cache, 12 / 18 / 24 Einträge voraus (schwach / mittel / stark).
+- *Voll* (nur mittel und stark; ab Schwelle + 500 MB und 96 MB Heap): Arbeitsspeicher, 30 / 60 voraus, so viele
+  davor bleiben vorgeladen, falls man zurückblättert. Kein Vorladen in den Speicher, wenn der Bild-Cache zu mehr als 85 % voll ist
+  (es verdrängte Bilder, die man schon gesehen hat).
+
+**Freigabe – nur von dem, was wir selbst vorgeladen haben und nie gezeigt wurde.** Was die Anzeige gezeigt hat, gehört dem
+normalen Cache und seiner LRU-Regel. Ungenutztes geht wieder raus, wenn (1) es außerhalb des Fensters liegt (weiter weg
+gescrollt, Kategorie gewechselt), (2) es 2 min ungenutzt liegt oder man die Liste verlassen hat (nach 2 min, kommt man schnell
+zurück, ist es noch da), (3) der Speicher knapp wird. Bei einer Speicherwarnung leert Android ohnehin den ganzen Bild-Cache.
+
+**Messbar:** Das Fehlerprotokoll schreibt (höchstens alle 20 s) „Vorladen: N Bilder voraus (Stufe …, Gerät …, frei … MB, Heap
+frei … MB); im Speicher vorgeladen a, davon gezeigt b, freigegeben c, noch ungenutzt d; angezeigt seit zuletzt: Speicher x, Platte
+y, Netz z“. Ist „davon gezeigt“ dauerhaft 0, trifft das Vorladen den Cache-Schlüssel der Anzeige nicht – dann ist das kein
+Gewinn, und die Einträge werden nach 2 min wieder freigegeben.
+
+**Ausschalten:** *Einstellungen → Wiedergabe → Vorladen* (Standard: an, in der Sicherung enthalten).
+
+**Nicht angefasst:** Die zusätzlichen Decoder (Ersatz-Variante auf Vorrat, Sehgewohnheits-Sender) gibt es weiter nur für die
+Geräteklasse „stark“ (ab 3,5 GB RAM) und nur über einen Zugang mit freier Verbindung – ein zweiter Stream auf demselben Zugang
+würde „Zugang belegt“ auslösen. Ein Fire-TV-Stick oder -Cube mit 2 GB gehört nicht dazu; das Bilder-Vorladen schon.
+
+**Ungeprüft am Gerät.** Ob es spürbar schneller wirkt, ist nicht gemessen. Die Grenzwerte (200/500 MB, 48/96 MB, 12–60 Einträge,
+85 %, 2 min) sind Startwerte. Dass Vorgeladenes den Cache-Schlüssel der Anzeige trifft, ist aus der Coil-Dokumentation abgeleitet,
+nicht getestet – das Protokoll zeigt es. Vergleich nach `PRUEFLISTE.md` 16u.
+
+**Noch nicht gebaut (Vorschlag für die nächsten Stufen):** Serien-Detailseiten bei kurzem Verweilen vorladen (`get_series_info`
+wird heute bei jedem Öffnen frisch geholt), Programmdaten der nächsten Sender, erste Seiten der anderen Bereiche nach dem Start.
 
 ## Neu in 3.59 (Wächter: Ton ohne Bild)
 

@@ -8,12 +8,16 @@ enum class PreloadLevel {
     /** Nur Bilder in den Datei-Cache (kostet keinen Arbeitsspeicher), wenige Einträge voraus. */
     LIGHT,
 
-    /** Mehr Einträge voraus; Platz für weitere Vorladestufen (Detailseiten, Programmdaten). */
+    /** Mehr Einträge voraus, und die Bilder liegen schon fertig im Arbeitsspeicher; Nicht-Genutztes wird wieder freigegeben. */
     FULL,
 }
 
-/** [imagesAhead]: wie viele Einträge hinter dem letzten sichtbaren vorgeladen werden. */
-data class PreloadBudget(val level: PreloadLevel, val imagesAhead: Int) {
+/**
+ * [imagesAhead]: wie viele Einträge hinter dem letzten sichtbaren vorgeladen werden. [warmMemory]: auch in den
+ * Arbeitsspeicher (sonst nur Datei-Cache). [keepBehind]: so viele Einträge vor dem ersten sichtbaren bleiben vorgeladen,
+ * falls man zurückblättert – was weiter weg liegt und nie gezeigt wurde, wird freigegeben.
+ */
+data class PreloadBudget(val level: PreloadLevel, val imagesAhead: Int, val warmMemory: Boolean = false, val keepBehind: Int = 0) {
     val active: Boolean get() = level != PreloadLevel.OFF
 
     companion object {
@@ -60,7 +64,7 @@ object PreloadPolicyRules {
         val roomy = memory.availMb >= memory.thresholdMb + FULL_RESERVE_MB && memory.heapFreeMb >= FULL_HEAP_FREE_MB
         val fullAhead = FULL_AHEAD[tier]
         return if (roomy && fullAhead != null) {
-            PreloadBudget(PreloadLevel.FULL, fullAhead)
+            PreloadBudget(PreloadLevel.FULL, fullAhead, warmMemory = true, keepBehind = fullAhead / 2)
         } else {
             PreloadBudget(PreloadLevel.LIGHT, LIGHT_AHEAD.getValue(tier))
         }

@@ -32,4 +32,25 @@ class PrefetchPlanTest {
         assertTrue(plan(last = -1, count = 10).isEmpty())
         assertTrue(plan(last = 5, count = 0).isEmpty())
     }
+
+    private fun window(first: Int, last: Int, behind: Int, ahead: Int, total: Int = urls.size) =
+        PrefetchPlan.window(first, last, total, behind, ahead) { urls.getOrNull(it) }
+
+    @Test
+    fun windowCoversTheVisibleItemsPlusKeepBehindAndAhead() {
+        assertEquals(urls.subList(7, 24).toSet(), window(first = 10, last = 15, behind = 3, ahead = 8))
+    }
+
+    @Test
+    fun windowIsCutAtTheEndsOfTheList() {
+        assertEquals(urls.subList(0, 7).toSet(), window(first = 0, last = 2, behind = 5, ahead = 4))
+        assertEquals(urls.subList(95, 100).toSet(), window(first = 97, last = 99, behind = 2, ahead = 9))
+        assertTrue("Liste kürzer als das Fenster", window(first = 0, last = 1, behind = 3, ahead = 50, total = 5).size <= 5)
+    }
+
+    @Test
+    fun windowIsEmptyWithoutVisibleItems() {
+        assertTrue(window(first = -1, last = -1, behind = 3, ahead = 8).isEmpty())
+        assertTrue(window(first = 5, last = 2, behind = 3, ahead = 8).isEmpty())
+    }
 }

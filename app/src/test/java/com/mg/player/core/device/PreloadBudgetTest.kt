@@ -20,8 +20,8 @@ class PreloadBudgetTest {
 
     @Test
     fun plentyOfMemoryOnANormalDeviceGivesTheFullBudget() {
-        assertEquals(PreloadBudget(PreloadLevel.FULL, 30), decide(DeviceTier.NORMAL, memory()))
-        assertEquals(PreloadBudget(PreloadLevel.FULL, 60), decide(DeviceTier.HIGH, memory()))
+        assertEquals(PreloadBudget(PreloadLevel.FULL, 30, warmMemory = true, keepBehind = 15), decide(DeviceTier.NORMAL, memory()))
+        assertEquals(PreloadBudget(PreloadLevel.FULL, 60, warmMemory = true, keepBehind = 30), decide(DeviceTier.HIGH, memory()))
     }
 
     @Test
@@ -60,5 +60,15 @@ class PreloadBudgetTest {
         assertEquals(PreloadLevel.LIGHT, decide(DeviceTier.NORMAL, memory(avail = 400, threshold = 200, heapFree = 48)).level)
         // Genau Schwelle + 500 MB und 96 MB Heap: voll.
         assertEquals(PreloadLevel.FULL, decide(DeviceTier.NORMAL, memory(avail = 700, threshold = 200, heapFree = 96)).level)
+    }
+
+    @Test
+    fun onlyTheFullBudgetWarmsTheMemory() {
+        assertTrue(decide(DeviceTier.NORMAL, memory()).warmMemory)
+        // „leicht“ und „aus“ belegen keinen Arbeitsspeicher für Vorgeladenes.
+        assertFalse(decide(DeviceTier.NORMAL, memory(avail = 450, threshold = 200)).warmMemory)
+        assertFalse(decide(DeviceTier.LOW, memory(avail = 4_000, heapFree = 400)).warmMemory)
+        assertFalse(decide(DeviceTier.HIGH, memory(low = true)).warmMemory)
+        assertEquals(0, decide(DeviceTier.HIGH, memory(low = true)).keepBehind)
     }
 }

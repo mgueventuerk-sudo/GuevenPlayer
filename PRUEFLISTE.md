@@ -352,18 +352,21 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] W6 Kindersicherung aktiv und der Inhalt gesperrt → der Fernseher fragt nach der PIN, startet nicht einfach.
 - [ ] W7 Zeitversetzte Sendung (Archiv) → der Eintrag erscheint gar nicht erst.
 
-## 16u. Neu in 3.60 – Vorladen (Bilder)
+## 16u. Neu in 3.60 – Vorladen (Bilder, auch im Arbeitsspeicher)
 
 Ziel ist ein Vergleich, kein Haken: Bitte mit und ohne Vorladen dieselbe Liste gleich lang scrollen und die Zeile „Bildzeiten …“
 im Fehlerprotokoll vergleichen (siehe K3, 3.22). Ergebnis in `config/perf-budget.md` eintragen – mit Gerät, Android-Stufe und Datum.
 
-- [ ] U1 *Einstellungen → Wiedergabe → Vorladen* ist an; ausschalten und wieder einschalten funktioniert.
-- [ ] U2 Filme: 20 s durch ein großes Raster blättern, kurz anhalten, weiterblättern: Die Poster hinter dem Sichtbaren erscheinen ohne Nachladen. Protokoll: „Vorladen: … Bilder voraus (Stufe …)“.
+- [ ] U1 *Einstellungen → Wiedergabe → Vorladen* ist an; aus- und wieder einschalten funktioniert.
+- [ ] U2 Filme: 20 s durch ein großes Raster blättern, kurz anhalten, weiterblättern: Die Poster hinter dem Sichtbaren erscheinen ohne Nachladen.
 - [ ] U3 Senderliste: dasselbe mit den Logos.
-- [ ] U4 Vorladen aus → keine „Vorladen“-Zeilen im Protokoll.
-- [ ] U5 Viele andere Apps im Hintergrund geöffnet: Stufe „leicht“ oder keine Zeilen – nie ein Absturz oder „App reagiert nicht“.
-- [ ] U6 W1 (30 min normal schauen) wiederholen: Wiedergabe wie vorher, kein zusätzliches Ruckeln beim Blättern.
-- [ ] U7 Vorher/Nachher: „Bildzeiten live/…: … % verpasst“ je 3 Läufe mit und ohne Vorladen.
+- [ ] U4 Protokoll nach U2/U3: Zeile „Vorladen: … Stufe …“. Bei Stufe VOLL: „im Speicher vorgeladen“ > 0 **und „davon gezeigt“ > 0** – ist „gezeigt“ dauerhaft 0, trifft das Vorladen die Anzeige nicht (bitte melden).
+- [ ] U5 20 Poster weit weg scrollen und Liste stehen lassen: Nach spätestens 2 min geht „noch ungenutzt“ im Protokoll auf 0 zurück („freigegeben“ steigt).
+- [ ] U6 Liste verlassen (Detailseite oder anderer Bereich) und nach 3 min in die Liste zurück: kein Fehler, Poster erscheinen wie vorher.
+- [ ] U7 Viele andere Apps im Hintergrund geöffnet: Stufe „LEICHT“ oder keine Zeilen – nie Absturz oder „App reagiert nicht“.
+- [ ] U8 Vorladen aus → keine „Vorladen“-Zeilen im Protokoll.
+- [ ] U9 W1 (30 min normal schauen) wiederholen: Wiedergabe wie vorher, kein zusätzliches Ruckeln beim Blättern.
+- [ ] U10 Vorher/Nachher: „Bildzeiten live/…: … % verpasst“ je 3 Läufe mit und ohne Vorladen; dazu „angezeigt seit zuletzt: Speicher/Platte/Netz“.
 
 ## 16t. Neu in 3.59 – Wächter: Ton ohne Bild
 

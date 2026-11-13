@@ -25,6 +25,8 @@ import com.mg.player.data.sport.proof.ProofAlarm
 import com.mg.player.data.sync.AutoRefreshWork
 import com.mg.player.data.sync.AutoRefresher
 import com.mg.player.domain.model.MatchSource
+import com.mg.player.ui.common.ImagePrefetcher
+import com.mg.player.ui.common.ImageUsage
 import com.wireguard.android.backend.GoBackend
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -133,6 +135,8 @@ open class PlayerApp :
         if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
             PreloadPolicy.onTrim()
             runCatching { SingletonImageLoader.get(this).memoryCache?.clear() }
+            // Der Bild-Cache ist leer: das Buch über Vorgeladenes im Speicher mit leeren.
+            ImagePrefetcher.forgetAll()
             // LibVLC nur behalten, solange eine Wiedergabe sie nutzt.
             if (com.mg.player.player.engine.SharedLibVlc.trim()) AppLog.log("Speicher", "LibVLC freigegeben (wenig Speicher)")
         }
@@ -154,7 +158,11 @@ open class PlayerApp :
         }
         // Eigener OkHttp-Client wie bisher bei Coil 2; Cache-Header der Server ignoriert Coil 3 von sich aus
         // (früher respectCacheHeaders(false)).
-        .components { add(OkHttpNetworkFetcherFactory()) }
+        .components {
+            add(OkHttpNetworkFetcherFactory())
+            // Zählt, woher angezeigte Bilder kommen (Speicher/Platte/Netz) – Nachweis für „Vorladen“ im Fehlerprotokoll.
+            add(ImageUsage)
+        }
         .crossfade(false)
         .build()
 }
