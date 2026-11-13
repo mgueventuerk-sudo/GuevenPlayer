@@ -206,6 +206,9 @@ fun <T : Any> PagingPosterGrid(
         }
     }
 
+    // Bilder der nächsten Kacheln vorladen, sobald das Raster ruht (nur mit genug freiem Speicher, siehe PreloadPolicy).
+    PrefetchAhead(gridState, PrefetchKind.POSTER, itemCount = { items.itemCount }, urlAt = { index -> items.peek(index)?.let { toPoster(it).imageUrl } })
+
     if (items.itemCount == 0) {
         if (items.loadState.refresh is androidx.paging.LoadState.Loading) {
             // Platzhalter-Kacheln statt "Lädt…"-Text: dieselbe ruhige, unbewegte Fläche wie SkeletonRow auf der

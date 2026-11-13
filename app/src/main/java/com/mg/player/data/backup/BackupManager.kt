@@ -76,6 +76,7 @@ class BackupManager(
                 put("appLock", s.appLock)
                 put("largeText", s.largeText)
                 put("reducedEffects", s.reducedEffects)
+                put("preload", s.preload)
                 put("automaticOptimization", s.automaticOptimization)
             },
         )
@@ -245,6 +246,7 @@ class BackupManager(
                 appLock = if (backupPin != null) s.optBoolean("appLock", false) else current.appLock,
                 largeText = s.optBoolean("largeText", current.largeText),
                 reducedEffects = s.optBoolean("reducedEffects", current.reducedEffects),
+                preload = s.optBoolean("preload", current.preload),
                 automaticOptimization = s.optBoolean("automaticOptimization", current.automaticOptimization),
                 activePlaylistId = active,
                 lastChannelId = null,

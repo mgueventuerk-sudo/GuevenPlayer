@@ -15,6 +15,7 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import com.mg.player.BuildConfig
 import com.mg.player.core.device.DeviceTier
+import com.mg.player.core.device.PreloadPolicy
 import com.mg.player.core.di.AppContainer
 import com.mg.player.core.log.AppLog
 import com.mg.player.core.log.DebugChecks
@@ -109,6 +110,10 @@ open class PlayerApp :
         container.appScope.launch {
             container.settingsRepository.settings.map { it.noHistory }.distinctUntilChanged().collect { AppLog.quiet = it }
         }
+        // „Vorladen“ (Einstellungen → Wiedergabe): hier nur der Schalter; ob wirklich geladen wird, entscheidet der freie Speicher.
+        container.appScope.launch {
+            container.settingsRepository.settings.map { it.preload }.distinctUntilChanged().collect { PreloadPolicy.enabled = it }
+        }
         GoBackend.setAlwaysOnCallback { container.appScope.launch { container.vpn.wake() } }
         // Kindersicherung: Freischaltung endet, sobald die App in den Hintergrund geht (Home-Taste, Standby).
         ProcessLifecycleOwner.get().lifecycle.addObserver(
@@ -126,6 +131,7 @@ open class PlayerApp :
         super.onTrimMemory(level)
         @Suppress("DEPRECATION")
         if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
+            PreloadPolicy.onTrim()
             runCatching { SingletonImageLoader.get(this).memoryCache?.clear() }
             // LibVLC nur behalten, solange eine Wiedergabe sie nutzt.
             if (com.mg.player.player.engine.SharedLibVlc.trim()) AppLog.log("Speicher", "LibVLC freigegeben (wenig Speicher)")

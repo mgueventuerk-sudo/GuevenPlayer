@@ -51,15 +51,17 @@ import com.mg.player.ui.common.ContextAction
 import com.mg.player.ui.common.GlassPanel
 import com.mg.player.ui.common.LocalContextMenu
 import com.mg.player.ui.common.LocalToast
+import com.mg.player.ui.common.PrefetchAhead
+import com.mg.player.ui.common.PrefetchKind
 import com.mg.player.ui.common.appViewModel
 import com.mg.player.ui.common.glass
 import com.mg.player.ui.navigation.LocalNavigator
 import com.mg.player.ui.navigation.Screen
 import com.mg.player.ui.player.EngineSurface
-import com.mg.player.ui.theme.AppShapes
 import com.mg.player.ui.theme.AnimatedIcon
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
+import com.mg.player.ui.theme.AppShapes
 import com.mg.player.ui.theme.Dimens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -184,6 +186,8 @@ fun LiveScreen(modifier: Modifier = Modifier) {
                 )
             } else {
                 RestoreScroll(restoreChannelId, channels, listState)
+                // Logos der nächsten Zeilen vorladen, sobald die Liste ruht.
+                PrefetchAhead(listState, PrefetchKind.LOGO, itemCount = { channels.itemCount }, urlAt = { index -> channels.peek(index)?.logoUrl })
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),

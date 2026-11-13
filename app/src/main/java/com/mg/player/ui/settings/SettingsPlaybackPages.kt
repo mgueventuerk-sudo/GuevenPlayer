@@ -240,6 +240,15 @@ private fun LazyListScope.lookComfortItems(c: SettingsContext) {
                 AppIcons.Speed,
             )
         }
+        row("preload") {
+            ToggleRow(
+                "Vorladen",
+                c.s.preload,
+                { c.vm.update { it.copy(preload = !it.preload) } },
+                "Bilder der nächsten Einträge schon vor dem Scrollen laden – nur, solange genug Arbeitsspeicher frei ist",
+                AppIcons.Speed,
+            )
+        }
     }
     settingsGroup("look-home", "Startseite") {
         row("hide-guide") {

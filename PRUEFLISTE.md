@@ -352,6 +352,19 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] W6 Kindersicherung aktiv und der Inhalt gesperrt → der Fernseher fragt nach der PIN, startet nicht einfach.
 - [ ] W7 Zeitversetzte Sendung (Archiv) → der Eintrag erscheint gar nicht erst.
 
+## 16u. Neu in 3.60 – Vorladen (Bilder)
+
+Ziel ist ein Vergleich, kein Haken: Bitte mit und ohne Vorladen dieselbe Liste gleich lang scrollen und die Zeile „Bildzeiten …“
+im Fehlerprotokoll vergleichen (siehe K3, 3.22). Ergebnis in `config/perf-budget.md` eintragen – mit Gerät, Android-Stufe und Datum.
+
+- [ ] U1 *Einstellungen → Wiedergabe → Vorladen* ist an; ausschalten und wieder einschalten funktioniert.
+- [ ] U2 Filme: 20 s durch ein großes Raster blättern, kurz anhalten, weiterblättern: Die Poster hinter dem Sichtbaren erscheinen ohne Nachladen. Protokoll: „Vorladen: … Bilder voraus (Stufe …)“.
+- [ ] U3 Senderliste: dasselbe mit den Logos.
+- [ ] U4 Vorladen aus → keine „Vorladen“-Zeilen im Protokoll.
+- [ ] U5 Viele andere Apps im Hintergrund geöffnet: Stufe „leicht“ oder keine Zeilen – nie ein Absturz oder „App reagiert nicht“.
+- [ ] U6 W1 (30 min normal schauen) wiederholen: Wiedergabe wie vorher, kein zusätzliches Ruckeln beim Blättern.
+- [ ] U7 Vorher/Nachher: „Bildzeiten live/…: … % verpasst“ je 3 Läufe mit und ohne Vorladen.
+
 ## 16t. Neu in 3.59 – Wächter: Ton ohne Bild
 
 Bei jedem Sender, der trotz Hinweis nicht so läuft wie erwartet: bitte das Fehlerprotokoll schicken (Zeilen „Wächter:“ und

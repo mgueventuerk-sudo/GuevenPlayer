@@ -271,6 +271,32 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.60 (Vorladen, erste Stufe)
+
+Wunsch: Alles vorladen, wenn genug Arbeitsspeicher da ist, damit es schneller läuft oder zumindest so wirkt. Gebaut ist die
+**erste Stufe** – Bilder –, weil sie am wenigsten kostet und am wenigsten schiefgehen kann:
+
+- **Was:** Ruht ein Raster (Filme, Serien) oder die Senderliste kurz (0,4 s), werden die Bilder der **nächsten** Einträge
+  hinter dem sichtbaren Bereich schon geladen, damit beim Weiterblättern nicht auf den Anbieter gewartet wird. Wird die Liste
+  wieder bewegt, bricht das Vorladen sofort ab. Höchstens zwei Bilder gleichzeitig, klein dekodiert.
+- **Nur in den Datei-Cache**, nicht in den Arbeitsspeicher: Die Größe, in der ein Bild später gezeigt wird, steht beim Vorladen
+  nicht fest; ein voll aufgelöstes Bild kostet auf einem Stick viel Speicher. Von der Festplatte statt aus dem Netz zu laden
+  spart trotzdem das Warten.
+- **Wie viel, entscheidet der freie Speicher** (nicht nur die Geräteklasse): Nichts bei „wenig Speicher“ laut Android, nach
+  einer Speicherwarnung (2 min Ruhe), unter Android-Schwelle + 200 MB oder unter 48 MB freiem Heap. Sonst „leicht“ (12 / 18 / 24
+  Einträge voraus je Geräteklasse schwach / mittel / stark) – oder „voll“ (30 / 60, nur mittel und stark), wenn Schwelle + 500 MB
+  und 96 MB Heap frei sind. **Diese Grenzwerte sind Startwerte, nicht gemessen.**
+- **Ausschalten:** *Einstellungen → Wiedergabe → Vorladen* (Standard: an).
+- **Nicht angefasst:** Die zusätzlichen Decoder (Ersatz-Variante auf Vorrat, Sehgewohnheits-Sender) gibt es weiter nur für die
+  Geräteklasse „stark“ (ab 3,5 GB RAM) – und nur über einen Zugang mit freier Verbindung. Ein Fire-TV-Stick oder -Cube mit 2 GB
+  gehört nicht dazu; das Bilder-Vorladen schon.
+- **Ungeprüft am Gerät.** Ob es spürbar schneller wirkt, ist nicht gemessen. Das Fehlerprotokoll schreibt (höchstens alle 20 s)
+  „Vorladen: N Bilder voraus (Stufe …, Gerät …, frei … MB, Heap frei … MB)“ – daran lassen sich die Grenzwerte nachstellen.
+  Vergleich nach `PRUEFLISTE.md` 16u (Zeile „Bildzeiten …“ mit und ohne Vorladen).
+- **Noch nicht gebaut (Vorschlag für die nächsten Stufen):** Serien-Detailseiten bei kurzem Verweilen vorladen
+  (`get_series_info` wird heute bei jedem Öffnen frisch geholt), Programmdaten der nächsten Sender, erste Seiten der anderen
+  Bereiche nach dem Start.
+
 ## Neu in 3.59 (Wächter: Ton ohne Bild)
 
 Auslöser: Ein Sender lief mit Ton, aber ohne Bild – und der Wächter tat nichts. Gefunden wurden drei Lücken, alle behoben:
