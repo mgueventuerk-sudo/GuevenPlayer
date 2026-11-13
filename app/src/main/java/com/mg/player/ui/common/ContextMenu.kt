@@ -36,7 +36,6 @@ import com.mg.player.ui.theme.AppShapes
 import com.mg.player.ui.theme.AppText
 import com.mg.player.ui.theme.Spacing
 import com.mg.player.ui.theme.StaticIcon
-import kotlinx.coroutines.delay
 
 /** Ein Eintrag im Kontextmenü. [destructive] = rot (Löschen, Entfernen). */
 @Immutable
@@ -66,9 +65,6 @@ class ContextMenuState {
 
 val LocalContextMenu = staticCompositionLocalOf { ContextMenuState() }
 
-/** Länger als jede übliche Zeit zwischen "lange gedrückt" und dem tatsächlichen Loslassen des Knopfs. */
-private const val LONG_PRESS_RELEASE_GRACE_MS = 350L
-
 @Composable
 fun ContextMenuHost(state: ContextMenuState) {
     val spec = state.menu ?: return
@@ -81,15 +77,7 @@ fun ContextMenuHost(state: ContextMenuState) {
 @Composable
 private fun ContextMenuContent(spec: ContextMenuSpec, onDismiss: () -> Unit) {
     val firstRequester = remember(spec) { FocusRequester() }
-    LaunchedEffect(spec) {
-        // Das OK, das den langen Druck zum Öffnen auslöst, wird oft erst jetzt losgelassen - ohne diese
-        // kurze Pause traf der Loslass-Tastendruck den gerade fokussierten ersten Eintrag und löste ihn
-        // sofort aus; das Menü wirkte dadurch, als schlösse es sich von selbst (Nutzerbericht 13.11.).
-        // Auf echtem Fernseher ungeprüft - das Timing eines physischen Tastendrucks lässt sich in
-        // Robolectric nicht nachstellen.
-        delay(LONG_PRESS_RELEASE_GRACE_MS)
-        firstRequester.requestFocusWhenReady()
-    }
+    LaunchedEffect(spec) { firstRequester.requestFocusWhenReady() }
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             Modifier
