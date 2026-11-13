@@ -15,6 +15,17 @@ interface RecoveryMemory {
 
     fun forget(contentKey: String)
 
+    /** Hatte dieser Inhalt schon einmal nachweislich ein Bild? Dann ist „keine Videospur“ eine Störung, kein Radio. */
+    fun hadPicture(contentKey: String): Boolean = false
+
+    /** Bild lief stabil: merken (und eine frühere „Radio“-Vermutung verwerfen). */
+    fun markHadPicture(contentKey: String) {}
+
+    /** Mehrere Versuche brachten kein Bild: wahrscheinlich ein Radiosender – künftig nur noch der Hinweis „Nur Ton“. */
+    fun isRadio(contentKey: String): Boolean = false
+
+    fun markRadio(contentKey: String) {}
+
     /** Zählt Befunde und Erfolge je Symptom (lokale Auswertung, keine Zugangsdaten). */
     fun count(symptom: Symptom, fixed: Boolean) {}
 
@@ -25,7 +36,22 @@ interface RecoveryMemory {
 /** Für Tests und als Rückfall ohne Speicher. */
 class InMemoryRecoveryMemory : RecoveryMemory {
     private val hints = HashMap<String, StartHint>()
+    private val pictures = HashSet<String>()
+    private val radios = HashSet<String>()
     val counts = HashMap<String, Int>()
+
+    override fun hadPicture(contentKey: String) = contentKey in pictures
+
+    override fun markHadPicture(contentKey: String) {
+        pictures += contentKey
+        radios -= contentKey
+    }
+
+    override fun isRadio(contentKey: String) = contentKey in radios && contentKey !in pictures
+
+    override fun markRadio(contentKey: String) {
+        radios += contentKey
+    }
 
     override fun hintFor(contentKey: String): StartHint? = hints[contentKey]
 

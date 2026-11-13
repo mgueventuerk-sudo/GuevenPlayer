@@ -71,6 +71,10 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
     private var droppedFrames = 0
     private var audioErrors = 0
     private var videoErrors = 0
+
+    /** Seit dem letzten Start wurde ein Bild gezeigt (Player.Listener.onRenderedFirstFrame – auch bei Tunneling). */
+    @Volatile
+    private var firstFrameShown = false
     private var lastPauseReason = PlaybackPauseReason.NONE
 
     override val positionMs: Long get() = player?.currentPosition?.coerceAtLeast(0) ?: 0
@@ -84,6 +88,10 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
         get() = player?.duration?.takeIf { it != C.TIME_UNSET && it > 0 } ?: 0
 
     private val listener = object : Player.Listener {
+        override fun onRenderedFirstFrame() {
+            firstFrameShown = true
+        }
+
         override fun onPlaybackStateChanged(playbackState: Int) = publishState()
         override fun onIsPlayingChanged(isPlaying: Boolean) = publishState()
 
@@ -244,6 +252,7 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
         droppedFrames = 0
         audioErrors = 0
         videoErrors = 0
+        firstFrameShown = false
         val request = lastRequest
         val item = MediaItem.Builder().setUri(url).apply {
             mimeType?.let(::setMimeType)
@@ -336,6 +345,7 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
             audioErrors = audioErrors,
             videoErrors = videoErrors,
             droppedFrames = droppedFrames.toLong(),
+            pictureShown = firstFrameShown,
             liveOffsetMs = if (p.isCurrentMediaItemLive) p.currentLiveOffset.takeIf { it != C.TIME_UNSET && it >= 0 } else null,
         )
     }

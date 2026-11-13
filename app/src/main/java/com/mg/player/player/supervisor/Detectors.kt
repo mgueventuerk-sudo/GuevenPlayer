@@ -3,8 +3,25 @@ package com.mg.player.player.supervisor
 import com.mg.player.player.engine.HealthSnapshot
 import com.mg.player.player.engine.PlaybackStatus
 
+/** Muss dieser Sender ein Bild haben? Bestimmt, ob „keine Videospur“ ein Radiosender oder eine Störung ist. */
+enum class PictureExpectation {
+    /** Radio: laut Name oder weil schon mehrere Versuche kein Bild brachten. */
+    RADIO,
+
+    /** Hatte früher nachweislich ein Bild. */
+    TV,
+
+    /** Nichts bekannt. */
+    UNKNOWN,
+}
+
 /** Was ein Detektor über den laufenden Start wissen muss. */
-data class DetectContext(val session: SessionInfo, val preparedAtMs: Long, val config: SupervisorConfig) {
+data class DetectContext(
+    val session: SessionInfo,
+    val preparedAtMs: Long,
+    val config: SupervisorConfig,
+    val picture: PictureExpectation = PictureExpectation.UNKNOWN,
+) {
     /** Live mit Ersatzquelle: Ein Wechsel ist billig, also früher reagieren. */
     val quickSwitch: Boolean get() = session.isLive && session.canSwitchVariant
 
@@ -238,13 +255,49 @@ class FrozenPictureDetector : Detector {
     }
 }
 
+/** Datenrate aus den geladenen Bytes der letzten Sekunden (null = Engine meldet keine Bytes oder zu wenig Messzeit). */
+internal class DataRateMeter {
+    private val samples = ArrayDeque<Pair<Long, Long>>()
+
+    fun update(bytes: Long?, now: Long) {
+        if (bytes == null) return
+        // Zähler springt zurück (neuer Start): neu messen.
+        if (samples.isNotEmpty() && bytes < samples.last().second) samples.clear()
+        samples.addLast(now to bytes)
+        while (samples.size > 1 && now - samples.first().first > WINDOW_MS) samples.removeFirst()
+    }
+
+    /** Byte pro Sekunde über das Messfenster, erst ab [MIN_SPAN_MS] Messzeit. */
+    fun bytesPerSecond(): Long? {
+        if (samples.size < 2) return null
+        val (t0, b0) = samples.first()
+        val (t1, b1) = samples.last()
+        val span = t1 - t0
+        return if (span < MIN_SPAN_MS) null else (b1 - b0) * MS_PER_S / span
+    }
+
+    fun reset() = samples.clear()
+
+    private companion object {
+        const val WINDOW_MS = 4_000L
+        const val MIN_SPAN_MS = 2_000L
+        const val MS_PER_S = 1_000L
+    }
+}
+
 /**
  * S5/S6: Nur Ton oder nur Bild. Unterscheidet echte Störungen von Sendern, die gar keine Video- bzw. Tonspur haben
  * (Radio, stumme Kanäle) – dort gibt es nur einen Hinweis, keine Maßnahme.
+ *
+ * „Keine Videospur“ allein heißt aber nicht „Radio“: Ein Fernsehsender, dessen Bild ausfällt, sieht genauso aus – bis
+ * 3.58 gab es dafür nur den Hinweis „Nur Ton“ und keine Maßnahme. Jetzt entscheidet [PictureExpectation] und die
+ * Datenrate: Kommt mehr an, als ein Radiosender braucht, oder hatte der Sender schon einmal ein Bild, ist es eine Störung.
  */
 class AvPresenceDetector : Detector {
     private val frames = ProgressTracker()
     private val audio = ProgressTracker()
+    private val position = ProgressTracker()
+    private val rate = DataRateMeter()
     private var lastAudioErrors = -1
     private var audioErrorBurst = 0
     private val fired = HashSet<Symptom>()
@@ -253,10 +306,14 @@ class AvPresenceDetector : Detector {
         if (!s.playing) {
             frames.reset()
             audio.reset()
+            position.reset()
+            rate.reset()
             return null
         }
         frames.update(s.renderedFrames, now)
         audio.update(s.audioUnits, now)
+        position.update(s.positionMs, now)
+        rate.update(s.bytesLoaded, now)
         // Fire-TV-Protokoll vom 31.10.: Ein einzelner Ausgabefehler (Tonformat-Wechsel, anderer Ton-Fokus) löste
         // dreimal „Bild ohne Ton“ aus – jedes Mal „behoben nach 0,0 s“, der Ton war nie weg. Darum zählt jetzt nur
         // eine Häufung ([SupervisorConfig.audioErrorBurst] in Folge) oder ein wirklich stehender Tonzähler.
@@ -267,18 +324,60 @@ class AvPresenceDetector : Detector {
         return finding?.takeIf { fired.add(it.symptom) }
     }
 
+    /**
+     * Wie lange der Ton schon läuft: laut Tonzähler, oder – wo es keinen gibt (Ton-Durchreichen) – laut Position. null =
+     * noch kein Beleg, dass Ton läuft.
+     */
+    private fun soundFor(s: HealthSnapshot, now: Long): Long? = when {
+        s.audioUnits != null -> audio.takeIf { it.hasMoved }?.let { now - it.firstMoveAt }
+        else -> position.takeIf { it.hasMoved && it.movingRecently(now) }?.let { now - it.firstMoveAt }
+    }
+
     private fun audioOnly(s: HealthSnapshot, now: Long, ctx: DetectContext): Finding? {
-        if (s.audioUnits == null || !audio.hasMoved) return null
-        val audioFor = now - audio.firstMoveAt
-        return when {
-            s.hasVideoTrack == false && audioFor >= ctx.config.radioHint -> Finding(Symptom.RADIO_ONLY, "keine Videospur, Ton läuft")
-
-            s.hasVideoTrack == true && neverShowedPicture(s) && audioFor >= ctx.config.audioWithoutVideo ->
-                Finding(Symptom.AUDIO_WITHOUT_VIDEO, "Ton seit $audioFor ms, noch kein Bild (Videofehler: ${s.videoErrors})")
-
-            else -> null
+        val soundFor = soundFor(s, now) ?: return null
+        return when (s.hasVideoTrack) {
+            false -> withoutVideoTrack(s, ctx, soundFor)
+            true -> withoutPicture(s, ctx, soundFor)
+            null -> null
         }
     }
+
+    /** Videospur da, aber kein Bild – auch ohne Bilderzähler (Tunneling), wenn die Engine „erstes Bild“ meldet. */
+    private fun withoutPicture(s: HealthSnapshot, ctx: DetectContext, soundFor: Long): Finding? {
+        val cfg = ctx.config
+        val limit = if (ctx.quickSwitch) cfg.audioWithoutVideoWithAlternative else cfg.audioWithoutVideo
+        val noPicture = if (s.renderedFrames != null) neverShowedPicture(s) else s.pictureShown == false
+        if (!noPicture || soundFor < limit) return null
+        val counter = if (s.renderedFrames == null) ", ohne Bilderzähler" else ""
+        return Finding(Symptom.AUDIO_WITHOUT_VIDEO, "Ton seit $soundFor ms, noch kein Bild (Videofehler: ${s.videoErrors}$counter)")
+    }
+
+    /**
+     * Keine Videospur: Radio (nur Hinweis) oder ein Sender, dem das Bild fehlt (Maßnahme). Entschieden wird so:
+     * - Name/Gedächtnis sagt Radio, oder kein Live-Sender → Hinweis.
+     * - Hatte schon ein Bild, oder die Datenrate ist höher als bei Radio → Störung (sicher).
+     * - Sonst, mit Ersatzquelle → Störung als Vermutung (wenige Versuche, dann als Radio merken); ohne → Hinweis.
+     */
+    private fun withoutVideoTrack(s: HealthSnapshot, ctx: DetectContext, soundFor: Long): Finding? {
+        val cfg = ctx.config
+        val flowingKb = rate.bytesPerSecond()?.takeIf { it >= cfg.videoDataRate }?.let { it / BYTES_PER_KB }
+        val dataFlows = flowingKb != null
+        val suspicious = ctx.picture == PictureExpectation.TV || dataFlows || ctx.session.canSwitchVariant
+        val failure = ctx.session.isLive && ctx.picture != PictureExpectation.RADIO && suspicious
+        if (!failure) return radioHint(soundFor, cfg)
+        val limit = if (ctx.quickSwitch) cfg.noVideoTrackWithAlternative else cfg.noVideoTrack
+        if (soundFor < limit) return null
+        val sure = ctx.picture == PictureExpectation.TV || dataFlows
+        val why = when {
+            ctx.picture == PictureExpectation.TV -> "hatte früher ein Bild"
+            dataFlows -> "$flowingKb KB/s kommen an – mehr als bei Radio"
+            else -> "Radio nicht ausgeschlossen"
+        }
+        return Finding(Symptom.NO_VIDEO_TRACK, "Ton seit $soundFor ms, keine Videospur ($why)", confident = sure)
+    }
+
+    private fun radioHint(soundFor: Long, cfg: SupervisorConfig): Finding? =
+        Finding(Symptom.RADIO_ONLY, "keine Videospur, Ton läuft").takeIf { soundFor >= cfg.radioHint }
 
     private fun neverShowedPicture(s: HealthSnapshot) = s.renderedFrames == 0L && !frames.hasMoved
 
@@ -303,6 +402,8 @@ class AvPresenceDetector : Detector {
     override fun reset() {
         frames.reset()
         audio.reset()
+        position.reset()
+        rate.reset()
         lastAudioErrors = -1
         audioErrorBurst = 0
         // Radio/stumm sind Eigenschaften des Senders: je Inhalt nur einmal melden (resetSession).

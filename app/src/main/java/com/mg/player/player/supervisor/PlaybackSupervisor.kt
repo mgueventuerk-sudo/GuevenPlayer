@@ -49,17 +49,16 @@ class PlaybackSupervisor(
     private var gaveUp: Symptom? = null
     private var stableSince = -1L
     private var stableHandled = false
-    private var stablePositionAt = -1L
-    private var stableFrameAt = -1L
-    private var stableAudioAt = -1L
     private var recoverySince = -1L
-    private var lastStablePosition: Long? = null
-    private var lastStableFrames: Long? = null
-    private var lastStableAudio: Long? = null
     private var activeFix = StartHint()
     private var lastProblem: Symptom? = null
     private var problemSince = -1L
     private var formatHandledForPrepare = false
+
+    private val progress = StableProgress(config)
+
+    /** Muss der laufende Sender ein Bild haben? Gedächtnis, Name und Probeversuche – siehe [PictureKnowledge]. */
+    private val knowledge = PictureKnowledge(memory)
     private val reportedOncePerSession = HashSet<Symptom>()
     private val reportedWhileGivenUp = HashSet<Symptom>()
 
@@ -79,11 +78,12 @@ class PlaybackSupervisor(
         stableSince = -1L
         stableHandled = false
         recoverySince = -1L
-        resetStableProgress()
+        progress.reset()
         lastProblem = null
         problemSince = -1L
         reportedOncePerSession.clear()
         reportedWhileGivenUp.clear()
+        knowledge.start(session)
         detectors.resetSession()
         publish(SupervisorStatus())
     }
@@ -101,7 +101,7 @@ class PlaybackSupervisor(
         preparedAt = clock()
         stableSince = -1L
         recoverySince = -1L
-        resetStableProgress()
+        progress.reset()
         formatHandledForPrepare = false
         detectors.resetAll()
     }
@@ -113,7 +113,7 @@ class PlaybackSupervisor(
 
             state.status == PlaybackStatus.ERROR -> {
                 stableSince = -1L
-                resetStableProgress()
+                progress.reset()
                 onFailure(
                     SupervisorRules.symptomOf(state),
                     SupervisorRules.describe(state),
@@ -127,7 +127,7 @@ class PlaybackSupervisor(
             state.status == PlaybackStatus.BUFFERING -> {
                 stableSince = -1L
                 recoverySince = -1L
-                resetStableProgress()
+                progress.reset()
             }
 
             else -> Unit
@@ -176,7 +176,7 @@ class PlaybackSupervisor(
         detectors.resetFollowUp()
         reportedWhileGivenUp.clear()
         confirmProblemRecovered(now)
-        resetStableProgress()
+        progress.reset()
         publish(SupervisorStatus())
         log("Wächter: Überwachung nach stabiler Wiedergabe fortgesetzt (${recovered.code})")
     }
@@ -184,8 +184,8 @@ class PlaybackSupervisor(
     private fun networkBackFor(now: Long): Boolean = waitingForNetwork && online && onlineSince >= 0 && now - onlineSince >= config.networkSettle
 
     private fun detect(current: SessionInfo, health: HealthSnapshot, now: Long) {
-        val ctx = DetectContext(current, preparedAt, config)
-        detectors.check(health, now, ctx)?.let { onFailure(it.symptom, it.evidence, null) }
+        val ctx = DetectContext(current, preparedAt, config, knowledge.expectation)
+        detectors.check(health, now, ctx)?.let { onFailure(it.symptom, it.evidence, null, guessed = !it.confident) }
     }
 
     /** Netzstatus; [changed] = echter Wechsel (online, WLAN/LAN, VPN), nicht nur Schwankung. */
@@ -222,9 +222,10 @@ class PlaybackSupervisor(
         waitingForNetwork = false
         stableSince = -1L
         recoverySince = -1L
-        resetStableProgress()
+        progress.reset()
         ladderPosition.clear()
         actionsThisSession = 0
+        knowledge.resetProbes()
         budget.clear()
         reportedWhileGivenUp.clear()
         detectors.resetFollowUp()
@@ -260,55 +261,18 @@ class PlaybackSupervisor(
         stableHandled = true
         ladderPosition.clear()
         actionsThisSession = 0
-        val key = session?.contentKey ?: return
-        if (activeFix.isEmpty) memory.forget(key) else memory.remember(key, activeFix)
+        knowledge.resetProbes()
+        val current = session ?: return
+        // Radio: Ein Probeversuch (z. B. LibVLC) soll nicht dauerhaft als „hat geholfen“ gemerkt werden – es gab nichts zu beheben.
+        val nothingToRemember = activeFix.isEmpty || knowledge.expectation == PictureExpectation.RADIO
+        if (nothingToRemember) memory.forget(current.contentKey) else memory.remember(current.contentKey, activeFix)
+        knowledge.noteStablePicture(current, health)
     }
 
-    /** Stable playback requires real progress; READY alone can stay true while a picture is frozen. */
+    /** Stabile Wiedergabe braucht echten Fortschritt: READY allein bleibt auch bei einem Standbild wahr. */
     private fun hasStableProgress(health: HealthSnapshot, now: Long): Boolean {
-        if (health.status != PlaybackStatus.READY || !health.isPlaying) {
-            resetStableProgress()
-            return false
-        }
         val current = session ?: return false
-        val positionLimit = when {
-            current.isLive && current.canSwitchVariant -> config.stallWithAlternativeMax
-            current.isLive -> config.stallLive
-            else -> config.stallVod
-        }
-        val positionProgress = updatePositionProgress(health.positionMs, now, positionLimit)
-        val videoProgress = updateVideoProgress(health, now)
-        val audioProgress = updateAudioProgress(health, now)
-        return positionProgress && videoProgress && audioProgress
-    }
-
-    private fun updatePositionProgress(positionMs: Long, now: Long, limitMs: Long): Boolean {
-        if (lastStablePosition != null && positionMs != lastStablePosition) stablePositionAt = now
-        lastStablePosition = positionMs
-        return stablePositionAt >= 0 && now - stablePositionAt <= limitMs
-    }
-
-    private fun updateVideoProgress(health: HealthSnapshot, now: Long): Boolean {
-        val frames = health.renderedFrames?.takeIf { health.hasVideoTrack != false } ?: return true
-        if (lastStableFrames != null && frames != lastStableFrames) stableFrameAt = now
-        lastStableFrames = frames
-        return stableFrameAt >= 0 && now - stableFrameAt <= config.frozenPicture
-    }
-
-    private fun updateAudioProgress(health: HealthSnapshot, now: Long): Boolean {
-        val audio = health.audioUnits?.takeIf { health.hasAudioTrack != false } ?: return true
-        if (lastStableAudio != null && audio != lastStableAudio) stableAudioAt = now
-        lastStableAudio = audio
-        return stableAudioAt >= 0 && now - stableAudioAt <= config.frozenPicture
-    }
-
-    private fun resetStableProgress() {
-        stablePositionAt = -1L
-        stableFrameAt = -1L
-        stableAudioAt = -1L
-        lastStablePosition = null
-        lastStableFrames = null
-        lastStableAudio = null
+        return progress.check(health, current, knowledge.needsPicture(lastProblem ?: gaveUp), now)
     }
 
     /** READY/isPlaying can return before a picture or timeline actually resumes. */
@@ -326,7 +290,7 @@ class PlaybackSupervisor(
 
     private fun isIdle() = pending == null && gaveUp == null && !waitingForNetwork
 
-    private fun onFailure(symptom: Symptom, evidence: String, httpCode: Int?, retryAfterMs: Long? = null) {
+    private fun onFailure(symptom: Symptom, evidence: String, httpCode: Int?, retryAfterMs: Long? = null, guessed: Boolean = false) {
         val current = session ?: return
         if (symptom.informational) {
             reportInfo(symptom, evidence)
@@ -335,7 +299,7 @@ class PlaybackSupervisor(
         if (gaveUp != null) {
             stableSince = -1L
             recoverySince = -1L
-            resetStableProgress()
+            progress.reset()
             if (reportedWhileGivenUp.add(symptom)) {
                 log("Wächter: erneute Störung ${symptom.code} ${symptom.label} ($evidence) – keine weitere automatische Maßnahme nach Aufgeben")
             }
@@ -344,10 +308,10 @@ class PlaybackSupervisor(
         stableSince = -1L
         stableHandled = false
         recoverySince = -1L
-        resetStableProgress()
+        progress.reset()
         when {
             SupervisorRules.isNetworkSymptom(symptom) && !online -> enterNetworkWait()
-            pending == null -> react(current, Failure(symptom, evidence, httpCode, retryAfterMs))
+            pending == null -> react(current, Failure(symptom, evidence, httpCode, retryAfterMs, guessed))
         }
     }
 
@@ -355,14 +319,29 @@ class PlaybackSupervisor(
     private fun reportInfo(symptom: Symptom, evidence: String) {
         if (!reportedOncePerSession.add(symptom)) return
         log("Wächter: ${symptom.code} ${symptom.label} ($evidence)")
+        // Erst Versuche (andere Quelle, anderer Player), jetzt trotzdem „keine Videospur“ ohne Anlass zum Eingreifen: Radio.
+        if (symptom == Symptom.RADIO_ONLY && knowledge.probes > 0) {
+            session?.let { rememberRadio(it.contentKey) }
+        }
         Ladders.forSymptom(symptom).firstOrNull { it is RecoveryStep.Hint }?.let { actions.execute(it, symptom) }
     }
 
-    private data class Failure(val symptom: Symptom, val evidence: String, val httpCode: Int?, val retryAfterMs: Long?)
+    private data class Failure(
+        val symptom: Symptom,
+        val evidence: String,
+        val httpCode: Int?,
+        val retryAfterMs: Long?,
+        /** Nur vermutet (z. B. „vielleicht ein Radiosender“): wenige Versuche, dann als Radio merken. */
+        val guessed: Boolean = false,
+    )
 
     private fun react(current: SessionInfo, failure: Failure) {
         val now = clock()
         val symptom = failure.symptom
+        if (failure.guessed && knowledge.probes >= config.maxGuessedNoVideoProbes) {
+            assumeRadio(current, failure)
+            return
+        }
         memory.count(symptom, fixed = false)
         if (lastProblem == null) {
             lastProblem = symptom
@@ -383,7 +362,27 @@ class PlaybackSupervisor(
             giveUp(symptom, failure.httpCode)
             return
         }
+        if (failure.guessed) knowledge.probed()
         scheduleStep(step, failure, now)
+    }
+
+    /**
+     * Die Probeversuche (andere Quelle, anderer Player) brachten kein Bild: Der Sender ist wohl wirklich ein Radiosender.
+     * Wir merken es uns, geben kein „Fehler“ aus und lassen den Ton laufen – nur der bekannte Hinweis.
+     */
+    private fun assumeRadio(current: SessionInfo, failure: Failure) {
+        log("Wächter: ${failure.symptom.code} ${failure.symptom.label} (${failure.evidence}) – nach ${knowledge.probes} Versuchen als Radio gemerkt")
+        rememberRadio(current.contentKey)
+        ladderPosition.remove(failure.symptom)
+        Ladders.forSymptom(Symptom.RADIO_ONLY).firstOrNull { it is RecoveryStep.Hint }?.let { actions.execute(it, Symptom.RADIO_ONLY) }
+        publish(SupervisorStatus())
+    }
+
+    private fun rememberRadio(contentKey: String) {
+        knowledge.rememberRadio(contentKey)
+        // Kein Problem, das „behoben“ werden müsste: nichts als Erfolg zählen.
+        lastProblem = null
+        problemSince = -1L
     }
 
     private fun providerDown(current: SessionInfo, symptom: Symptom, now: Long): Boolean {
@@ -449,7 +448,10 @@ class PlaybackSupervisor(
         if (item.step !is RecoveryStep.Hint) budget.record(now)
         if (item.counted) actionsThisSession++
         val quick = session?.let { it.isLive && it.canSwitchVariant } == true
-        cooldownUntil = now + if (quick) config.cooldownWithAlternative else config.cooldown
+        val base = if (quick) config.cooldownWithAlternative else config.cooldown
+        // Bild-Störungen: Die Detektoren zählen ihr Fenster nach der Maßnahme ohnehin neu (6–8 s), eine lange Ruhezeit
+        // davor verdoppelte nur die Dauer jeder Stufe.
+        cooldownUntil = now + if (item.symptom in PICTURE_SYMPTOMS) minOf(base, config.cooldownPicture) else base
         stableHandled = false
         activeFix = when (val step = item.step) {
             RecoveryStep.SafeDecoder -> activeFix.copy(safeDecoder = true)
@@ -484,5 +486,6 @@ class PlaybackSupervisor(
     private companion object {
         const val MS_PER_S = 1_000L
         const val MAX_RETRY_AFTER = 30_000L
+        val PICTURE_SYMPTOMS = setOf(Symptom.FROZEN_PICTURE, Symptom.AUDIO_WITHOUT_VIDEO, Symptom.NO_VIDEO_TRACK)
     }
 }

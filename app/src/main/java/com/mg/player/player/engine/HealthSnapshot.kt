@@ -27,4 +27,9 @@ data class HealthSnapshot(
     val liveOffsetMs: Long? = null,
     /** Vom System-Player gemeldete Ereignisse „Video track lagging“ (steigend). */
     val videoLagEvents: Int? = null,
+    /**
+     * Wurde seit dem letzten Start mindestens ein Videobild gezeigt? Funktioniert auch dort, wo der Bilderzähler fehlt
+     * (Tunneling bei Media3). null = Engine meldet das nicht.
+     */
+    val pictureShown: Boolean? = null,
 )

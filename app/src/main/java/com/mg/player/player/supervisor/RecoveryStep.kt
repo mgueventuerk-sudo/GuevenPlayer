@@ -76,7 +76,12 @@ object Ladders {
         Symptom.START_NO_PICTURE to listOf(VARIANT, RELOAD, RecoveryStep.SafeDecoder, LIBVLC),
         Symptom.STALL to listOf(VARIANT, RecoveryStep.SeekToLive, RELOAD, RecoveryStep.Reload(MEDIUM)),
         Symptom.FROZEN_PICTURE to listOf(RecoveryStep.RefreshVideo, RELOAD, RecoveryStep.SafeDecoder, LIBVLC),
-        Symptom.AUDIO_WITHOUT_VIDEO to listOf(RecoveryStep.RefreshVideo, RecoveryStep.SafeDecoder, VARIANT, LIBVLC),
+        // Zuerst die andere Quelle (billig, und bei zu schwerem 4K/HEVC liefert sie oft gleich ein abspielbares Bild),
+        // danach erst Decoder-Eingriffe. Ohne Ersatzquelle entfällt der erste Schritt von selbst.
+        Symptom.AUDIO_WITHOUT_VIDEO to listOf(VARIANT, RecoveryStep.RefreshVideo, RecoveryStep.SafeDecoder, LIBVLC),
+        // Keine Videospur: Decoder-Eingriffe sind sinnlos (es gibt nichts zu dekodieren). Andere Quelle, anderer Player
+        // (LibVLC findet Spuren, die Media3 übersieht), zuletzt neu verbinden.
+        Symptom.NO_VIDEO_TRACK to listOf(VARIANT, LIBVLC, RELOAD),
         Symptom.VIDEO_WITHOUT_AUDIO to listOf(RecoveryStep.SafeAudio, RecoveryStep.RefreshAudio, VARIANT, LIBVLC),
         Symptom.AV_DESYNC to listOf(RELOAD, RecoveryStep.Hint("Bild und Ton laufen auseinander – im Player-Menü den Ton-Versatz anpassen.")),
         Symptom.JUDDER to listOf(
@@ -109,6 +114,9 @@ object Ladders {
                 "Dieses Format kann das Gerät nicht abspielen – im Player-Menü eine andere Engine oder Quelle wählen."
 
             Symptom.AUDIO_WITHOUT_VIDEO -> "Der Sender liefert Ton, aber kein Bild – im Player-Menü eine andere Quelle oder Engine wählen."
+
+            Symptom.NO_VIDEO_TRACK ->
+                "Der Sender liefert Ton, aber keine Bildspur – vermutlich fehlt dem Anbieter gerade das Bild. Andere Quelle oder Engine wählen."
 
             Symptom.VIDEO_WITHOUT_AUDIO -> "Der Sender liefert kein Tonsignal – im Player-Menü eine andere Tonspur, Quelle oder Engine wählen."
 

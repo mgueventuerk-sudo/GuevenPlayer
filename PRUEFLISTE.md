@@ -352,7 +352,21 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] W6 Kindersicherung aktiv und der Inhalt gesperrt → der Fernseher fragt nach der PIN, startet nicht einfach.
 - [ ] W7 Zeitversetzte Sendung (Archiv) → der Eintrag erscheint gar nicht erst.
 
-## 16r. Neu in 3.58 – Fernbedienung und Fokus
+## 16t. Neu in 3.59 – Wächter: Ton ohne Bild
+
+Bei jedem Sender, der trotz Hinweis nicht so läuft wie erwartet: bitte das Fehlerprotokoll schicken (Zeilen „Wächter:“ und
+„Messung:“ – dort steht jetzt auch „keine Videospur“, die Datenrate und ob ein erstes Bild gezeigt wurde).
+
+- [ ] T1 Sender mit Ton, aber ohne Bild (Anbieter-Fehler) und einer zweiten Quelle: nach ca. 5 s „Ton ohne Videospur – andere Quelle“, die zweite Quelle läuft mit Bild.
+- [ ] T2 Dasselbe ohne zweite Quelle: nach ca. 6 s „Player LibVLC“; läuft es danach nicht, ein Neuverbinden und dann eine Meldung „… keine Bildspur …“ – kein Dauer-Neuverbinden danach (vorher alle 45 s).
+- [ ] T3 Radiosender mit „Radio“, „Radyo“ oder „FM“ im Namen: nur der Hinweis „Nur Ton“, kein Umschalten.
+- [ ] T4 Radiosender ohne Hinweis im Namen und mit zweiter Quelle: höchstens ein Probeversuch (andere Quelle), danach „Nur Ton“; beim nächsten Öffnen gar kein Eingriff mehr.
+- [ ] T5 Sender, der sonst Bild hat, heute nur Ton: wird als Störung behandelt, auch wenn „Radio“ im Namen steht.
+- [ ] T6 Einstellungen → Tunneling an, Sender ohne Bild: nach ca. 6 s Maßnahme (vorher: nie).
+- [ ] T7 Einstellungen → Ton durchreichen an, Sender ohne Bild: nach ca. 6 s Maßnahme (vorher: nie).
+- [ ] T8 W1 (30 min normal schauen) wiederholen: kein Hinweis, kein Umschalten (Fehlalarm-Probe, vor allem bei Tunneling und Durchreichen).
+
+## 16s. Neu in 3.58 – Fernbedienung und Fokus
 
 - [ ] F1 Sender in der Liste: OK gedrückt halten, loslassen → Kontextmenü bleibt offen, „Abspielen“ ist markiert, nichts startet von selbst. Erst ein neuer OK-Druck wählt.
 - [ ] F2 Dasselbe auf einer Film-Kachel und einer „Läuft gerade“-Kachel der Startseite.

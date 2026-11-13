@@ -11,6 +11,9 @@ import com.mg.player.player.supervisor.Symptom
  * Gedächtnis des Wiedergabe-Wächters in SharedPreferences: je Inhalt, was zuletzt geholfen hat (Engine, sicherer
  * Decoder, Ton selbst dekodieren), plus Zähler je Symptom für die lokale Auswertung. Einträge verfallen nach
  * [MAX_AGE_MS]; höchstens [MAX_ENTRIES] Inhalte (die ältesten fliegen zuerst). Enthält keine Adressen oder Zugangsdaten.
+ *
+ * Dazu zwei Merker je Inhalt (ab 3.59): „hatte ein Bild“ und „ist Radio“ – daran erkennt der Wächter, ob „keine Videospur“
+ * eine Störung oder normal ist. Sie verfallen nach [FLAG_MAX_AGE_MS] und sind auf [MAX_FLAGS] je Art begrenzt.
  */
 class PrefsRecoveryMemory(private val prefs: SharedPreferences, private val clock: () -> Long = System::currentTimeMillis) : RecoveryMemory {
 
@@ -39,6 +42,40 @@ class PrefsRecoveryMemory(private val prefs: SharedPreferences, private val cloc
         if (prefs.contains(HINT + contentKey)) prefs.edit { remove(HINT + contentKey) }
     }
 
+    override fun hadPicture(contentKey: String): Boolean = flagFresh(PICTURE + contentKey)
+
+    override fun markHadPicture(contentKey: String) {
+        val now = clock()
+        val last = prefs.getLong(PICTURE + contentKey, -1L)
+        val stale = last < 0 || now - last > FLAG_REFRESH_MS
+        if (!stale && !prefs.contains(RADIO + contentKey)) return
+        prefs.edit {
+            if (stale) putLong(PICTURE + contentKey, now)
+            remove(RADIO + contentKey)
+        }
+        if (stale) pruneFlags(PICTURE)
+    }
+
+    override fun isRadio(contentKey: String): Boolean = !hadPicture(contentKey) && flagFresh(RADIO + contentKey)
+
+    override fun markRadio(contentKey: String) {
+        prefs.edit { putLong(RADIO + contentKey, clock()) }
+        pruneFlags(RADIO)
+    }
+
+    private fun flagFresh(key: String): Boolean {
+        val at = prefs.getLong(key, 0L)
+        return at > 0 && clock() - at <= FLAG_MAX_AGE_MS
+    }
+
+    /** Ältestes zuerst entfernen, wenn zu viele Merker einer Art da sind. */
+    private fun pruneFlags(prefix: String) {
+        val flags = prefs.all.filterKeys { it.startsWith(prefix) }
+        if (flags.size <= MAX_FLAGS) return
+        val oldest = flags.entries.sortedBy { (it.value as? Long) ?: 0L }.take(flags.size - MAX_FLAGS).map { it.key }
+        prefs.edit { oldest.forEach { remove(it) } }
+    }
+
     override fun count(symptom: Symptom, fixed: Boolean) {
         val key = COUNT + symptom.code + if (fixed) ".ok" else ".seen"
         prefs.edit { putInt(key, prefs.getInt(key, 0) + 1) }
@@ -63,6 +100,13 @@ class PrefsRecoveryMemory(private val prefs: SharedPreferences, private val cloc
     private companion object {
         const val HINT = "hint:"
         const val COUNT = "count:"
+        const val PICTURE = "pic:"
+        const val RADIO = "radio:"
+        const val FLAG_MAX_AGE_MS = 90L * 24 * 60 * 60 * 1000
+
+        /** „Hatte ein Bild“ höchstens einmal am Tag neu schreiben (der Wächter meldet es bei jedem stabilen Start). */
+        const val FLAG_REFRESH_MS = 24L * 60 * 60 * 1000
+        const val MAX_FLAGS = 1_000
         const val MAX_AGE_MS = 14L * 24 * 60 * 60 * 1000
         const val MAX_ENTRIES = 500
         const val TIME_FIELD = 3

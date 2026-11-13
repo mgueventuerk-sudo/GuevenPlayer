@@ -15,8 +15,12 @@ import org.junit.Test
 class DetectorsTest {
 
     private val config = SupervisorConfig()
-    private fun ctx(live: Boolean = true, alternative: Boolean = false, engine: PlayerEngineType = PlayerEngineType.MEDIA3) =
-        DetectContext(SessionInfo("c", "p", live, alternative, engine), preparedAtMs = 0, config = config)
+    private fun ctx(
+        live: Boolean = true,
+        alternative: Boolean = false,
+        engine: PlayerEngineType = PlayerEngineType.MEDIA3,
+        picture: PictureExpectation = PictureExpectation.UNKNOWN,
+    ) = DetectContext(SessionInfo("c", "p", live, alternative, engine), preparedAtMs = 0, config = config, picture = picture)
 
     /** Füttert [detector] [ms] lang alle 500 ms und liefert alle Befunde. */
     private fun feed(detector: Detector, ms: Long, ctx: DetectContext = ctx(), from: Long = 0, snapshot: (Long) -> HealthSnapshot): List<Finding> {
@@ -260,5 +264,131 @@ class DetectorsTest {
         detector.reset()
         feed(detector, 1_000) { HealthSnapshot(PlaybackStatus.READY, true, 0) }
         assertNull(detector.check(HealthSnapshot(PlaybackStatus.BUFFERING, false, 0), 120_000, ctx()))
+    }
+
+    // ---- Ton ohne Bild: „keine Videospur“ ist nicht automatisch Radio (ab 3.59) ----
+
+    /** Ton läuft, Player kennt keine Videospur; [bytesPerMs] Daten je ms (100 = ca. 98 KB/s, 300 = ca. 293 KB/s). */
+    private fun soundOnly(t: Long, bytesPerMs: Long) = HealthSnapshot(
+        PlaybackStatus.READY,
+        true,
+        t,
+        bytesLoaded = t * bytesPerMs,
+        renderedFrames = 0,
+        audioUnits = t / 20,
+        hasVideoTrack = false,
+        hasAudioTrack = true,
+    )
+
+    @Test
+    fun noVideoTrackAtRadioDataRateIsOnlyAHint() {
+        // 20 KB/s: so viel braucht ein Radiosender. Ohne Hinweis auf Fernsehen und ohne Ersatzquelle: nur der Hinweis wie bisher.
+        val findings = feed(AvPresenceDetector(), 30_000) { t -> soundOnly(t, bytesPerMs = 20) }
+        assertEquals(Symptom.RADIO_ONLY, findings.single().symptom)
+    }
+
+    @Test
+    fun noVideoTrackButTelevisionDataRateIsAFailure() {
+        // 293 KB/s kommen an, aber kein Bild: Im Stream steckt Video, das der Player nicht zeigt.
+        val findings = feed(AvPresenceDetector(), 12_000) { t -> soundOnly(t, bytesPerMs = 300) }
+        val finding = findings.single()
+        assertEquals(Symptom.NO_VIDEO_TRACK, finding.symptom)
+        assertTrue(finding.confident)
+        assertTrue(finding.evidence, finding.evidence.contains("KB/s"))
+    }
+
+    @Test
+    fun noVideoTrackOnChannelThatHadPictureIsAFailureEvenAtLowDataRate() {
+        val findings = feed(AvPresenceDetector(), 12_000, ctx(picture = PictureExpectation.TV)) { t -> soundOnly(t, bytesPerMs = 20) }
+        assertEquals(Symptom.NO_VIDEO_TRACK, findings.single().symptom)
+        assertTrue(findings.single().confident)
+    }
+
+    @Test
+    fun noVideoTrackWithAlternativeIsOnlyGuessedAndProbedEarly() {
+        val findings = feed(AvPresenceDetector(), 6_000, ctx(alternative = true)) { t -> soundOnly(t, bytesPerMs = 20) }
+        val finding = findings.single()
+        assertEquals(Symptom.NO_VIDEO_TRACK, finding.symptom)
+        assertTrue("Vermutung, nicht sicher", !finding.confident)
+    }
+
+    @Test
+    fun radioByNameOrMemoryNeverEscalatesEvenWithTelevisionDataRate() {
+        val findings = feed(AvPresenceDetector(), 30_000, ctx(alternative = true, picture = PictureExpectation.RADIO)) { t -> soundOnly(t, bytesPerMs = 300) }
+        assertEquals(Symptom.RADIO_ONLY, findings.single().symptom)
+    }
+
+    @Test
+    fun audioOnlyFileOnDemandStaysAHint() {
+        val findings = feed(AvPresenceDetector(), 30_000, ctx(live = false)) { t -> soundOnly(t, bytesPerMs = 300) }
+        assertEquals(Symptom.RADIO_ONLY, findings.single().symptom)
+    }
+
+    @Test
+    fun noVideoTrackBeforeDataRateIsKnownDoesNotGuessTooEarly() {
+        // Unter 2 s Messzeit gibt es keine Datenrate; der Befund kommt trotzdem erst nach der Wartezeit.
+        val early = feed(AvPresenceDetector(), 3_000, ctx(picture = PictureExpectation.TV)) { t -> soundOnly(t, bytesPerMs = 300) }
+        assertTrue(early.isEmpty())
+    }
+
+    @Test
+    fun tunnelingWithoutFrameCounterStillNoticesThatNoPictureWasEverShown() {
+        // Tunneling: kein Bilderzähler. Die Engine meldet aber „erstes Bild gezeigt“ – hier nie.
+        fun snap(t: Long, shown: Boolean?) = HealthSnapshot(
+            PlaybackStatus.READY,
+            true,
+            t,
+            1_000,
+            renderedFrames = null,
+            audioUnits = t / 20,
+            hasVideoTrack = true,
+            hasAudioTrack = true,
+            pictureShown = shown,
+        )
+        val never = feed(AvPresenceDetector(), 10_000) { t -> snap(t, shown = false) }
+        assertEquals(Symptom.AUDIO_WITHOUT_VIDEO, never.single().symptom)
+        assertTrue(never.single().evidence.contains("ohne Bilderzähler"))
+        // Bild wurde gezeigt → nichts. Engine meldet es nicht (null) → nie raten.
+        assertTrue(feed(AvPresenceDetector(), 60_000) { t -> snap(t, shown = true) }.isEmpty())
+        assertTrue(feed(AvPresenceDetector(), 60_000) { t -> snap(t, shown = null) }.isEmpty())
+    }
+
+    @Test
+    fun soundPassthroughWithoutAudioCounterUsesThePositionAsProofOfSound() {
+        // Ton-Durchreichen: keine Tonblöcke gezählt. Läuft die Position und es kommt nie ein Bild, ist es Ton ohne Bild.
+        fun snap(t: Long, frames: Long) =
+            HealthSnapshot(PlaybackStatus.READY, true, t, 1_000, renderedFrames = frames, audioUnits = null, hasVideoTrack = true, hasAudioTrack = true)
+        val broken = feed(AvPresenceDetector(), 10_000) { t -> snap(t, frames = 0) }
+        assertEquals(Symptom.AUDIO_WITHOUT_VIDEO, broken.single().symptom)
+        assertTrue(feed(AvPresenceDetector(), 120_000) { t -> snap(t, frames = t / 40) }.isEmpty())
+    }
+
+    @Test
+    fun audioWithoutVideoReactsFasterWithAlternative() {
+        // Der Ton-Zähler bewegt sich ab der zweiten Messung (1 s); 4,5 s danach ist es nach 5,5 s soweit, die 6 s erst nach 7 s.
+        val slow = feed(AvPresenceDetector(), 6_000) { t -> playing(t, frames = 0) }
+        val quick = feed(AvPresenceDetector(), 6_000, ctx(alternative = true)) { t -> playing(t, frames = 0) }
+        assertTrue("ohne Ersatzquelle noch nicht", slow.isEmpty())
+        assertEquals(Symptom.AUDIO_WITHOUT_VIDEO, quick.single().symptom)
+    }
+
+    @Test
+    fun dataRateMeterNeedsTwoSecondsAndIgnoresCounterResets() {
+        val meter = DataRateMeter()
+        meter.update(0, 0)
+        meter.update(100_000, 1_000)
+        assertNull(meter.bytesPerSecond())
+        meter.update(300_000, 2_000)
+        assertEquals(150_000L, meter.bytesPerSecond())
+        meter.update(10, 2_500)
+        assertNull("nach Zählersprung neu messen", meter.bytesPerSecond())
+    }
+
+    @Test
+    fun radioNamesAreRecognisedButTelevisionIsNot() {
+        listOf("Antenne Bayern Radio", "DE: Radio Gong 96.3", "TR| Kral FM", "Power FM HD", "Radyo D", "РАДИО Релакс", "Rádio Comercial")
+            .forEach { assertTrue(it, RadioNames.looksLikeRadio(it)) }
+        listOf("DE: Das Erste HD", "TR| TRT 1", "Sky Sport Bundesliga", "Formel 1 FMX", "Radiohead Konzert TV", "ProSieben UHD")
+            .forEach { assertTrue(it, !RadioNames.looksLikeRadio(it)) }
     }
 }

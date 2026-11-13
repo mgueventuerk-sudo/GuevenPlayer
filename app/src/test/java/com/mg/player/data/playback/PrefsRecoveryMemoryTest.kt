@@ -54,4 +54,46 @@ class PrefsRecoveryMemoryTest {
         assertEquals(500, prefs.all.keys.count { it.startsWith("hint:") })
         assertNull(memory.hintFor("c1"))
     }
+
+    @Test
+    fun remembersPictureAndRadioAcrossRestartsAndPictureWins() {
+        memory.markRadio("ch:radio")
+        memory.markHadPicture("ch:tv")
+        val reopened = PrefsRecoveryMemory(prefs) { now }
+        assertEquals(true, reopened.isRadio("ch:radio"))
+        assertEquals(false, reopened.hadPicture("ch:radio"))
+        assertEquals(true, reopened.hadPicture("ch:tv"))
+        // Zeigt ein als Radio gemerkter Sender später ein Bild, ist er keins mehr.
+        reopened.markHadPicture("ch:radio")
+        assertEquals(false, reopened.isRadio("ch:radio"))
+        assertEquals(true, reopened.hadPicture("ch:radio"))
+    }
+
+    @Test
+    fun pictureAndRadioFlagsExpireAndAreBounded() {
+        memory.markRadio("ch:radio")
+        memory.markHadPicture("ch:tv")
+        now += 91L * 24 * 60 * 60 * 1000
+        assertEquals(false, memory.isRadio("ch:radio"))
+        assertEquals(false, memory.hadPicture("ch:tv"))
+        (1..1_020).forEach {
+            now += 1
+            memory.markRadio("r$it")
+        }
+        assertEquals(1_000, prefs.all.keys.count { it.startsWith("radio:") })
+        assertEquals(false, memory.isRadio("r1"))
+        assertEquals(true, memory.isRadio("r1020"))
+    }
+
+    @Test
+    fun pictureFlagIsNotRewrittenMoreThanOncePerDay() {
+        memory.markHadPicture("ch:tv")
+        val first = prefs.getLong("pic:ch:tv", 0L)
+        now += 60_000
+        memory.markHadPicture("ch:tv")
+        assertEquals(first, prefs.getLong("pic:ch:tv", 0L))
+        now += 25L * 60 * 60 * 1000
+        memory.markHadPicture("ch:tv")
+        assertEquals(true, prefs.getLong("pic:ch:tv", 0L) > first)
+    }
 }

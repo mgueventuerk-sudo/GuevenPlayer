@@ -29,6 +29,10 @@ class RecoveryScenarioTest {
         val stallsAfterMs: Long? = null,
         val endsAfterMs: Long? = null,
         val driftsAfterMs: Long? = null,
+        /** false: Der Player findet keine Videospur (Radio – oder ein Fernsehsender, dem das Bild fehlt). */
+        val videoTrack: Boolean = true,
+        /** Datenmenge je ms (100 ≈ 98 KB/s, 300 ≈ 293 KB/s, 20 ≈ 20 KB/s wie bei Radio). */
+        val bytesPerMs: Long = 100,
     )
 
     private data class Config(
@@ -39,7 +43,13 @@ class RecoveryScenarioTest {
     )
 
     /** Simulierter Player: [behaviour] liefert je Einstellung das Verhalten, [variants] Anzahl Quellen. */
-    private class FakeStream(val live: Boolean, val variants: Int = 1, val behaviour: (Config, attempt: Int) -> Behaviour) {
+    private class FakeStream(
+        val live: Boolean,
+        val variants: Int = 1,
+        val radioByName: Boolean = false,
+        val memory: InMemoryRecoveryMemory = InMemoryRecoveryMemory(),
+        val behaviour: (Config, attempt: Int) -> Behaviour,
+    ) {
         var now = 0L
         var config = Config()
         var attempt = 0
@@ -47,18 +57,17 @@ class RecoveryScenarioTest {
         private var current = Behaviour()
         private var refreshed = false
         val steps = mutableListOf<RecoveryStep>()
-        val memory = InMemoryRecoveryMemory()
         lateinit var supervisor: PlaybackSupervisor
         var online = true
 
         fun start(hint: StartHint = StartHint()) {
             config = Config(engine = hint.engine ?: PlayerEngineType.MEDIA3, safeDecoder = hint.safeDecoder, safeAudio = hint.safeAudio)
-            supervisor = PlaybackSupervisor(::execute, memory, ProviderBreaker(), clock = { now })
+            supervisor = PlaybackSupervisor(::execute, memory, ProviderBreaker(), clock = { now }, log = { logs += "${now / 1_000} s: $it" })
             supervisor.start(session(), hint)
             prepare()
         }
 
-        private fun session() = SessionInfo("sender", "anbieter", live, config.variant < variants - 1, config.engine)
+        private fun session() = SessionInfo("sender", "anbieter", live, config.variant < variants - 1, config.engine, radioByName)
 
         private fun prepare() {
             attempt++
@@ -70,6 +79,9 @@ class RecoveryScenarioTest {
         }
 
         val symptoms = mutableListOf<Symptom>()
+
+        /** Protokoll des Wächters mit virtueller Uhrzeit – für aussagekräftige Fehlermeldungen. */
+        val logs = mutableListOf<String>()
 
         private fun execute(step: RecoveryStep, symptom: Symptom): Boolean {
             steps += step
@@ -122,7 +134,7 @@ class RecoveryScenarioTest {
 
                 !b.data -> HealthSnapshot(PlaybackStatus.BUFFERING, false, 0, bytesLoaded = 0)
 
-                !b.ready || t < 800 -> HealthSnapshot(PlaybackStatus.BUFFERING, false, 0, bytesLoaded = t * 100)
+                !b.ready || t < 800 -> HealthSnapshot(PlaybackStatus.BUFFERING, false, 0, bytesLoaded = t * b.bytesPerMs)
 
                 b.stallsAfterMs != null && t > b.stallsAfterMs -> HealthSnapshot(PlaybackStatus.BUFFERING, false, b.stallsAfterMs, bytesLoaded = t * 100)
 
@@ -133,16 +145,16 @@ class RecoveryScenarioTest {
                         status = PlaybackStatus.READY,
                         isPlaying = true,
                         positionMs = t,
-                        bytesLoaded = t * 100,
-                        renderedFrames = if (!frames) {
+                        bytesLoaded = t * b.bytesPerMs,
+                        renderedFrames = if (!frames && b.videoTrack) {
                             null
-                        } else if (b.picture) {
+                        } else if (b.picture && b.videoTrack) {
                             pictureT / 40
                         } else {
                             0
                         },
                         audioUnits = if (b.sound) t / 20 else 0,
-                        hasVideoTrack = true,
+                        hasVideoTrack = b.videoTrack,
                         hasAudioTrack = true,
                         liveOffsetMs = if (live && b.driftsAfterMs != null && t > b.driftsAfterMs) 60_000 else 5_000,
                     )
@@ -325,5 +337,128 @@ class RecoveryScenarioTest {
         stream.run(30 * 60_000)
         assertTrue(stream.steps.size <= SupervisorConfig().maxActionsPerSession)
         assertTrue(stream.supervisor.status.value.failure != null)
+    }
+
+    // ---- Ton ohne Bild / ohne Videospur (3.59) ----
+
+    @Test
+    fun televisionChannelLosingItsPictureSwitchesToTheOtherSourceAtOnce() {
+        // Quelle 1 liefert Ton, aber keine Videospur und (wie ein Fernsehstream) viel Daten; Quelle 2 ist in Ordnung.
+        val stream = FakeStream(live = true, variants = 2) { c, _ -> if (c.variant == 0) Behaviour(videoTrack = false, bytesPerMs = 300) else Behaviour() }
+        stream.start()
+        stream.run(30_000)
+        assertEquals(listOf(RecoveryStep.SwitchVariant), stream.steps)
+        assertTrue(stream.playingFine)
+        assertNull(stream.supervisor.status.value.failure)
+    }
+
+    @Test
+    fun missingVideoTrackIsFixedByTheOtherPlayerWhenNoSecondSourceExists() {
+        // Media3 findet keine Videospur, LibVLC schon: Der Player-Wechsel ist die richtige Antwort.
+        val stream = FakeStream(live = true) { c, _ -> Behaviour(videoTrack = c.engine == PlayerEngineType.LIBVLC, bytesPerMs = 300) }
+        stream.start()
+        stream.run(40_000)
+        assertEquals(listOf(RecoveryStep.SwitchEngine(PlayerEngineType.LIBVLC)), stream.steps)
+        assertTrue(stream.playingFine)
+    }
+
+    @Test
+    fun hopelessMissingPictureEndsWithAClearMessageNotSilence() {
+        val stream = FakeStream(live = true) { _, _ -> Behaviour(videoTrack = false, bytesPerMs = 300) }
+        stream.start()
+        stream.run(120_000)
+        assertEquals(stream.logs.joinToString("\n"), listOf(RecoveryStep.SwitchEngine(PlayerEngineType.LIBVLC), RecoveryStep.Reload()), stream.steps)
+        assertTrue(stream.supervisor.status.value.failure!!.contains("Bildspur"))
+    }
+
+    @Test
+    fun realRadioWithoutHintIsProbedAtMostOnceThenRememberedAndLeftAlone() {
+        // Kein „Radio“ im Namen, zwei Quellen, beide ohne Video und mit Radio-Datenrate.
+        val radio = FakeStream(live = true, variants = 2) { _, _ -> Behaviour(videoTrack = false, bytesPerMs = 20) }
+        radio.start()
+        radio.run(60_000)
+        assertEquals("genau ein Probeversuch", listOf(RecoveryStep.SwitchVariant), radio.steps.filter { it !is RecoveryStep.Hint })
+        assertTrue("als Radio gemerkt", radio.memory.isRadio("sender"))
+        assertNull("kein Fehlerbildschirm für ein Radio", radio.supervisor.status.value.failure)
+        // Zweiter Besuch: gar kein Eingriff mehr.
+        radio.steps.clear()
+        val again = FakeStream(live = true, variants = 2, memory = radio.memory) { _, _ -> Behaviour(videoTrack = false, bytesPerMs = 20) }
+        again.start()
+        again.run(60_000)
+        assertTrue(again.steps.none { it !is RecoveryStep.Hint })
+    }
+
+    @Test
+    fun radioRecognisedByNameIsNeverTouched() {
+        val radio = FakeStream(live = true, variants = 2, radioByName = true) { _, _ -> Behaviour(videoTrack = false, bytesPerMs = 300) }
+        radio.start()
+        radio.run(60_000)
+        assertTrue(radio.steps.none { it !is RecoveryStep.Hint })
+        assertNull(radio.supervisor.status.value.failure)
+    }
+
+    @Test
+    fun channelThatShowedAPictureIsNeverTreatedAsRadioEvenWithRadioInItsName() {
+        val memory = InMemoryRecoveryMemory().also { it.markHadPicture("sender") }
+        val stream = FakeStream(live = true, variants = 2, radioByName = true, memory = memory) { c, _ ->
+            if (c.variant == 0) Behaviour(videoTrack = false, bytesPerMs = 20) else Behaviour()
+        }
+        stream.start()
+        stream.run(30_000)
+        assertEquals(listOf(RecoveryStep.SwitchVariant), stream.steps)
+        assertTrue(stream.playingFine)
+    }
+
+    @Test
+    fun stablePictureIsRememberedAndClearsEarlierRadioGuess() {
+        val memory = InMemoryRecoveryMemory().also { it.markRadio("sender") }
+        val stream = FakeStream(live = true, memory = memory) { _, _ -> Behaviour() }
+        stream.start()
+        stream.run(45_000)
+        assertTrue(memory.hadPicture("sender"))
+        assertTrue("ein Sender mit Bild ist kein Radio", !memory.isRadio("sender"))
+    }
+
+    @Test
+    fun soundWithoutPictureTriesTheOtherSourceBeforeTouchingTheDecoder() {
+        val stream = FakeStream(live = true, variants = 2) { c, _ -> Behaviour(picture = c.variant > 0) }
+        stream.start()
+        stream.run(40_000)
+        assertEquals(listOf(RecoveryStep.SwitchVariant), stream.steps)
+        assertTrue(stream.playingFine)
+    }
+
+    @Test
+    fun eachPictureStepNeedsLessThanTwentySecondsOnTheWayToTheNextOne() {
+        // Vorher: 6 s Fenster + 10 s Ruhezeit + Anlauf je Stufe – die Leiter dauerte über eine Minute.
+        val stream = FakeStream(live = false) { _, _ -> Behaviour(picture = false) }
+        stream.start()
+        stream.run(30_000)
+        assertTrue("mindestens drei Stufen in 30 s, waren: ${stream.steps}", stream.steps.size >= 3)
+    }
+
+    @Test
+    fun missingPictureIsNeverReportedAsFixedAndDoesNotReconnectForever() {
+        // Vor 3.59: Ton und Position liefen ja – nach 3 s hieß es „behoben“, nach dem Aufgeben schaltete sich der Wächter
+        // nach 30 s wieder scharf und verband alle 45 s von Neuem.
+        val stream = FakeStream(live = true) { _, _ -> Behaviour(videoTrack = false, bytesPerMs = 300) }
+        stream.start()
+        stream.run(120_000)
+        val stepsAfterGivingUp = stream.steps.size
+        stream.run(10 * 60_000)
+        val log = stream.logs.joinToString("\n")
+        assertEquals(log, stepsAfterGivingUp, stream.steps.size)
+        assertTrue(log, stream.logs.none { it.contains("behoben") })
+        assertTrue(stream.supervisor.status.value.failure != null)
+    }
+
+    @Test
+    fun probeOnARadioStationIsNotRememberedAsAFixThatHelped() {
+        // Ein Radiosender ohne Namenshinweis: Die Probe (LibVLC bei nur einer Quelle) darf nicht als „hat geholfen“ haften bleiben.
+        val stream = FakeStream(live = true, variants = 2) { _, _ -> Behaviour(videoTrack = false, bytesPerMs = 20) }
+        stream.start()
+        stream.run(90_000)
+        assertTrue(stream.memory.isRadio("sender"))
+        assertNull(stream.memory.hintFor("sender"))
     }
 }

@@ -10,6 +10,12 @@ enum class Symptom(val code: String, val label: String, val informational: Boole
     STALL("S3", "Hänger beim Puffern"),
     FROZEN_PICTURE("S4", "Standbild"),
     AUDIO_WITHOUT_VIDEO("S5", "Ton ohne Bild"),
+
+    /**
+     * Ton läuft, aber der Player hat gar keine Videospur gefunden – und es spricht etwas dafür, dass der Sender eigentlich
+     * ein Bild haben müsste (er hatte schon einmal eins, oder es kommen viel mehr Daten an, als ein Radiosender braucht).
+     */
+    NO_VIDEO_TRACK("S5t", "Ton ohne Videospur"),
     VIDEO_WITHOUT_AUDIO("S6", "Bild ohne Ton"),
     AV_DESYNC("S7", "Bild und Ton versetzt"),
     JUDDER("S8", "Ruckeln", informational = true),
@@ -30,5 +36,9 @@ enum class Symptom(val code: String, val label: String, val informational: Boole
     NO_AUDIO_TRACK("S6i", "Ohne Ton", informational = true),
 }
 
-/** Ein Befund eines Detektors: was, und die Messwerte, die dazu geführt haben (fürs Protokoll). */
-data class Finding(val symptom: Symptom, val evidence: String)
+/**
+ * Ein Befund eines Detektors: was, und die Messwerte, die dazu geführt haben (fürs Protokoll).
+ * [confident] = false: Der Befund beruht auf einer Vermutung (z. B. „vielleicht ein Radiosender“) – der Wächter probiert
+ * dann nur wenig und merkt sich das Ergebnis, statt die ganze Leiter abzuarbeiten.
+ */
+data class Finding(val symptom: Symptom, val evidence: String, val confident: Boolean = true)

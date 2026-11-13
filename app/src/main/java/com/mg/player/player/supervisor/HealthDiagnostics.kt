@@ -31,8 +31,10 @@ internal class HealthDiagnostics(private val intervalMs: Long = DEFAULT_INTERVAL
         val frames = delta(current.renderedFrames, previous?.renderedFrames)
         val audio = delta(current.audioUnits, previous?.audioUnits)
         val bytes = delta(current.bytesLoaded, previous?.bytesLoaded)
+        val shown = current.pictureShown
         val pictureMonitoring = when {
             current.hasVideoTrack == false -> "keine Videospur"
+            current.renderedFrames == null && shown != null -> "ohne Bilderzähler, erstes Bild ${if (shown) "gezeigt" else "fehlt"}"
             current.renderedFrames == null -> "Standbildprüfung eingeschränkt"
             else -> "Standbildprüfung aktiv"
         }

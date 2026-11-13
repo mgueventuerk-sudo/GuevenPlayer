@@ -271,6 +271,33 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.59 (Wächter: Ton ohne Bild)
+
+Auslöser: Ein Sender lief mit Ton, aber ohne Bild – und der Wächter tat nichts. Gefunden wurden drei Lücken, alle behoben:
+
+- **„Keine Videospur“ galt immer als Radio.** Ein Fernsehsender, dem das Bild fehlt, sieht für den Player genauso aus – es
+  gab nur den Hinweis „Nur Ton“ und keinerlei Maßnahme. Jetzt entscheiden drei Belege:
+  *Hatte der Sender schon einmal ein Bild?* (dann Störung, auch wenn „Radio“ im Namen steht) – *Kommt mehr Datenmenge an,
+  als ein Radiosender braucht* (ab 100 KB/s steckt ein Bild im Stream) – *Name und Gedächtnis* („Radio“, „Radyo“, „FM“, oder
+  früher schon als Radio erkannt: nur der Hinweis, wie bisher). Nur vermutet, mit zweiter Quelle: höchstens zwei Proben
+  (andere Quelle, anderer Player), danach als Radio gemerkt – ohne Fehlerbildschirm, beim nächsten Mal gar kein Eingriff.
+- **Tunneling und Ton-Durchreichen machten die Erkennung blind** (kein Bilder- bzw. Tonzähler). Jetzt zählt die Meldung
+  „erstes Bild gezeigt“ des Players, und ohne Tonzähler gilt die laufende Position als Beleg für Ton.
+- **Falsche Entwarnung:** Bei „keine Videospur“ lief Ton und Position, also meldete der Wächter nach 3 s „behoben“,
+  schaltete sich nach dem Aufgeben nach 30 s wieder scharf und verband alle 45 s von Neuem. Jetzt gilt es erst als
+  behoben, wenn wirklich ein Bild da ist.
+
+Außerdem **schneller und zielgerichteter**: Bei „Ton ohne Bild“ kommt zuerst die andere Quelle (oft gleich eine
+abspielbare Variante), erst danach Decoder-Eingriffe; mit zweiter Quelle wird nach 4,5 s statt 6 s reagiert; nach einer
+Bild-Maßnahme genügen 4 s Ruhe statt 10 s. Gemessen am simulierten Sender „Ton ohne Bild“ (virtuelle Uhr, Wächter mit den
+Werten von 3.58 bzw. 3.59, ein Lauf je Fall – kein Gerätewert): **ohne** zweite Quelle Maßnahmen bei 7 s / 24 s / 40 s →
+7 s / 18 s / 28 s (Player-Wechsel 12 s früher); **mit** zweiter Quelle erster Eingriff bei 7 s → 6 s, danach 17 s / 26 s →
+14 s / 22 s. Die vierte Stufe wartet in beiden Fällen auf das Minutenbudget (höchstens 3 Maßnahmen je Minute, unverändert).
+Das Fehlerprotokoll zeigt in der „Messung:“-Zeile jetzt „keine Videospur“ bzw. „erstes Bild gezeigt/fehlt“.
+**Ungeprüft am Gerät** (Prüfliste 16t): Die Logik ist mit 22 neuen Wächter-Tests und 3 Gedächtnis-Tests belegt (die
+Wächter-Tests liefen vor dem Push lokal durch, die Gedächtnis-Tests erst in der CI); wie sich echte Sender und Engines
+verhalten, zeigt erst das Protokoll.
+
 ## Neu in 3.58 (Fernbedienung und Fokus am Fernseher, Review über den gesamten Code)
 
 **Fokus (Fernseher).** Ursache vieler „der Cursor ist weg / springt von selbst“-Momente: `requestFocus()` meldet seit

@@ -15,6 +15,7 @@ import com.mg.player.player.engine.VideoPlayerEngine
 import com.mg.player.player.supervisor.EngineHealthSampler
 import com.mg.player.player.supervisor.HealthDiagnostics
 import com.mg.player.player.supervisor.PlaybackSupervisor
+import com.mg.player.player.supervisor.RadioNames
 import com.mg.player.player.supervisor.RecoveryStep
 import com.mg.player.player.supervisor.SessionInfo
 import com.mg.player.player.supervisor.StartHint
@@ -253,6 +254,7 @@ internal class SupervisorGuard(private val vm: PlayerViewModel) : PlaybackGuard 
         isLive = playable.isLive,
         canSwitchVariant = playable.canSwitchSource,
         engine = vm.uiState.value.engineType,
+        radioByName = RadioNames.looksLikeRadio(playable.title),
     )
 
     private fun contentKey(playable: Playable): String = playable.trackKey() ?: playable.id

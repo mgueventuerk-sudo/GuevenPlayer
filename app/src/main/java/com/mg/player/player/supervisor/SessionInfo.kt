@@ -12,6 +12,8 @@ data class SessionInfo(
     /** Gibt es noch eine andere Variante/Quelle dieses Senders? */
     val canSwitchVariant: Boolean,
     val engine: PlayerEngineType,
+    /** Der Name sieht nach Radio aus („… Radio“, „… FM“, „Radyo“): Dann ist „keine Videospur“ normal. */
+    val radioByName: Boolean = false,
 )
 
 /**
@@ -40,6 +42,20 @@ data class SupervisorConfig(
     /** So viele Ton-Ausgabefehler in Folge gelten als echter Tonausfall (einer allein ist ein Ausrutscher). */
     val audioErrorBurst: Int = 3,
     val audioWithoutVideo: Long = 6_000,
+    /** Live mit Ersatzquelle: Ein Wechsel ist billig – nach 4,5 s ohne Bild (Ton läuft) reagieren. */
+    val audioWithoutVideoWithAlternative: Long = 4_500,
+    /** Ton läuft, aber keine Videospur, obwohl der Sender ein Bild haben müsste (ab 3.59). */
+    val noVideoTrack: Long = 5_000,
+    val noVideoTrackWithAlternative: Long = 3_500,
+    /**
+     * Ab dieser Datenrate (Byte/s) kommt mehr an, als ein Radiosender braucht (≈ 320 kbit/s = 40 KB/s) – also steckt ein
+     * Bild im Stream, das der Player nicht zeigt. 100 KB/s ≈ 0,8 Mbit/s: auch ein kleiner SD-Sender liegt darüber.
+     */
+    val videoDataRate: Long = 100 * 1_024,
+    /** Höchstens so viele Versuche, wenn nur vermutet wird, dass dem Sender das Bild fehlt (danach: als Radio merken). */
+    val maxGuessedNoVideoProbes: Int = 2,
+    /** Nach einer Bild-Maßnahme (S4/S5) genügt eine kurze Ruhezeit: Die Detektoren zählen ihr Fenster ohnehin neu. */
+    val cooldownPicture: Long = 4_000,
     val videoWithoutAudio: Long = 5_000,
     val radioHint: Long = 3_000,
     val desyncThreshold: Long = 400,
