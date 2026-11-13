@@ -40,11 +40,12 @@ class RequestFocusWhenReadyTest {
     private var focusable by mutableStateOf(false)
     private var result: Boolean? = null
 
-    private fun show() {
+    /** [attempts] je Fall gesetzt, damit das Zeitfenster nicht am Limit der Wartezeit im Test liegt. */
+    private fun show(attempts: Int) {
         compose.setContent {
             TvHostPlain {
                 val target = remember { FocusRequester() }
-                LaunchedEffect(Unit) { result = target.requestFocusWhenReady() }
+                LaunchedEffect(Unit) { result = target.requestFocusWhenReady(attempts = attempts) }
                 Row {
                     ActionButton("Anderer", onClick = {})
                     ActionButton(
@@ -59,8 +60,8 @@ class RequestFocusWhenReadyTest {
 
     @Test
     fun keepsTryingUntilTheElementCanTakeFocus() {
-        show()
-        // Das Ziel wird erst nach einigen Versuchen fokussierbar (wie ein Dialogfenster, das gerade aufgeht).
+        // 40 × 50 ms = 2 s Fenster: Das Ziel wird erst nach 300 ms fokussierbar (wie ein aufgehendes Dialogfenster).
+        show(attempts = 40)
         compose.settle(300)
         compose.onNode(hasText("Ziel") and hasClickAction()).assertIsNotFocused()
         focusable = true
@@ -71,8 +72,9 @@ class RequestFocusWhenReadyTest {
 
     @Test
     fun givesUpHonestlyWhenTheElementNeverBecomesFocusable() {
-        show()
-        compose.settle(2_000)
+        // 5 × 50 ms = 250 ms: Das Aufgeben liegt sicher innerhalb der Wartezeit unten.
+        show(attempts = 5)
+        compose.settle()
         compose.onNode(hasText("Ziel") and hasClickAction()).assertIsNotFocused()
         assertEquals(false, result)
     }

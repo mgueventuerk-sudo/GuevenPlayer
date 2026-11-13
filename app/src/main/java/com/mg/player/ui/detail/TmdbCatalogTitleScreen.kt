@@ -78,9 +78,10 @@ fun TmdbCatalogTitleScreen(recommendation: TmdbRecommendation) {
     // Nur beim ersten fertigen Suchergebnis: Danach bleibt der Fokus, wo man ihn hingelegt hat – bis 3.57 sprang er
     // bei jeder Änderung der Trefferliste zurück auf den ersten „Abspielen“-Knopf.
     var firstFocusDone by remember { mutableStateOf(false) }
-    LaunchedEffect(searching, copies.isEmpty(), touch) {
-        if (touch || searching || copies.isEmpty() || firstFocusDone) return@LaunchedEffect
-        firstFocusDone = firstPlayRequester.requestFocusWhenReady()
+    val resultsReady = !searching && copies.isNotEmpty()
+    LaunchedEffect(resultsReady, touch) {
+        if (touch || firstFocusDone) return@LaunchedEffect
+        if (resultsReady) firstFocusDone = firstPlayRequester.requestFocusWhenReady()
     }
 
     BoxScreenBackground(recommendation.backdropUrl ?: recommendation.posterUrl) {
