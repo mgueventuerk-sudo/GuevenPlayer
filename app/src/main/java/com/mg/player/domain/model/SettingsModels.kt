@@ -156,6 +156,10 @@ data class AppSettings(
     val largeText: Boolean = false,
     /** Ohne Glas-Verläufe und Hintergrundbilder: ruhiger und schneller auf schwachen TV-Sticks. */
     val reducedEffects: Boolean = false,
+    /** Selbst gewählter Ordner (SAF) für die automatische, wiederkehrende Sicherung; null = aus. Nie im Backup. */
+    val autoBackupFolderUri: String? = null,
+    /** Kennwort der automatischen Sicherung, zufällig erzeugt und nur verschlüsselt gespeichert. Nie im Backup. */
+    val autoBackupPassphrase: String = "",
 ) {
     val tmdbActive: Boolean get() = onlineExtras && tmdbEnabled && tmdbApiKey.isNotBlank()
 
