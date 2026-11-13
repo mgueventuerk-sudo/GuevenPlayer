@@ -45,6 +45,7 @@ data class TmdbRecommendation(
     val posterUrl: String?,
     val backdropUrl: String?,
     val originalTitle: String? = null,
+    val genres: List<String> = emptyList(),
 )
 
 /** Eine gefundene, direkt abspielbare Fassung in einem bestimmten IPTV-Zugang. */

@@ -36,6 +36,9 @@ class NightlyWorker(context: Context, params: WorkerParameters) : CoroutineWorke
                 }
             }
             refreshChannelCatalog(container)
+            // Stichwort-Autoaufnahme lief bisher nur, solange die App offen war (AppRoot.keepPlanned()) – ohne
+            // diesen Aufruf frieren Regeln ein, sobald die App tagelang nicht geöffnet wird.
+            container.autoRecorder.plan()
             DbMaintenance.vacuumIfWorthIt(container.database, applicationContext.filesDir.usableSpace)
         } catch (e: CancellationException) {
             throw e

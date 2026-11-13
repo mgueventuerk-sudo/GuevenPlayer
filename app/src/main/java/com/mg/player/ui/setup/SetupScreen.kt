@@ -231,7 +231,7 @@ private fun ManualForm(state: SetupUiState, vm: SetupViewModel) {
     if (form.type == PlaylistType.XTREAM) {
         TvTextField(
             form.server,
-            { v -> vm.updateForm { it.copy(server = v) } },
+            vm::updateServerField,
             "Server-URL",
             fieldModifier,
             placeholder = "https://anbieter.tv:8080",
@@ -266,6 +266,9 @@ private fun ManualForm(state: SetupUiState, vm: SetupViewModel) {
         { v -> vm.updateForm { it.copy(epgUrl = v) } },
         "EPG-URL (optional)",
         fieldModifier,
+        // Xtream-Zugänge bringen ihr EPG über xmltv.php automatisch mit (siehe EpgRepositoryImpl) - ohne diesen
+        // Hinweis trugen Nutzer hier oft eine fremde, oft schlechtere EPG-Adresse ein, ohne das zu wissen.
+        placeholder = if (form.type == PlaylistType.XTREAM) "wird bei Xtream automatisch geladen" else "",
         keyboardType = KeyboardType.Uri,
     )
     HttpWarning(form.epgUrl)

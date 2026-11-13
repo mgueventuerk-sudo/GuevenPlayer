@@ -30,4 +30,8 @@ dependencies {
     implementation(libs.androidx.test.junit)
     implementation(libs.androidx.test.runner)
     implementation(libs.androidx.test.uiautomator)
+    // Fixture-Server (BenchmarkFixture.kt): macht die Benchmarks lauffähig, ohne eine Test-Playlist von Hand
+    // einzurichten - lief dieser Server auf 127.0.0.1 im Benchmark-Prozess, erreicht ihn die separate App per
+    // echtem HTTP (Loopback ist geräteweit, nicht prozessgebunden), genau wie TrailerLocalServer das nutzt.
+    implementation(libs.okhttp.mockwebserver)
 }

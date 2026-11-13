@@ -5,6 +5,8 @@ import com.mg.player.core.log.AppLog
 import com.mg.player.core.security.SecretCipher
 import com.mg.player.core.vpn.VpnImporter
 import com.mg.player.data.db.AppDatabase
+import com.mg.player.data.recording.RecordingManager
+import com.mg.player.data.reminder.ReminderManager
 import com.mg.player.domain.repository.PlaylistRepository
 import com.mg.player.domain.repository.SettingsRepository
 import kotlinx.coroutines.Dispatchers
@@ -14,8 +16,8 @@ import org.json.JSONObject
 
 /**
  * Sicherung als JSON: Playlists (mit Zugangsdaten), VPN-Standorte, Einstellungen, Favoriten, Fortschritt,
- * gelernte Intro-Zeiten und Kategorie-Einstellungen. Inhalte (Sender, Filme) werden nach dem
- * Wiederherstellen einfach neu geladen.
+ * gelernte Intro-Zeiten, Kategorie-Einstellungen, geplante Aufnahmen und Erinnerungen. Inhalte (Sender, Filme)
+ * werden nach dem Wiederherstellen einfach neu geladen.
  */
 class BackupManager(
     private val db: AppDatabase,
@@ -23,6 +25,8 @@ class BackupManager(
     private val settings: SettingsRepository,
     /** VPN-Standorte (nur in der verschlüsselten Sicherung). */
     private val vpn: VpnImporter? = null,
+    private val recordings: RecordingManager? = null,
+    private val reminders: ReminderManager? = null,
 ) {
 
     /** Sicherung als verschlüsseltes JSON (Kennwort mindestens [BackupCrypto.MIN_PASSPHRASE] Zeichen). */
@@ -132,6 +136,29 @@ class BackupManager(
                 }
             },
         )
+        recordings?.let { rm ->
+            root.put(
+                "recordings",
+                JSONArray().apply {
+                    rm.recordings.value.filter { it.isScheduled }.forEach {
+                        put(
+                            JSONObject().put("channelId", it.channelId).put("channelName", it.channelName).put("title", it.title)
+                                .put("startedAt", it.startedAtMs).put("plannedEnd", it.plannedEndMs).put("programStart", it.programStartMs),
+                        )
+                    }
+                },
+            )
+        }
+        reminders?.let { rem ->
+            root.put(
+                "reminders",
+                JSONArray().apply {
+                    rem.items.value.forEach {
+                        put(JSONObject().put("channelId", it.channelId).put("channelName", it.channelName).put("title", it.title).put("startMs", it.startMs))
+                    }
+                },
+            )
+        }
         root.toString(2)
     }
 
@@ -225,6 +252,8 @@ class BackupManager(
             )
         }
         vpn?.let { importer -> JSONObject(json).optJSONObject("vpn")?.let(importer::restore) }
+        recordings?.restoreScheduled(backup.recordingEntities(idMap))
+        reminders?.restore(backup.reminderEntities(idMap))
         // Alte Zugänge samt Inhalten erst danach löschen: Das Aufräumen großer Tabellen gehört nicht in die
         // Transaktion, und bis hierhin gibt es nie einen Moment ganz ohne Zugang.
         oldPlaylistIds.forEach { playlists.deletePlaylist(it) }

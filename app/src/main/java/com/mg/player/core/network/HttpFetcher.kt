@@ -68,8 +68,9 @@ class HttpFetcher(val client: OkHttpClient) {
         val response = requestClient.newCall(request).execute()
         if (!response.isSuccessful) {
             val code = response.code
+            val retryAfter = response.header("Retry-After")?.toLongOrNull()
             response.close()
-            throw IOException("Server antwortet mit HTTP $code")
+            throw HttpStatusException(code, retryAfter)
         }
         // OkHttp 5: body ist nie null (leere Antwort = leerer Datenstrom).
         val body = response.body

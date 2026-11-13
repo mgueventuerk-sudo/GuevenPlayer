@@ -55,6 +55,8 @@ class SearchIndexer(private val db: AppDatabase, private val state: SharedPrefer
                 total += index(dao, ContentType.LIVE, key) { after -> dao.channelSource(playlistId, after, CHUNK) }
                 total += index(dao, ContentType.MOVIE, key) { after -> dao.movieSource(playlistId, after, CHUNK) }
                 total += index(dao, ContentType.SERIES, key) { after -> dao.seriesSource(playlistId, after, CHUNK) }
+                // Sendungstitel des EPG verweisen auf den Sender (Typ LIVE) - keine eigene Kategorie dafür nötig.
+                total += index(dao, ContentType.LIVE, key) { after -> dao.epgProgramSource(playlistId, after, CHUNK) }
                 // Umschalten, dann alle anderen Stände dieses Zugangs löschen (alter Index, Reste abgebrochener Aufbauten).
                 state.edit {
                     putString(activeKeyName(playlistId), key)

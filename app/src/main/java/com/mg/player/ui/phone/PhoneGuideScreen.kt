@@ -70,8 +70,15 @@ internal fun guideTimes(nowMs: Long): List<Long?> {
 internal const val GUIDE_TIMES_FIRST_VISIBLE = 5
 
 /** Die Sendung, die zum Zeitpunkt [atMs] läuft, und die danach. */
-internal fun programsAt(programs: List<EpgProgram>, atMs: Long): Pair<EpgProgram?, EpgProgram?> {
-    val sorted = programs.sortedBy { it.startMs }
+internal fun programsAt(programs: List<EpgProgram>, atMs: Long): Pair<EpgProgram?, EpgProgram?> =
+    programsAtSorted(programs.sortedBy { it.startMs }, atMs)
+
+/**
+ * Wie [programsAt], aber ohne das Sortieren - der Aufrufer im Composable-Body merkt sich die sortierte Liste
+ * per remember(programs) und ruft nur das hier bei jedem atMs-Tick neu auf (Fund: programsAt() sortierte bisher
+ * bei jeder Rekomposition neu, nicht nur wenn sich programs selbst änderte).
+ */
+private fun programsAtSorted(sorted: List<EpgProgram>, atMs: Long): Pair<EpgProgram?, EpgProgram?> {
     val index = sorted.indexOfFirst { it.startMs <= atMs && it.endMs > atMs }
     if (index < 0) return null to sorted.firstOrNull { it.startMs > atMs }
     return sorted[index] to sorted.getOrNull(index + 1)
@@ -143,7 +150,8 @@ fun PhoneGuideScreen(modifier: Modifier = Modifier) {
                 val channel = channels[index] ?: return@items
                 LaunchedEffect(channel.id, windowStart, epgVersion) { vm.loadPrograms(channel) }
                 val programs by vm.programsFor(channel.id)
-                val (current, next) = programsAt(programs, atMs)
+                val sortedPrograms = remember(programs) { programs.sortedBy { it.startMs } }
+                val (current, next) = programsAtSorted(sortedPrograms, atMs)
                 PhoneGuideRow(
                     channel = channel,
                     number = channel.listNumber(index),

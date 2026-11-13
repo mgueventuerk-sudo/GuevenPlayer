@@ -1,10 +1,18 @@
 package com.mg.player.ui.settings
 
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import com.mg.player.BuildConfig
 import com.mg.player.core.vpn.VpnProfile
+import com.mg.player.data.backup.AutoBackup
+import com.mg.player.data.backup.AutoBackupWorker
 import com.mg.player.data.combined.CombinedConfig
 import com.mg.player.data.combined.CombinedStats
 import com.mg.player.data.sync.SyncState
@@ -12,11 +20,13 @@ import com.mg.player.domain.model.AppSettings
 import com.mg.player.domain.model.ConnectionStatus
 import com.mg.player.domain.model.Playlist
 import com.mg.player.domain.model.StationReport
+import com.mg.player.ui.common.LocalAppContainer
 import com.mg.player.ui.common.ParentalGateState
 import com.mg.player.ui.navigation.Navigator
 import com.mg.player.ui.navigation.Screen
 import com.mg.player.ui.theme.AppIcon
 import com.mg.player.ui.theme.AppIcons
+import kotlinx.coroutines.launch
 
 /** Bereiche der Einstellungen – links (TV) bzw. als Menü (Handy), rechts bzw. darunter ihr Inhalt. */
 enum class SettingsPage(val label: String, val icon: AppIcon, val lead: String) {
@@ -162,6 +172,47 @@ internal fun LazyListScope.settingsSubPage(sub: SettingsSub, c: SettingsContext)
     }
 }
 
+/**
+ * Schreibt täglich eine verschlüsselte Sicherung in einen selbst gewählten Ordner, ohne dass man die App dafür
+ * öffnet (AutoBackupWorker). Direkt über den Container statt über das ViewModel, damit SettingsViewModel nicht
+ * noch eine Funktion mehr bekommt (Detekt TooManyFunctions stand schon am Limit).
+ */
+@Composable
+private fun AutoBackupRow(c: SettingsContext) {
+    val context = LocalContext.current
+    val container = LocalAppContainer.current
+    val scope = rememberCoroutineScope()
+    val configured = !c.s.autoBackupFolderUri.isNullOrBlank()
+    val pickFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        scope.launch {
+            AutoBackup.configure(container.settingsRepository, uri.toString())
+            AutoBackupWorker.schedule(context.applicationContext)
+        }
+    }
+    ToggleRow(
+        "Automatische Sicherung",
+        checked = configured,
+        onToggle = {
+            c.gate.runWithPin {
+                if (configured) {
+                    scope.launch { AutoBackup.configure(container.settingsRepository, null) }
+                    AutoBackupWorker.cancel(context.applicationContext)
+                } else {
+                    pickFolder.launch(null)
+                }
+            }
+        },
+        description = if (configured) {
+            "Täglich im gewählten Ordner, ohne die App zu öffnen"
+        } else {
+            "Ordner wählen – läuft danach automatisch, ohne die App zu öffnen"
+        },
+        icon = AppIcons.Upload,
+    )
+}
+
 private fun LazyListScope.systemItems(c: SettingsContext) {
     settingsGroup("backup", "Sicherung") {
         // Sicherungen enthalten alle Zugangsdaten und ersetzen beim Wiederherstellen PIN und Sperren.
@@ -181,6 +232,7 @@ private fun LazyListScope.systemItems(c: SettingsContext) {
                 icon = AppIcons.Download,
             )
         }
+        row("backup-auto") { AutoBackupRow(c) }
     }
     settingsGroup("storage", "Speicher") {
         row("clear-images") {

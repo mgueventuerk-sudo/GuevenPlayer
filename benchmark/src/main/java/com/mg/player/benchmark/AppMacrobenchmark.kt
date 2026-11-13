@@ -23,18 +23,34 @@ class AppMacrobenchmark {
     @get:Rule
     val benchmark = MacrobenchmarkRule()
 
-    @Test
-    fun coldStartWithoutCompilation() = startup(CompilationMode.None())
-
-    @Test
-    fun coldStartWithBaselineProfile() = startup(CompilationMode.Partial())
-
     /**
-     * Grober UI-Rundgang durch die Hauptbereiche. Für aussagekräftige Ergebnisse vorher auf beiden Geräten
-     * denselben Testzugang mit derselben Sender-/Film-/Serienmenge einrichten.
+     * Setzt vor jedem Testfall eine eigene Test-Playlist über die echte Oberfläche auf (BenchmarkFixture.kt +
+     * BenchmarkSetup.kt) - vorher brauchte jeder der Benchmarks unten eine von Hand eingerichtete Playlist und
+     * scheiterte in CI sofort an der ersten assertNotNull-Prüfung, ohne je eine Zahl zu liefern.
+     *
+     * UNGEPRÜFT: Diese Methode (wie der ganze Fixture-Aufbau) lief nie auf einem echten/emulierten Gerät - siehe
+     * Warnhinweis in BenchmarkSetup.kt.
      */
+    private fun withFixturePlaylist(block: () -> Unit) {
+        val fixture = BenchmarkFixture()
+        val url = fixture.start()
+        try {
+            BenchmarkSetup.ensure(BenchmarkSetup.uiDevice(), url)
+            block()
+        } finally {
+            fixture.shutdown()
+        }
+    }
+
     @Test
-    fun topLevelNavigation() {
+    fun coldStartWithoutCompilation() = withFixturePlaylist { startup(CompilationMode.None()) }
+
+    @Test
+    fun coldStartWithBaselineProfile() = withFixturePlaylist { startup(CompilationMode.Partial()) }
+
+    /** Grober UI-Rundgang durch die Hauptbereiche. */
+    @Test
+    fun topLevelNavigation() = withFixturePlaylist {
         benchmark.measureRepeated(
             packageName = APP_PACKAGE,
             metrics = listOf(FrameTimingMetric(), MemoryUsageMetric(MemoryUsageMetric.Mode.Max)),
@@ -60,7 +76,7 @@ class AppMacrobenchmark {
 
     /** Misst den Weg vom sichtbaren Testkanal bis zur laufenden Wiedergabe. */
     @Test
-    fun playerStartsFromFixtureChannel() {
+    fun playerStartsFromFixtureChannel() = withFixturePlaylist {
         benchmark.measureRepeated(
             packageName = APP_PACKAGE,
             metrics = listOf(FrameTimingMetric(), MemoryUsageMetric(MemoryUsageMetric.Mode.Max)),
@@ -101,11 +117,10 @@ class AppMacrobenchmark {
     }
 
     /**
-     * Testfall 2 (Overhaul-Prompt): 60 s durch eine lange Senderliste, Ziel < 5 % Janky Frames. Voraussetzung wie
-     * oben: Test-Playlist mit mindestens 500 Sendern in „Alle Sender“.
+     * Testfall 2 (Overhaul-Prompt): 60 s durch eine lange Senderliste, Ziel < 5 % Janky Frames.
      */
     @Test
-    fun liveListScroll() {
+    fun liveListScroll() = withFixturePlaylist {
         benchmark.measureRepeated(
             packageName = APP_PACKAGE,
             metrics = listOf(FrameTimingMetric()),
@@ -127,11 +142,44 @@ class AppMacrobenchmark {
         }
     }
 
+    /**
+     * Audit-Fund (Performance): PhoneSeriesDetail.kt/SeriesDetailScreen.kt berechnen die Staffelliste
+     * (episodes.map{it.season}.distinct()) ungeschützt durch remember() bei jeder Rekomposition - misst, ob sich
+     * das beim Scrollen durch eine Serie mit mehreren Staffeln/Folgen als Jank bemerkbar macht.
+     */
+    @Test
+    fun seriesDetailScroll() = withFixturePlaylist {
+        benchmark.measureRepeated(
+            packageName = APP_PACKAGE,
+            metrics = listOf(FrameTimingMetric()),
+            compilationMode = CompilationMode.Partial(),
+            iterations = 3,
+            startupMode = StartupMode.WARM,
+            setupBlock = {
+                device.executeShellCommand("am force-stop $APP_PACKAGE")
+                startActivityAndWait()
+                val seriesTab = device.wait(Until.findObject(By.text("Serien")), HOME_TIMEOUT_MS)
+                assertNotNull("Benchmark benötigt eine eingerichtete Test-Playlist.", seriesTab)
+                seriesTab!!.click()
+                val series = device.wait(Until.findObject(By.text(TEST_SERIES)), HOME_TIMEOUT_MS)
+                assertNotNull("Testserie '$TEST_SERIES' fehlt in der Playlist.", series)
+                series!!.click()
+                device.wait(Until.hasObject(By.textStartsWith("Folge ")), HOME_TIMEOUT_MS)
+            },
+        ) {
+            repeat(SCROLL_STEPS) {
+                device.pressDPadDown()
+                Thread.sleep(SCROLL_PAUSE_MS)
+            }
+        }
+    }
+
     private companion object {
         const val APP_PACKAGE = "com.mg.player"
         const val HOME_TIMEOUT_MS = 10_000L
         const val PLAYER_TIMEOUT_MS = 30_000L
         const val TEST_CHANNEL = "BENCHMARK_TEST_CHANNEL"
+        const val TEST_SERIES = "Benchmark-Serie"
         const val SCROLL_STEPS = 240
         const val SCROLL_PAUSE_MS = 250L
     }

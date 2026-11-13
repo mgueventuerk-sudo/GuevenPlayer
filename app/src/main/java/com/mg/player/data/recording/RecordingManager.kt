@@ -8,6 +8,7 @@ import com.mg.player.core.log.AppLog
 import com.mg.player.data.remote.StreamUrlResolver
 import com.mg.player.data.sync.syncErrorText
 import com.mg.player.domain.model.Channel
+import com.mg.player.domain.model.ConnectionStatus
 import com.mg.player.domain.model.EpgProgram
 import com.mg.player.domain.model.Recording
 import com.mg.player.domain.model.RecordingStatus
@@ -39,6 +40,8 @@ class RecordingManager(
     private val recorder: StreamRecorder,
     private val urls: StreamUrlResolver,
     private val channelLookup: suspend (String) -> Channel?,
+    /** Aktuell bekannter Verbindungsstand des Zugangs (zwischengespeichert, siehe ConnectionMonitor.status). */
+    private val connectionStatus: (playlistId: Long) -> ConnectionStatus? = { null },
 ) {
     private val store = RecordingStore(File(context.filesDir, "recordings.json"))
     private val alarms = RecordingAlarms(context)
@@ -62,6 +65,19 @@ class RecordingManager(
 
     /** Wartet, bis die Aufnahmeliste geladen und geplante Aufnahmen wieder eingeplant sind. */
     suspend fun awaitReady() = ready.join()
+
+    /**
+     * Übernimmt geplante Aufnahmen aus einer Sicherung (nur [RecordingStatus.SCHEDULED] mit noch nicht
+     * verstrichenem Ende - Laufendes/Fertiges verweist auf eine Datei, die auf einem neuen Gerät nicht existiert).
+     */
+    suspend fun restoreScheduled(recordings: List<Recording>) {
+        awaitReady()
+        val now = System.currentTimeMillis()
+        recordings.filter { it.isScheduled && it.plannedEndMs > now }.forEach { recording ->
+            store.upsert(recording)
+            alarms.set(recording.id, recording.startedAtMs)
+        }
+    }
 
     /** Nach dem App-Start: Unterbrochenes markieren, Verpasstes melden, Geplantes neu einplanen. */
     private suspend fun recover() {
@@ -196,6 +212,13 @@ class RecordingManager(
 
     /** Legt die Datei an und startet den eigentlichen Mitschnitt im App-Scope. */
     private suspend fun begin(template: Recording, channel: Channel, fromSchedule: Boolean): String? {
+        // Aufnahme braucht eine eigene, zweite Verbindung (auch wenn man den Sender gerade selbst schaut) - ohne
+        // diese Prüfung kommt erst der rohe Serverfehler, wenn der Anbieter die zusätzliche Verbindung ablehnt.
+        connectionStatus(channel.playlistId)?.takeIf { it.full }?.let { status ->
+            val message = "Verbindungslimit des Zugangs erreicht (${status.label} belegt)"
+            if (fromSchedule) store.update(template.id) { it.copy(status = RecordingStatus.FAILED, error = message) }
+            return message
+        }
         if (!withContext(Dispatchers.IO) { ensureSpace(MIN_FREE_BYTES) }) {
             val message = "Zu wenig freier Speicher für eine Aufnahme"
             if (fromSchedule) store.update(template.id) { it.copy(status = RecordingStatus.FAILED, error = message) }
@@ -207,7 +230,15 @@ class RecordingManager(
         val session = RecordingSession(recording.id, channel.id, allowInsecureHttp = urls.isHttpAllowed(channel.id))
         sessions[recording.id] = session
         _activeChannels.update { it + channel.id }
-        RecordingService.start(context, "${channel.name}: ${recording.title}")
+        if (!RecordingService.start(context, "${channel.name}: ${recording.title}")) {
+            // Ohne den Vordergrund-Dienst kann Android die App jederzeit beenden - weiterlaufen lassen wäre ein
+            // Schein-Erfolg, den der Nutzer erst beim Scheitern der Aufnahme bemerkt (Fund: stiller Recording-Fehler).
+            val message = "Aufnahme ohne Android-Schutz vor dem Beenden – bitte Akku-Optimierung für die App ausschalten"
+            sessions.remove(recording.id)
+            _activeChannels.update { it - channel.id }
+            store.update(recording.id) { it.copy(status = RecordingStatus.FAILED, error = message) }
+            return message
+        }
         AppLog.log("Aufnahme", "Start: ${channel.name} – ${recording.title}")
         scope.launch { run(recording, channel, session) }
         return null

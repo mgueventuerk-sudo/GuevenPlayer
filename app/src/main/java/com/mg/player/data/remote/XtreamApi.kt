@@ -2,6 +2,7 @@ package com.mg.player.data.remote
 
 import android.net.Uri
 import com.mg.player.core.network.HttpFetcher
+import com.mg.player.core.network.HttpStatusException
 import com.mg.player.core.security.SecretCipher
 import com.mg.player.data.db.entity.PlaylistEntity
 import java.io.InputStream
@@ -59,4 +60,21 @@ class XtreamApi(private val fetcher: HttpFetcher) {
     fun openSeriesInfo(c: Credentials, seriesId: String): InputStream = openAction(c, "get_series_info", "&series_id=$seriesId")
 
     fun openVodInfo(c: Credentials, vodId: String): InputStream = openAction(c, "get_vod_info", "&vod_id=$vodId")
+
+    /**
+     * Schneller Check vor dem vollen Import (Einrichten): Lehnt der Server die Anmeldung eindeutig ab
+     * (HTTP 401/403), eine verständliche Meldung sofort statt erst nach dem ganzen Importversuch. Blockiert
+     * bewusst nicht bei anderen Fehlern (Zeitüberschreitung, DNS-Fehler, unklare Antwort) - dafür gibt es schon
+     * den vollen Importversuch mit eigener Fehlerbehandlung und Wiederholung; ein zu strenger Vorab-Check würde
+     * sonst gültige, nur gerade langsame Zugänge ablehnen. Blockiert (Dispatchers.IO).
+     */
+    fun quickRejection(c: Credentials): String? {
+        val code = runCatching { open(playerApiUrl(c), c.allowInsecureHttp).close() }
+            .exceptionOrNull()
+            ?.let { it as? HttpStatusException }
+            ?.takeIf { it.code == 401 || it.code == 403 }
+            ?.code
+            ?: return null
+        return "Server lehnt die Anmeldung ab (HTTP $code) – bitte Server-Adresse, Benutzername und Passwort prüfen."
+    }
 }

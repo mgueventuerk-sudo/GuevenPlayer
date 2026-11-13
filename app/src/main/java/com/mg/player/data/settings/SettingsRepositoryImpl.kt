@@ -109,6 +109,8 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         val REDUCED_EFFECTS = booleanPreferencesKey("reduced_effects")
         val AUTOMATIC_OPTIMIZATION = booleanPreferencesKey("automatic_optimization")
         val HIDE_GUIDE = booleanPreferencesKey("hide_guide")
+        val AUTO_BACKUP_FOLDER = stringPreferencesKey("auto_backup_folder")
+        val AUTO_BACKUP_PASSPHRASE = stringPreferencesKey("auto_backup_passphrase")
     }
 
     override val settings: Flow<AppSettings> = flow {
@@ -179,6 +181,8 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
             largeText = this[Keys.LARGE_TEXT] ?: defaults.largeText,
             reducedEffects = this[Keys.REDUCED_EFFECTS] ?: defaults.reducedEffects,
             automaticOptimization = this[Keys.AUTOMATIC_OPTIMIZATION] ?: defaults.automaticOptimization,
+            autoBackupFolderUri = this[Keys.AUTO_BACKUP_FOLDER],
+            autoBackupPassphrase = this[Keys.AUTO_BACKUP_PASSPHRASE]?.let(SecretCipher::decrypt).orEmpty(),
         )
     }
 
@@ -225,16 +229,22 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         this[Keys.LARGE_TEXT] = s.largeText
         this[Keys.REDUCED_EFFECTS] = s.reducedEffects
         this[Keys.SPORT_MANUAL] = s.sportManualChannels.mapTo(HashSet()) { (league, channel) -> "$league\t$channel" }
+        putOrRemove(Keys.AUTO_BACKUP_FOLDER, s.autoBackupFolderUri)
         // Schlüssel nur verschlüsselt speichern; geht das nicht, lieber gar nicht (nie Klartext).
         putSecret(Keys.SPORTMONKS_TOKEN, s.sportmonksToken)
         putSecret(Keys.BZZOIRO_TOKEN, s.bzzoiroToken)
         putSecret(Keys.TMDB_KEY, s.tmdbApiKey)
         putSecret(Keys.UPDATE_TOKEN, s.updateToken)
+        putSecret(Keys.AUTO_BACKUP_PASSPHRASE, s.autoBackupPassphrase)
         // Pairing-Geheimnis für Spiel-Finder-Austausch und TV-Handoff (HubAuth): wie die Zugriffsschlüssel oben
         // verschlüsselt speichern, nicht im Klartext der DataStore-Datei – wer es lesen kann, gibt sich im
         // Heimnetz als Prüfgerät oder Fernseher aus.
         putSecret(Keys.SPORT_HUB_CODE, s.sportHubCode)
         putSecret(Keys.SPORT_HUB_JOIN, s.sportHubJoinCode)
+    }
+
+    private fun MutablePreferences.putOrRemove(key: Preferences.Key<String>, value: String?) {
+        value?.let { this[key] = it } ?: remove(key)
     }
 
     private fun MutablePreferences.putSecret(key: Preferences.Key<String>, value: String) {

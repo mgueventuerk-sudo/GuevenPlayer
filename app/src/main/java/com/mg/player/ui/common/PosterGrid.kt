@@ -42,6 +42,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.allowRgb565
 import coil3.request.crossfade
+import com.mg.player.ui.home.SkeletonCard
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcon
 import com.mg.player.ui.theme.AppIcons
@@ -206,10 +207,24 @@ fun <T : Any> PagingPosterGrid(
     }
 
     if (items.itemCount == 0) {
-        val loading = items.loadState.refresh is androidx.paging.LoadState.Loading
+        if (items.loadState.refresh is androidx.paging.LoadState.Loading) {
+            // Platzhalter-Kacheln statt "Lädt…"-Text: dieselbe ruhige, unbewegte Fläche wie SkeletonRow auf der
+            // Startseite, kein zusätzliches Neuzeichnen pro Bild - reine Haltung, keine Animation.
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = minCellWidth),
+                modifier = modifier,
+                contentPadding = contentPadding,
+                horizontalArrangement = Arrangement.spacedBy(spacing),
+                verticalArrangement = Arrangement.spacedBy(spacing),
+                userScrollEnabled = false,
+            ) {
+                items(SKELETON_TILE_COUNT) { SkeletonCard(isTouch) }
+            }
+            return
+        }
         CenteredMessage(
-            title = if (loading) "Lädt…" else emptyText,
-            loading = loading,
+            title = emptyText,
+            loading = false,
             modifier = modifier,
             icon = emptyIcon,
             actionLabel = emptyActionLabel,
@@ -258,3 +273,6 @@ fun <T : Any> PagingPosterGrid(
         }
     }
 }
+
+/** Genug Kacheln, um auch ein breites TV-Grid (bis zu 7 Spalten) über mehrere Zeilen zu füllen. */
+private const val SKELETON_TILE_COUNT = 21

@@ -91,6 +91,10 @@ open class PlayerApp :
             // Nachts im Leerlauf: EPG erneuern und Datenbank verkleinern (WorkManager, nur WLAN/LAN).
             runCatching { com.mg.player.data.sync.NightlyWorker.schedule(this@PlayerApp) }
                 .onFailure { AppLog.log("Nacht", "Pflege nicht eingeplant: ${it.javaClass.simpleName}") }
+            // Automatische Sicherung: harmlos, auch ohne gewählten Ordner – der Worker prüft das selbst und
+            // tut dann nichts. Neu einplanen, falls WorkManagers eigener Zeitplan den Neustart nicht überlebt hat.
+            runCatching { com.mg.player.data.backup.AutoBackupWorker.schedule(this@PlayerApp) }
+                .onFailure { AppLog.log("Sicherung", "Automatische Sicherung nicht eingeplant: ${it.javaClass.simpleName}") }
             container.warmUpDns()
             // Automatische Aktualisierung je Zugang: sofort prüfen (Countdown lief auch, während die App aus war).
             container.autoRefresher.watch(container.appScope, container.playlistRepository.observePlaylists()) { next ->

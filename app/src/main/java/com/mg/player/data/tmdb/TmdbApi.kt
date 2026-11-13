@@ -52,6 +52,8 @@ class TmdbApi(client: OkHttpClient, private val baseUrl: String = BASE) {
         val year: String?,
         val posterPath: String?,
         val backdropPath: String?,
+        /** TMDB-Genre-Kennungen, wie "discover" sie schon mitliefert - kein zusätzlicher Aufruf nötig. */
+        val genreIds: List<Int>,
     )
 
     class InvalidKeyException : IOException("TMDB-API-Schlüssel ungültig")
@@ -112,6 +114,7 @@ class TmdbApi(client: OkHttpClient, private val baseUrl: String = BASE) {
                 year = date.take(4).takeIf { it.length == 4 },
                 posterPath = item.optStringOrNull("poster_path"),
                 backdropPath = item.optStringOrNull("backdrop_path"),
+                genreIds = item.optJSONArray("genre_ids")?.let { ids -> (0 until ids.length()).map { ids.optInt(it) } }.orEmpty(),
             )
         }
     }

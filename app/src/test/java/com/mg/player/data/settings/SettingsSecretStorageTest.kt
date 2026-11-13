@@ -158,4 +158,28 @@ class SettingsSecretStorageTest {
             scope.cancel()
         }
     }
+
+    /**
+     * Das Kennwort der automatischen Sicherung ist niemand zum Eingeben gedacht - wie die anderen Schlüssel
+     * oben verschlüsselt speichern. Der Ordner selbst ist keine Zugangsdaten, nur eine Baum-URI.
+     */
+    @Test
+    fun autoBackupSettingsAreEncryptedAtRestAndReadableByRepository() = runBlocking {
+        SecretCipher.init(ApplicationProvider.getApplicationContext<Context>())
+        val file = folder.newFile("auto-backup-settings.preferences_pb")
+        val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        try {
+            val store: DataStore<Preferences> = PreferenceDataStoreFactory.create(scope = scope) { file }
+            val repository = SettingsRepositoryImpl(store)
+            val passphrase = "auto-backup-secret-passphrase"
+            val folderUri = "content://com.android.externalstorage.documents/tree/fake"
+            repository.update { it.copy(autoBackupFolderUri = folderUri, autoBackupPassphrase = passphrase) }
+
+            assertFalse(String(file.readBytes(), Charsets.ISO_8859_1).contains(passphrase))
+            assertEquals(passphrase, repository.current().autoBackupPassphrase)
+            assertEquals(folderUri, repository.current().autoBackupFolderUri)
+        } finally {
+            scope.cancel()
+        }
+    }
 }

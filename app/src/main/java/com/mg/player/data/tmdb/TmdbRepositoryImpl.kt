@@ -69,10 +69,27 @@ class TmdbRepositoryImpl(
                     async { homeFeed(apiKey, ContentType.SERIES, TmdbHomeFeed.TOP_RATED) },
                 ).map { it.await() }
             }
-            TmdbHomeRecommendations(feeds[0], feeds[1], feeds[2], feeds[3]).also { result ->
+            val preferred = preferredGenresFromFavorites()
+            TmdbHomeRecommendations(
+                newestMovies = GenreRanking.rank(feeds[0], preferred) { it.genres },
+                topRatedMovies = GenreRanking.rank(feeds[1], preferred) { it.genres },
+                newestSeries = GenreRanking.rank(feeds[2], preferred) { it.genres },
+                topRatedSeries = GenreRanking.rank(feeds[3], preferred) { it.genres },
+            ).also { result ->
                 homeCache = HomeCache(cacheKey, System.currentTimeMillis(), result)
             }
         }
+    }
+
+    /** Häufigste Genres der eigenen Favoriten, soweit ihr TMDB-Eintrag schon zwischengespeichert ist. */
+    private suspend fun preferredGenresFromFavorites(): Set<String> {
+        val genresPerTitle = db.favoriteDao().all()
+            .filter { it.type == ContentType.MOVIE.name || it.type == ContentType.SERIES.name }
+            .mapNotNull { fav ->
+                val type = if (fav.type == ContentType.SERIES.name) ContentType.SERIES else ContentType.MOVIE
+                db.tmdbDao().get(key(type, fav.itemId))?.genres?.split(SEP)?.filter { it.isNotBlank() }
+            }
+        return GenreRanking.preferredGenres(genresPerTitle)
     }
 
     private suspend fun homeFeed(
@@ -97,6 +114,7 @@ class TmdbRepositoryImpl(
                 overview = candidate.overview,
                 posterUrl = candidate.posterPath?.let(TmdbApi::posterUrl),
                 backdropUrl = candidate.backdropPath?.let(TmdbApi::backdropUrl),
+                genres = TmdbGenreNames.of(candidate.genreIds),
             )
         }.toList()
     }
