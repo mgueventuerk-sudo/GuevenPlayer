@@ -55,6 +55,14 @@ class Media3ErrorClassificationTest {
         assertEquals(ErrorCause.AUDIO_OUTPUT, Media3Support.cause(audio))
     }
 
+    /** Regression: "Haysiyet", 13.11. - ein kaputtes Manifest landete als OTHER statt FORMAT und löste nie
+     *  den LibVLC-Fallback aus, sondern vier sinnlose Neuverbindungen. */
+    @Test
+    fun malformedOrUnsupportedManifestsAreFormatNotOther() {
+        assertEquals(ErrorKind.FORMAT, Media3Support.classify(code(PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED)).first)
+        assertEquals(ErrorKind.FORMAT, Media3Support.classify(code(PlaybackException.ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED)).first)
+    }
+
     @Test
     fun timeoutsAndConnectionFailuresAreNetwork() {
         val timeout = code(PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT)

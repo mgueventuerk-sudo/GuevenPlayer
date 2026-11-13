@@ -1,6 +1,7 @@
 package com.mg.player.data.backup
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.work.Constraints
@@ -44,6 +45,13 @@ object AutoBackup {
     /** Ordner gewählt und ein gültiges Kennwort gespeichert? Reine Entscheidung, ohne jeden Dateizugriff. */
     fun isConfigured(settings: AppSettings): Boolean =
         !settings.autoBackupFolderUri.isNullOrBlank() && settings.autoBackupPassphrase.length >= BackupCrypto.MIN_PASSPHRASE
+
+    /**
+     * Manche Geräte (z. B. FireOS-Sticks statt echtem Android) liefern keine App aus, die
+     * ACTION_OPEN_DOCUMENT_TREE zeigen kann - dort stürzte die App vorher beim Versuch ab.
+     */
+    fun folderPickerAvailable(context: Context): Boolean =
+        Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).resolveActivity(context.packageManager) != null
 
     /**
      * [folderUri] = null schaltet aus. Beim allerersten Einrichten wird einmalig ein Kennwort erzeugt;
