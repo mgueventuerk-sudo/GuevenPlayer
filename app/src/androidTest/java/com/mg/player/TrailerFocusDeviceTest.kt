@@ -28,6 +28,11 @@ import org.junit.runner.RunWith
  * Android erreichbar? Robolectrics Fokussystem kann vom echten InputManager-gesteuerten D-Pad-Verhalten abweichen
  * (dieselbe Grenze, die bei der NetworkOnMainThreadException dieser Session schon einmal real war) - dieser Test
  * laeuft deshalb ueber die Geraetetests-CI (device-tests.yml) auf echten KVM-Emulatoren, API 24/28/37.
+ *
+ * API 28 scheiterte dreimal mit drei verschiedenen Produktionscode-Fixen (API 24 bestand jedes Mal) - das CI-Skript
+ * (.github/scripts/run-device-tests.sh) druckt nur den failure-Text der JUnit-XML, kein system-out. Die
+ * Diagnose unten steht deshalb direkt in der Zusicherungs-Nachricht, damit der nächste Fehlschlag den
+ * tatsächlichen Zustand zeigt statt nur "kein Fokus gefunden".
  */
 @RunWith(AndroidJUnit4::class)
 class TrailerFocusDeviceTest {
@@ -46,6 +51,7 @@ class TrailerFocusDeviceTest {
         }
         compose.waitForIdle()
 
+        val hasWindowFocusAtStart = compose.activity.hasWindowFocus()
         val directions = listOf(Key.DirectionDown, Key.DirectionRight, Key.DirectionUp, Key.DirectionLeft)
         var found = closeButtonIsFocused()
         repeat(2) {
@@ -57,13 +63,24 @@ class TrailerFocusDeviceTest {
                 }
             }
         }
-        assertTrue(
-            "Schliessen-Knopf (contentDescription=Zurück) erreicht auf echtem/emuliertem Android in keiner " +
-                "getesteten Tastenfolge den Fokus",
-            found,
-        )
+        assertTrue(diagnosticMessage(hasWindowFocusAtStart), found)
     }
 
     private fun closeButtonIsFocused(): Boolean =
         compose.onAllNodes(hasContentDescription("Zurück") and isFocused()).fetchSemanticsNodes().isNotEmpty()
+
+    /** Alles, was zur Ursachensuche fehlt, falls der obige Check (noch einmal) scheitert. */
+    private fun diagnosticMessage(hasWindowFocusAtStart: Boolean): String {
+        val closeNodes = compose.onAllNodes(hasContentDescription("Zurück")).fetchSemanticsNodes()
+        val anyFocusedInTree = compose.onAllNodes(isFocused()).fetchSemanticsNodes()
+        return buildString {
+            append("Schliessen-Knopf erreicht in keiner getesteten Tastenfolge den Fokus. DIAGNOSE: ")
+            append("hasWindowFocus (beim Start)=$hasWindowFocusAtStart; ")
+            append("hasWindowFocus (jetzt)=${compose.activity.hasWindowFocus()}; ")
+            append("Knoten mit contentDescription=Zurück: ${closeNodes.size}; ")
+            closeNodes.firstOrNull()?.let { append("dessen config=${it.config}; ") }
+            append("irgendein fokussierter Knoten im ganzen Baum: ${anyFocusedInTree.size}; ")
+            anyFocusedInTree.firstOrNull()?.let { append("dessen config=${it.config}") }
+        }
+    }
 }
