@@ -57,10 +57,17 @@ internal object Media3Support {
     fun sourceFactory(data: DataSource.Factory, extractors: ExtractorsFactory): MediaSource.Factory =
         DefaultMediaSourceFactory(data, extractors).setLoadErrorHandlingPolicy(DefaultLoadErrorHandlingPolicy(LOAD_RETRIES))
 
-    /** Fehler, bei denen ein Neuversuch mit derselben Engine nichts bringt – LibVLC übernimmt. */
+    /**
+     * Fehler, bei denen ein Neuversuch mit derselben Engine nichts bringt – LibVLC übernimmt.
+     * Die MANIFEST_*-Varianten fehlten neben den CONTAINER_*-Varianten (z. B. kaputtes m3u8 bei "Haysiyet",
+     * 13.11.): Ohne sie landete ERROR_CODE_PARSING_MANIFEST_MALFORMED als ErrorKind.OTHER statt FORMAT - der
+     * Wächter versuchte vier sinnlose Neuverbindungen (1/2/4/8 s), statt sofort auf LibVLC zu wechseln.
+     */
     val FORMAT_ERRORS = setOf(
         PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED,
         PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED,
+        PlaybackException.ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED,
+        PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED,
         PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
         PlaybackException.ERROR_CODE_DECODER_QUERY_FAILED,
         PlaybackException.ERROR_CODE_DECODING_FAILED,
