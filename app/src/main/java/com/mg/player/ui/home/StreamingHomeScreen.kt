@@ -154,9 +154,20 @@ fun StreamingHomeScreen(
         }
     }
 
-    // Einheitliches Kontextmenü (OK gedrückt halten) für alle Karten der Startseite.
+    // Einheitliches Kontextmenü (OK gedrückt halten) für alle Karten der Startseite - außer Live-Sendern:
+    // dort schaltet OK gedrückt halten nur den Favoriten um, ohne Menü (wie in LiveScreen/PhoneLiveScreen;
+    // Nutzerbericht 13.11. - ein Menü dafür wirkte unpraktisch und schloss sich von selbst).
     fun showMenu(entry: HomeEntry) {
         val target = entry.target
+        if (target is HomeTarget.ChannelTarget) {
+            scope.launch {
+                val wasFavorite = container.playbackRepository.isFavorite(target.type, target.id).first()
+                container.playbackRepository.toggleFavorite(target.type, target.id)
+                val name = entry.title
+                toast.show(if (wasFavorite) "$name aus Favoriten entfernt" else "♥ $name ist jetzt ein Favorit")
+            }
+            return
+        }
         scope.launch {
             val favorite = target !is HomeTarget.RecommendationTarget && container.playbackRepository.isFavorite(target.type, target.id).first()
             contextMenu.show(
@@ -164,7 +175,8 @@ fun StreamingHomeScreen(
                 subtitle = entry.subtitle,
                 actions = buildList {
                     add(ContextAction("Abspielen", AppIcons.Play) { play(entry) })
-                    if (target !is HomeTarget.ChannelTarget) add(ContextAction("Details", AppIcons.Info) { openDetails(entry) })
+                    // ChannelTarget ist oben schon abgefangen - hier bleiben nur Filme/Serien/Empfehlungen.
+                    add(ContextAction("Details", AppIcons.Info) { openDetails(entry) })
                     if (target !is HomeTarget.RecommendationTarget) {
                         add(
                             ContextAction(
