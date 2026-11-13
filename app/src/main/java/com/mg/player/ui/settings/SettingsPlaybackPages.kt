@@ -245,9 +245,20 @@ private fun LazyListScope.lookComfortItems(c: SettingsContext) {
                 "Vorladen",
                 c.s.preload,
                 { c.vm.update { it.copy(preload = !it.preload) } },
-                "Bilder der nächsten Einträge schon vor dem Scrollen laden – nur, solange genug Arbeitsspeicher frei ist",
+                "Bilder der nächsten Einträge schon vor dem Scrollen laden – nur, solange Speicher und Platz reichen",
                 AppIcons.Speed,
             )
+        }
+        if (c.s.preload) {
+            row("preload-disk-only") {
+                ToggleRow(
+                    "Vorladen nur im internen Speicher",
+                    c.s.preloadDiskOnly,
+                    { c.vm.update { it.copy(preloadDiskOnly = !it.preloadDiskOnly) } },
+                    "Nie den Arbeitsspeicher nutzen: Bilder liegen nur auf dem Gerät (Platz je nach Freiraum, höchstens 512 MB)",
+                    AppIcons.Speed,
+                )
+            }
         }
     }
     settingsGroup("look-home", "Startseite") {

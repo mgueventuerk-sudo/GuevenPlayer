@@ -158,6 +158,8 @@ data class AppSettings(
     val reducedEffects: Boolean = false,
     /** Bilder der nächsten Einträge im Voraus laden, solange genug Arbeitsspeicher frei ist (ab 3.60). */
     val preload: Boolean = true,
+    /** Vorladen nur in den Datei-Cache im internen Speicher, nie in den Arbeitsspeicher (ab 3.60). */
+    val preloadDiskOnly: Boolean = false,
     /** Selbst gewählter Ordner (SAF) für die automatische, wiederkehrende Sicherung; null = aus. Nie im Backup. */
     val autoBackupFolderUri: String? = null,
     /** Kennwort der automatischen Sicherung, zufällig erzeugt und nur verschlüsselt gespeichert. Nie im Backup. */

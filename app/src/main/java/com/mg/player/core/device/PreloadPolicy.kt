@@ -14,6 +14,10 @@ object PreloadPolicy {
     @Volatile
     var enabled: Boolean = true
 
+    /** Aus den Einstellungen („nur interner Speicher“): nie in den Arbeitsspeicher vorladen. */
+    @Volatile
+    var diskOnly: Boolean = false
+
     @Volatile
     private var trimmedAtMs = NEVER
 
@@ -34,7 +38,7 @@ object PreloadPolicy {
             trimmedRecently = trimmedAtMs != NEVER && SystemClock.elapsedRealtime() - trimmedAtMs < TRIM_QUIET_MS,
             storageFreeMb = storageFreeMb(context.cacheDir),
         )
-        return PreloadPolicyRules.decide(DeviceTier.of(context), reading, enabled).also { lastReading = reading }
+        return PreloadPolicyRules.decide(DeviceTier.of(context), reading, enabled, diskOnly).also { lastReading = reading }
     }
 
     /**

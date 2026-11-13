@@ -94,15 +94,21 @@ object PreloadPolicyRules {
      * **Festplatte** vorladen (bei genug freiem Platz, auch wenn der RAM knapp ist – dann ist sie der Ausweg)? Aus bleibt
      * nur, wenn Android Speichernot meldet, der Platz nicht reicht oder kaum Heap übrig ist.
      */
-    fun decide(tier: DeviceTier, memory: MemoryReading, enabled: Boolean): PreloadBudget {
+    fun decide(tier: DeviceTier, memory: MemoryReading, enabled: Boolean, diskOnly: Boolean = false): PreloadBudget {
         val warned = memory.lowMemory || memory.trimmedRecently
         val noRoom = memory.storageFreeMb < MIN_STORAGE_MB || memory.heapFreeMb < MIN_HEAP_DISK_MB
         if (!enabled || warned || noRoom) return PreloadBudget.OFF
         val ramFine = memory.availMb >= memory.thresholdMb + MIN_RESERVE_MB && memory.heapFreeMb >= MIN_HEAP_FREE_MB
         val roomy = ramFine && memory.availMb >= memory.thresholdMb + FULL_RESERVE_MB && memory.heapFreeMb >= FULL_HEAP_FREE_MB
         val disk = storageAhead(tier, memory.storageFreeMb)
-        val fullAhead = FULL_AHEAD[tier]
         val lightAhead = LIGHT_AHEAD.getValue(tier)
+        // Nur interner Speicher gewählt: Arbeitsspeicher bleibt tabu, die Platte reicht so weit, wie der Platz es erlaubt
+        // (Heap nur für das kurze Dekodieren kleiner Bilder nötig).
+        if (diskOnly) {
+            val reach = if (memory.heapFreeMb >= MIN_HEAP_FREE_MB) maxOf(disk, lightAhead) else lightAhead
+            return PreloadBudget(PreloadLevel.LIGHT, lightAhead, diskAhead = reach)
+        }
+        val fullAhead = FULL_AHEAD[tier]
         return when {
             roomy && fullAhead != null ->
                 PreloadBudget(PreloadLevel.FULL, fullAhead, warmMemory = true, keepBehind = fullAhead / 2, diskAhead = maxOf(disk, fullAhead))

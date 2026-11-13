@@ -92,6 +92,29 @@ class PreloadBudgetTest {
     }
 
     @Test
+    fun diskOnlyNeverTouchesTheMemoryEvenWhenThereIsPlenty() {
+        DeviceTier.entries.forEach { tier ->
+            val budget = PreloadPolicyRules.decide(tier, memory(avail = 4_000, heapFree = 400), enabled = true, diskOnly = true)
+            assertEquals(PreloadLevel.LIGHT, budget.level)
+            assertFalse(tier.name, budget.warmMemory)
+            assertTrue(tier.name, budget.diskAhead >= budget.imagesAhead)
+        }
+        // Mit viel Platz reicht die Platte weit, auch wenn der Arbeitsspeicher knapp ist (er wird ja nicht gebraucht).
+        val tightRam = PreloadPolicyRules.decide(DeviceTier.NORMAL, memory(avail = 380, threshold = 200), enabled = true, diskOnly = true)
+        assertEquals(PreloadBudget(PreloadLevel.LIGHT, 18, diskAhead = 120), tightRam)
+    }
+
+    @Test
+    fun diskOnlyStillRespectsTheSafetyStops() {
+        fun decideDisk(m: MemoryReading, enabled: Boolean = true) = PreloadPolicyRules.decide(DeviceTier.HIGH, m, enabled, diskOnly = true)
+        assertFalse(decideDisk(memory(low = true)).active)
+        assertFalse(decideDisk(memory(trimmed = true)).active)
+        assertFalse(decideDisk(memory(storage = 499)).active)
+        assertFalse(decideDisk(memory(heapFree = 20)).active)
+        assertFalse(decideDisk(memory(), enabled = false).active)
+    }
+
+    @Test
     fun theDiskCacheGrowsWithFreeSpaceButStaysBounded() {
         val mb = 1024L * 1024L
         assertEquals(64 * mb, DiskCachePlan.maxBytes(100))

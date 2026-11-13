@@ -292,6 +292,7 @@ die Anzeige den Eintrag nicht.
   höchstens 30, wegen der Rechenzeit). Der Bild-Cache selbst wird beim Start nach dem freien Platz bemessen:
   64 / 128 / 256 / 512 MB (vorher fest 256 MB). Er ist ein Cache: er verdrängt von selbst das Älteste, und Android darf ihn
   bei Platznot leeren – er wird deshalb nicht wie der Arbeitsspeicher „freigegeben“.
+- *Nur interner Speicher* (Einstellung unter „Vorladen“): nie Arbeitsspeicher, immer die Stufe „Leicht“ mit der Reichweite der Platte (30 / 60 / 120 nach freiem Platz), unabhängig davon, wie viel Arbeitsspeicher frei ist. Die Sicherheitsstopps (Speichernot, Speicherwarnung, unter 500 MB Platz) gelten weiter.
 - *Voll* (nur mittel und stark; ab Schwelle + 500 MB und 96 MB Heap): Arbeitsspeicher, 30 / 60 voraus, so viele
   davor bleiben vorgeladen, falls man zurückblättert; alles weiter voraus (bis zur Reichweite der Platte) landet nur im
   Datei-Cache. Kein Vorladen in den Speicher, wenn der Bild-Cache zu mehr als 85 % voll ist

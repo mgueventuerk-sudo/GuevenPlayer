@@ -77,6 +77,7 @@ class BackupManager(
                 put("largeText", s.largeText)
                 put("reducedEffects", s.reducedEffects)
                 put("preload", s.preload)
+                put("preloadDiskOnly", s.preloadDiskOnly)
                 put("automaticOptimization", s.automaticOptimization)
             },
         )
@@ -247,6 +248,7 @@ class BackupManager(
                 largeText = s.optBoolean("largeText", current.largeText),
                 reducedEffects = s.optBoolean("reducedEffects", current.reducedEffects),
                 preload = s.optBoolean("preload", current.preload),
+                preloadDiskOnly = s.optBoolean("preloadDiskOnly", current.preloadDiskOnly),
                 automaticOptimization = s.optBoolean("automaticOptimization", current.automaticOptimization),
                 activePlaylistId = active,
                 lastChannelId = null,

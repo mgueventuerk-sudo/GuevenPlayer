@@ -108,6 +108,7 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         val LARGE_TEXT = booleanPreferencesKey("large_text")
         val REDUCED_EFFECTS = booleanPreferencesKey("reduced_effects")
         val PRELOAD = booleanPreferencesKey("preload")
+        val PRELOAD_DISK_ONLY = booleanPreferencesKey("preloadDiskOnly")
         val AUTOMATIC_OPTIMIZATION = booleanPreferencesKey("automatic_optimization")
         val HIDE_GUIDE = booleanPreferencesKey("hide_guide")
         val AUTO_BACKUP_FOLDER = stringPreferencesKey("auto_backup_folder")
@@ -182,6 +183,7 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
             largeText = this[Keys.LARGE_TEXT] ?: defaults.largeText,
             reducedEffects = this[Keys.REDUCED_EFFECTS] ?: defaults.reducedEffects,
             preload = this[Keys.PRELOAD] ?: defaults.preload,
+            preloadDiskOnly = this[Keys.PRELOAD_DISK_ONLY] ?: defaults.preloadDiskOnly,
             automaticOptimization = this[Keys.AUTOMATIC_OPTIMIZATION] ?: defaults.automaticOptimization,
             autoBackupFolderUri = this[Keys.AUTO_BACKUP_FOLDER],
             autoBackupPassphrase = this[Keys.AUTO_BACKUP_PASSPHRASE]?.let(SecretCipher::decrypt).orEmpty(),
@@ -231,6 +233,7 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         this[Keys.LARGE_TEXT] = s.largeText
         this[Keys.REDUCED_EFFECTS] = s.reducedEffects
         this[Keys.PRELOAD] = s.preload
+        this[Keys.PRELOAD_DISK_ONLY] = s.preloadDiskOnly
         this[Keys.SPORT_MANUAL] = s.sportManualChannels.mapTo(HashSet()) { (league, channel) -> "$league\t$channel" }
         putOrRemove(Keys.AUTO_BACKUP_FOLDER, s.autoBackupFolderUri)
         // Schlüssel nur verschlüsselt speichern; geht das nicht, lieber gar nicht (nie Klartext).

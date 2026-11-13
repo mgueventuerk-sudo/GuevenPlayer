@@ -115,7 +115,10 @@ open class PlayerApp :
         }
         // „Vorladen“ (Einstellungen → Wiedergabe): hier nur der Schalter; ob wirklich geladen wird, entscheidet der freie Speicher.
         container.appScope.launch {
-            container.settingsRepository.settings.map { it.preload }.distinctUntilChanged().collect { PreloadPolicy.enabled = it }
+            container.settingsRepository.settings.map { it.preload to it.preloadDiskOnly }.distinctUntilChanged().collect { (on, diskOnly) ->
+                PreloadPolicy.enabled = on
+                PreloadPolicy.diskOnly = diskOnly
+            }
         }
         GoBackend.setAlwaysOnCallback { container.appScope.launch { container.vpn.wake() } }
         // Kindersicherung: Freischaltung endet, sobald die App in den Hintergrund geht (Home-Taste, Standby).
