@@ -31,9 +31,18 @@ internal object BenchmarkSetup {
         device.executeShellCommand("am start -n $APP_PACKAGE/.ui.MainActivity")
         device.wait(Until.hasObject(By.desc("Server-URL")), SETUP_TIMEOUT_MS)
 
-        device.findObject(By.desc("Server-URL"))?.apply { click(); text = fixtureUrl }
-        device.findObject(By.desc("Benutzername"))?.apply { click(); text = "demo" }
-        device.findObject(By.desc("Passwort"))?.apply { click(); text = "demo" }
+        device.findObject(By.desc("Server-URL"))?.apply {
+            click()
+            text = fixtureUrl
+        }
+        device.findObject(By.desc("Benutzername"))?.apply {
+            click()
+            text = "demo"
+        }
+        device.findObject(By.desc("Passwort"))?.apply {
+            click()
+            text = "demo"
+        }
         // Fixture läuft unverschlüsselt auf Loopback - ohne diese Freigabe lehnt die App HTTP grundsätzlich ab.
         device.findObject(By.text("HTTP zulassen"))?.click()
         device.findObject(By.text("Speichern & laden"))?.click()

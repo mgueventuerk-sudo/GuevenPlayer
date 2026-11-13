@@ -77,11 +77,17 @@ internal class BenchmarkFixture {
         }.toString()
 
         "get_vod_streams" -> JSONArray()
-            .put(JSONObject().put("stream_id", 601).put("name", "Benchmark-Film").put("category_id", "10").put("container_extension", "mp4").put("year", "2024"))
+            .put(
+                JSONObject().put("stream_id", 601).put("name", "Benchmark-Film").put("category_id", "10")
+                    .put("container_extension", "mp4").put("year", "2024"),
+            )
             .toString()
 
         "get_series" -> JSONArray()
-            .put(JSONObject().put("series_id", 701).put("name", "Benchmark-Serie").put("category_id", "20").put("rating", "8.0").put("releaseDate", "2024-01-01"))
+            .put(
+                JSONObject().put("series_id", 701).put("name", "Benchmark-Serie").put("category_id", "20")
+                    .put("rating", "8.0").put("releaseDate", "2024-01-01"),
+            )
             .toString()
 
         "get_series_info" -> seriesInfo(seriesId?.toIntOrNull() ?: 701)
