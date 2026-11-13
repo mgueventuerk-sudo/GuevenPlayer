@@ -16,17 +16,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.tv.material3.MaterialTheme
@@ -74,15 +73,22 @@ fun TrailerScreen(youtubeKey: String) {
     // diese Anfrage blieb der Schliessen-Knopf per Fernbedienung unerreichbar (Audit-Fund, auf echtem Gerät
     // bestätigt: TrailerFocusDeviceTest).
     val closeRequester = remember { FocusRequester() }
-    LaunchedEffect(Unit) {
-        // Ein einzelner Frame-Durchlauf reichte auf echten Geräten nicht zuverlässig (Audit-Fund, auf echten
-        // CI-Emulatoren bestätigt: API 24 bestand, API 28 scheiterte bei identischem Code - ein echtes
-        // Zeit-Rennen, kein Logikfehler). requestFocus() kann vor der Anlage des Fokus-Knotens im Layoutbaum
-        // laufen; mehrere Frame-Durchläufe geben dem echten Choreographer-Takt genug Spielraum.
-        repeat(5) {
-            withFrameNanos {}
-            runCatching { closeRequester.requestFocus() }
+    val view = LocalView.current
+    // Mehrere Compose-Frame-Durchläufe vor requestFocus() brachten keine verlässliche Besserung (auf echten
+    // CI-Emulatoren reproduziert: derselbe Code bestand mal auf API 24, scheiterte dann wieder auf API 24 -
+    // der Compose-Frame-Takt ist also nicht die eigentliche Bremse). Wahrscheinlicher: Das Android-Fenster
+    // selbst hat beim ersten Komponieren noch keinen Fensterfokus (hasWindowFocus() false kurz nach dem
+    // Aktivitätsstart) - requestFocus() auf einen Compose-Knoten bleibt dann wirkungslos, unabhängig vom
+    // Compose-Takt. Reagiert deshalb direkt auf das echte Fensterfokus-Ereignis statt auf eine geratene
+    // Frame-Anzahl zu warten.
+    DisposableEffect(Unit) {
+        fun tryFocus() {
+            if (view.hasWindowFocus()) runCatching { closeRequester.requestFocus() }
         }
+        tryFocus()
+        val listener = android.view.ViewTreeObserver.OnWindowFocusChangeListener { hasFocus -> if (hasFocus) tryFocus() }
+        view.viewTreeObserver.addOnWindowFocusChangeListener(listener)
+        onDispose { view.viewTreeObserver.removeOnWindowFocusChangeListener(listener) }
     }
 
     DisposableEffect(youtubeKey) {
