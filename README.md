@@ -284,11 +284,17 @@ mit fester Größe). Poster und Logo werden dafür aus derselben Quelle gebaut w
 die Anzeige den Eintrag nicht.
 
 **Wie viel, entscheidet der freie Speicher** (nicht nur die Geräteklasse):
-- *Aus:* „wenig Speicher“ laut Android, 2 min nach einer Speicherwarnung, unter Android-Schwelle + 200 MB oder unter 48 MB
-  freiem Heap – dann wird auch alles bisher Vorgeladene und nie Gezeigte sofort freigegeben.
-- *Leicht:* nur Datei-Cache, 12 / 18 / 24 Einträge voraus (schwach / mittel / stark).
+- *Aus:* „wenig Speicher“ laut Android, 2 min nach einer Speicherwarnung, unter 24 MB freiem Heap oder **unter 500 MB freiem
+  internen Speicher** – dann wird auch alles bisher Vorgeladene und nie Gezeigte sofort freigegeben.
+- *Leicht:* nur Datei-Cache im **internen Speicher** (kostet keinen Arbeitsspeicher). Das ist auch der Ausweg, wenn der
+  Arbeitsspeicher knapp ist (unter Android-Schwelle + 200 MB oder unter 48 MB Heap): dann 12 / 18 / 24 Einträge voraus.
+- *Reichweite der Platte nach freiem Platz* (ab 500 MB / 1 GB / 3 GB frei: 30 / 60 / 120 Einträge voraus; schwache Geräte
+  höchstens 30, wegen der Rechenzeit). Der Bild-Cache selbst wird beim Start nach dem freien Platz bemessen:
+  64 / 128 / 256 / 512 MB (vorher fest 256 MB). Er ist ein Cache: er verdrängt von selbst das Älteste, und Android darf ihn
+  bei Platznot leeren – er wird deshalb nicht wie der Arbeitsspeicher „freigegeben“.
 - *Voll* (nur mittel und stark; ab Schwelle + 500 MB und 96 MB Heap): Arbeitsspeicher, 30 / 60 voraus, so viele
-  davor bleiben vorgeladen, falls man zurückblättert. Kein Vorladen in den Speicher, wenn der Bild-Cache zu mehr als 85 % voll ist
+  davor bleiben vorgeladen, falls man zurückblättert; alles weiter voraus (bis zur Reichweite der Platte) landet nur im
+  Datei-Cache. Kein Vorladen in den Speicher, wenn der Bild-Cache zu mehr als 85 % voll ist
   (es verdrängte Bilder, die man schon gesehen hat).
 
 **Freigabe – nur von dem, was wir selbst vorgeladen haben und nie gezeigt wurde.** Was die Anzeige gezeigt hat, gehört dem

@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicInteger
 
 /** Welche Bilder die nächsten Einträge haben: Poster (undurchsichtig) oder Senderlogos (oft transparent). */
@@ -117,19 +118,24 @@ internal object ImagePrefetcher {
 
     suspend fun prefetch(context: Context, kind: PrefetchKind, view: Visible, itemCount: Int, urlAt: (Int) -> String?, posterSize: IntSize?) {
         val loader = SingletonImageLoader.get(context)
-        val budget = PreloadPolicy.current(context)
+        // Misst auch den freien Platz im Dateisystem: nicht im Hauptthread.
+        val budget = withContext(Dispatchers.IO) { PreloadPolicy.current(context) }
         if (!budget.active) {
             release(loader.memoryCache, ledger.all(), "Speicher knapp oder Vorladen aus")
             return
         }
-        val wanted = PrefetchPlan.window(view.first, view.last, itemCount, budget.keepBehind, budget.imagesAhead, urlAt)
+        val reach = if (budget.warmMemory) maxOf(budget.imagesAhead, 0) else 0
+        val wanted = PrefetchPlan.window(view.first, view.last, itemCount, budget.keepBehind, reach, urlAt)
         release(loader.memoryCache, ledger.outsideWindow(wanted), "außerhalb des Fensters")
         release(loader.memoryCache, ledger.expired(UNUSED_TTL_MS), "ungenutzt abgelaufen")
-        val urls = PrefetchPlan.upcoming(view.last, itemCount, budget.imagesAhead, urlAt) { if (budget.warmMemory) memoryKnown(it) else diskKnown(it) }
-        if (urls.isEmpty()) return
-        log(context, budget, urls.size)
-        for (url in urls) {
-            gate.withPermit { load(context, loader, kind, url, memory = budget.warmMemory && roomInMemory(loader), posterSize = posterSize) }
+        // Die nächsten Einträge (imagesAhead) kommen fertig in den Arbeitsspeicher, alles weiter voraus nur in den Datei-Cache.
+        val upcoming = PrefetchPlan.ahead(view.last, itemCount, maxOf(budget.diskAhead, reach), urlAt)
+        val todo = upcoming.withIndex().filter { (i, url) -> if (budget.warmMemory && i < reach) !memoryKnown(url) else !diskKnown(url) }
+        if (todo.isEmpty()) return
+        log(context, budget, todo.size)
+        for ((i, url) in todo) {
+            val memory = budget.warmMemory && i < reach && roomInMemory(loader)
+            gate.withPermit { load(context, loader, kind, url, memory = memory, posterSize = posterSize) }
         }
     }
 
@@ -207,7 +213,9 @@ internal object ImagePrefetcher {
         val device = DeviceTier.of(context).label
         AppLog.log(
             "Vorladen",
-            "$count Bilder voraus (Stufe ${budget.level}, Gerät $device, frei ${memory?.availMb} MB, Heap frei ${memory?.heapFreeMb} MB); " +
+            "$count Bilder voraus (Stufe ${budget.level}, Gerät $device, frei ${memory?.availMb} MB, Heap frei ${memory?.heapFreeMb} MB, " +
+                "Speicherplatz frei ${memory?.storageFreeMb} MB, Datei-Cache ${budget.diskAhead} voraus, " +
+                "Arbeitsspeicher ${if (budget.warmMemory) budget.imagesAhead else 0} voraus); " +
                 "im Speicher vorgeladen ${warmed.get()}, davon gezeigt ${used.get()}, freigegeben ${released.get()}, noch ungenutzt ${ledger.size}; " +
                 ImageUsage.takeSummary(),
         )

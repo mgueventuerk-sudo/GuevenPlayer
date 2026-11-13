@@ -15,6 +15,7 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import com.mg.player.BuildConfig
 import com.mg.player.core.device.DeviceTier
+import com.mg.player.core.device.DiskCachePlan
 import com.mg.player.core.device.PreloadPolicy
 import com.mg.player.core.di.AppContainer
 import com.mg.player.core.log.AppLog
@@ -153,7 +154,7 @@ open class PlayerApp :
         .diskCache {
             DiskCache.Builder()
                 .directory(cacheDir.resolve("images"))
-                .maxSizeBytes(256L * 1024 * 1024)
+                .maxSizeBytes(DiskCachePlan.maxBytes(PreloadPolicy.storageFreeMb(cacheDir)))
                 .build()
         }
         // Eigener OkHttp-Client wie bisher bei Coil 2; Cache-Header der Server ignoriert Coil 3 von sich aus

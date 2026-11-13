@@ -366,6 +366,8 @@ im Fehlerprotokoll vergleichen (siehe K3, 3.22). Ergebnis in `config/perf-budget
 - [ ] U7 Viele andere Apps im Hintergrund geöffnet: Stufe „LEICHT“ oder keine Zeilen – nie Absturz oder „App reagiert nicht“.
 - [ ] U8 Vorladen aus → keine „Vorladen“-Zeilen im Protokoll.
 - [ ] U9 W1 (30 min normal schauen) wiederholen: Wiedergabe wie vorher, kein zusätzliches Ruckeln beim Blättern.
+- [ ] U11 Protokollzeile „Vorladen: …“ nennt jetzt „Speicherplatz frei … MB, Datei-Cache … voraus, Arbeitsspeicher … voraus“: bei viel freiem Platz bis 120 voraus, bei wenig Platz (500–1000 MB) 30; unter 500 MB frei kein Vorladen.
+- [ ] U12 Viele andere Apps offen (Arbeitsspeicher knapp), aber Platz frei: Stufe LEICHT, „Arbeitsspeicher 0 voraus“, Datei-Cache weiter > 0 – Blättern trotzdem ohne Nachladeruckeln bei bereits besuchten/vorgeladenen Listen.
 - [ ] U10 Vorher/Nachher: „Bildzeiten live/…: … % verpasst“ je 3 Läufe mit und ohne Vorladen; dazu „angezeigt seit zuletzt: Speicher/Platte/Netz“.
 
 ## 16t. Neu in 3.59 – Wächter: Ton ohne Bild

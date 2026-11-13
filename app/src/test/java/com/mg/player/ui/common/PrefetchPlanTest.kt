@@ -11,6 +11,15 @@ class PrefetchPlanTest {
         PrefetchPlan.upcoming(last, total, count, at) { it in done }
 
     @Test
+    fun aheadKeepsTheOrderAndIgnoresWhatIsAlreadyDone() {
+        val all = PrefetchPlan.ahead(10, urls.size, 5) { urls.getOrNull(it) }
+        assertEquals(urls.subList(11, 16), all)
+        // „bereits erledigt“ filtert nur upcoming, nicht ahead – das Aufteilen in Speicher/Platte macht der Aufrufer.
+        assertEquals(urls.subList(12, 16), plan(last = 10, count = 5, done = setOf(urls[11])))
+        assertTrue(PrefetchPlan.ahead(-1, urls.size, 5) { urls.getOrNull(it) }.isEmpty())
+    }
+
+    @Test
     fun takesTheEntriesRightAfterTheLastVisibleOne() {
         assertEquals(urls.subList(11, 16), plan(last = 10, count = 5))
     }
