@@ -22,10 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.tv.material3.MaterialTheme
@@ -69,27 +66,6 @@ fun TrailerScreen(youtubeKey: String) {
     var failed by remember { mutableStateOf(false) }
     var failDetail by remember { mutableStateOf<String?>(null) }
     var baseUrl by remember { mutableStateOf<String?>(null) }
-    // TrailerScreen hat sonst kein fokussierbares Element (die WebView selbst nimmt keinen D-Pad-Fokus an) - ohne
-    // diese Anfrage blieb der Schliessen-Knopf per Fernbedienung unerreichbar (Audit-Fund, auf echtem Gerät
-    // bestätigt: TrailerFocusDeviceTest).
-    val closeRequester = remember { FocusRequester() }
-    val view = LocalView.current
-    // Mehrere Compose-Frame-Durchläufe vor requestFocus() brachten keine verlässliche Besserung (auf echten
-    // CI-Emulatoren reproduziert: derselbe Code bestand mal auf API 24, scheiterte dann wieder auf API 24 -
-    // der Compose-Frame-Takt ist also nicht die eigentliche Bremse). Wahrscheinlicher: Das Android-Fenster
-    // selbst hat beim ersten Komponieren noch keinen Fensterfokus (hasWindowFocus() false kurz nach dem
-    // Aktivitätsstart) - requestFocus() auf einen Compose-Knoten bleibt dann wirkungslos, unabhängig vom
-    // Compose-Takt. Reagiert deshalb direkt auf das echte Fensterfokus-Ereignis statt auf eine geratene
-    // Frame-Anzahl zu warten.
-    DisposableEffect(Unit) {
-        fun tryFocus() {
-            if (view.hasWindowFocus()) runCatching { closeRequester.requestFocus() }
-        }
-        tryFocus()
-        val listener = android.view.ViewTreeObserver.OnWindowFocusChangeListener { hasFocus -> if (hasFocus) tryFocus() }
-        view.viewTreeObserver.addOnWindowFocusChangeListener(listener)
-        onDispose { view.viewTreeObserver.removeOnWindowFocusChangeListener(listener) }
-    }
 
     DisposableEffect(youtubeKey) {
         val server = TrailerLocalServer(youtubeKey)
@@ -146,7 +122,6 @@ fun TrailerScreen(youtubeKey: String) {
                 .align(Alignment.TopEnd)
                 .padding(20.dp)
                 .size(40.dp)
-                .focusRequester(closeRequester)
                 .glass(CircleShape, raised = true)
                 .clickable(onClickLabel = "Zurück", onClick = navigator::pop),
             contentAlignment = Alignment.Center,
