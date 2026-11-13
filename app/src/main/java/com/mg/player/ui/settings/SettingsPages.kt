@@ -1,15 +1,25 @@
 package com.mg.player.ui.settings
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.tv.material3.MaterialTheme
+import androidx.tv.material3.Text
 import com.mg.player.BuildConfig
+import com.mg.player.core.log.AppLog
 import com.mg.player.core.vpn.VpnProfile
 import com.mg.player.data.backup.AutoBackup
 import com.mg.player.data.backup.AutoBackupWorker
@@ -24,6 +34,7 @@ import com.mg.player.ui.common.LocalAppContainer
 import com.mg.player.ui.common.ParentalGateState
 import com.mg.player.ui.navigation.Navigator
 import com.mg.player.ui.navigation.Screen
+import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcon
 import com.mg.player.ui.theme.AppIcons
 import kotlinx.coroutines.launch
@@ -176,6 +187,11 @@ internal fun LazyListScope.settingsSubPage(sub: SettingsSub, c: SettingsContext)
  * Schreibt täglich eine verschlüsselte Sicherung in einen selbst gewählten Ordner, ohne dass man die App dafür
  * öffnet (AutoBackupWorker). Direkt über den Container statt über das ViewModel, damit SettingsViewModel nicht
  * noch eine Funktion mehr bekommt (Detekt TooManyFunctions stand schon am Limit).
+ *
+ * Manche Geräte (z. B. Fire-TV-Sticks mit FireOS statt echtem Android) liefern keine App aus, die den
+ * SAF-Ordnerauswahl-Dialog zeigt - ACTION_OPEN_DOCUMENT_TREE wirft dort eine ungefangene
+ * ActivityNotFoundException und reißt die App mit. Deshalb vorher prüfen und, falls nicht unterstützt, eine
+ * Meldung statt eines Absturzes zeigen.
  */
 @Composable
 private fun AutoBackupRow(c: SettingsContext) {
@@ -183,6 +199,7 @@ private fun AutoBackupRow(c: SettingsContext) {
     val container = LocalAppContainer.current
     val scope = rememberCoroutineScope()
     val configured = !c.s.autoBackupFolderUri.isNullOrBlank()
+    var unsupported by remember { mutableStateOf(false) }
     val pickFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
@@ -191,26 +208,44 @@ private fun AutoBackupRow(c: SettingsContext) {
             AutoBackupWorker.schedule(context.applicationContext)
         }
     }
-    ToggleRow(
-        "Automatische Sicherung",
-        checked = configured,
-        onToggle = {
-            c.gate.runWithPin {
-                if (configured) {
-                    scope.launch { AutoBackup.configure(container.settingsRepository, null) }
-                    AutoBackupWorker.cancel(context.applicationContext)
-                } else {
-                    pickFolder.launch(null)
+    Column {
+        ToggleRow(
+            "Automatische Sicherung",
+            checked = configured,
+            onToggle = {
+                c.gate.runWithPin {
+                    if (configured) {
+                        scope.launch { AutoBackup.configure(container.settingsRepository, null) }
+                        AutoBackupWorker.cancel(context.applicationContext)
+                    } else if (AutoBackup.folderPickerAvailable(context)) {
+                        try {
+                            pickFolder.launch(null)
+                        } catch (e: ActivityNotFoundException) {
+                            // folderPickerAvailable() sagte ja, aber manche Geräte widersprechen sich selbst - zweite Absicherung.
+                            AppLog.log("Sicherung", "Ordnerauswahl trotz Prüfung nicht verfügbar: ${e.message}")
+                            unsupported = true
+                        }
+                    } else {
+                        unsupported = true
+                    }
                 }
-            }
-        },
-        description = if (configured) {
-            "Täglich im gewählten Ordner, ohne die App zu öffnen"
-        } else {
-            "Ordner wählen – läuft danach automatisch, ohne die App zu öffnen"
-        },
-        icon = AppIcons.Upload,
-    )
+            },
+            description = if (configured) {
+                "Täglich im gewählten Ordner, ohne die App zu öffnen"
+            } else {
+                "Ordner wählen – läuft danach automatisch, ohne die App zu öffnen"
+            },
+            icon = AppIcons.Upload,
+        )
+        if (unsupported) {
+            Text(
+                "Dieses Gerät bietet keine Ordnerauswahl - automatische Sicherung ist hier nicht möglich.",
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = AppColors.TextMuted,
+            )
+        }
+    }
 }
 
 private fun LazyListScope.systemItems(c: SettingsContext) {
