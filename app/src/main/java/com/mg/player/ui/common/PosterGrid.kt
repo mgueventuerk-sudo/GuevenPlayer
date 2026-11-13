@@ -261,12 +261,21 @@ fun <T : Any> PagingPosterGrid(
                     onFocused = { backdrop.url = poster.imageUrl },
                     modifier = Modifier
                         .then(if (isFirstFocusTarget) Modifier.focusRequester(firstPosterRequester) else Modifier)
-                        .then(if (isRestoreTarget) Modifier.focusRequester(restoreRequester) else Modifier),
+                        .then(
+                            if (isRestoreTarget) {
+                                // Erst die echte Fokusmeldung hakt den Auftrag ab (wie in der Senderliste) – nicht der
+                                // bloße Versuch. Der Requester bleibt angehängt, solange der Auftrag offen ist.
+                                Modifier.focusRequester(restoreRequester).onFocusChanged { if (it.isFocused) restorePending = false }
+                            } else {
+                                Modifier
+                            },
+                        ),
                 )
                 if (isRestoreTarget) {
                     LaunchedEffect(Unit) {
-                        runCatching { restoreRequester.requestFocus() }
-                        restorePending = false
+                        // Direkt nach dem Zurückkehren ist die Kachel oft erst nach ein, zwei Bildern fokussierbar.
+                        // Ein einzelner Versuch scheiterte still, und der Fokus lag im Nichts bzw. auf der ersten Kachel.
+                        if (!restoreRequester.requestFocusWhenReady(attempts = RESTORE_ATTEMPTS)) restorePending = false
                     }
                 }
             }
@@ -276,3 +285,6 @@ fun <T : Any> PagingPosterGrid(
 
 /** Genug Kacheln, um auch ein breites TV-Grid (bis zu 7 Spalten) über mehrere Zeilen zu füllen. */
 private const val SKELETON_TILE_COUNT = 21
+
+/** 40 × 50 ms = 2 s, wie beim Kaltstart-Fokus des Rasters und der Senderliste. */
+private const val RESTORE_ATTEMPTS = 40

@@ -205,8 +205,13 @@ fun PlayerScreen(request: PlayRequest) {
 
         if (s.moreOpen) {
             MorePanel(
-                // Uebergabe nur am Handy anbieten: Von dort gibt man ab, nicht umgekehrt.
-                sections = moreSections(ui, sleep.buttonLabel, handoffPossible = isTouch && HandoffRequest.isSupported(vm.request)),
+                // Uebergabe nur am Handy anbieten: Von dort gibt man ab, nicht umgekehrt. Massgeblich ist der laufende
+                // Inhalt, nicht der Start-Wunsch (nach dem Zappen aus einem Catch-up laeuft z. B. laengst Live).
+                sections = moreSections(
+                    ui,
+                    sleep.buttonLabel,
+                    handoffPossible = isTouch && ui.playable?.toPlayRequest(0L)?.let(HandoffRequest::isSupported) == true,
+                ),
                 focusKey = s.moreFocus,
                 onFocusKey = { s.moreFocus = it },
                 onAction = { s.onMoreAction(it.action) },

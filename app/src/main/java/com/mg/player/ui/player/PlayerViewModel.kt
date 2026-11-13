@@ -218,8 +218,9 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
     private fun isCurrent(playable: Playable): Boolean = uiState.value.playable?.isSameStream(playable) == true
 
     /**
-     * „Auf dem Fernseher weiterschauen“: denselben Inhalt an das Geraet im Heimnetz geben, das die Uebergabe
-     * angeschaltet hat - mit der **aktuellen** Position, nicht der, mit der hier gestartet wurde.
+     * „Auf dem Fernseher weiterschauen“: den **laufenden** Inhalt an das Geraet im Heimnetz geben, das die Uebergabe
+     * angeschaltet hat - mit der **aktuellen** Position, nicht der, mit der hier gestartet wurde. Der laufende Inhalt
+     * ist [PlayerUiState.playable], nicht [request]: Nach dem Zappen oder „Naechste Folge“ laeuft laengst etwas anderes.
      * Uebertragen werden nur Kennung und Position; der Fernseher spielt ueber seinen eigenen Zugang.
      */
     fun handoffToTv() {
@@ -231,12 +232,8 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
                 return@launch
             }
             val position = engineHolder.value?.positionMs?.takeIf { it > 0 } ?: lastKnownPosition
-            val target = when (val r = request) {
-                is PlayRequest.Movie -> r.copy(startPositionMs = position)
-                is PlayRequest.Episode -> r.copy(startPositionMs = position)
-                else -> request
-            }
-            if (!HandoffRequest.isSupported(target)) {
+            val target = uiState.value.playable?.toPlayRequest(position)
+            if (target == null || !HandoffRequest.isSupported(target)) {
                 toast("Das laesst sich nicht uebergeben")
                 return@launch
             }

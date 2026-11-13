@@ -43,11 +43,11 @@ import com.mg.player.ui.common.FocusSurface
 import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.appViewModel
 import com.mg.player.ui.common.isTouch
+import com.mg.player.ui.common.requestFocusWhenReady
 import com.mg.player.ui.theme.AnimatedIcon
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
 import com.mg.player.ui.theme.BrandLogo
-import kotlinx.coroutines.delay
 
 /**
  * "Welche Länder möchtest du sehen?" – nach dem Einrichten eines Zugangs ([firstRun]) oder aus den Einstellungen.
@@ -68,13 +68,8 @@ fun CountryFilterScreen(firstRun: Boolean, onDone: () -> Unit, playlistId: Long?
         return
     }
     val firstRequester = remember { FocusRequester() }
-    LaunchedEffect(Unit) {
-        // Das Raster braucht einen Moment, bis die erste Karte da ist.
-        repeat(10) {
-            if (runCatching { firstRequester.requestFocus() }.isSuccess) return@LaunchedEffect
-            delay(60)
-        }
-    }
+    // Das Raster braucht einen Moment, bis die erste Karte da ist.
+    LaunchedEffect(Unit) { firstRequester.requestFocusWhenReady() }
 
     val touch = isTouch
     Column(Modifier.fillMaxSize().padding(horizontal = if (touch) 16.dp else 64.dp, vertical = if (touch) 16.dp else 36.dp)) {

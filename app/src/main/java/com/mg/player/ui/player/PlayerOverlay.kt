@@ -22,10 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -35,11 +33,6 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,7 +45,10 @@ import com.mg.player.domain.model.MatchedEvent
 import com.mg.player.ui.common.LiveBadge
 import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.glass
+import com.mg.player.ui.common.ignoreOpeningOkRelease
 import com.mg.player.ui.common.isTouch
+import com.mg.player.ui.common.requestFocusWhenReady
+import com.mg.player.ui.common.tryRequestFocus
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
 import com.mg.player.ui.vpn.LocalVpnState
@@ -124,12 +120,10 @@ fun PlayerOverlay(
     fun Modifier.memo(key: String): Modifier =
         focusRequester(requesters.getOrPut(key) { FocusRequester() }).onFocusChanged { if (it.isFocused) currentOnFocusKey(key) }
     LaunchedEffect(focusTick) {
+        // Ehrliches Ergebnis statt Ausnahme-Prüfung: Lehnt das gemerkte Element den Fokus (noch) ab, greift der erste Knopf.
         val remembered = focusKey?.let(requesters::get)
-        if (remembered == null || runCatching { remembered.requestFocus() }.isFailure) runCatching { firstRequester.requestFocus() }
+        if (remembered == null || !remembered.tryRequestFocus()) firstRequester.requestFocusWhenReady()
     }
-    // Der OK-Druck, der das Overlay geöffnet hat, darf nicht gleich "Pause" auslösen: Sein Loslassen und
-    // Tasten-Wiederholungen (etwas längeres Drücken) werden geschluckt. Ein neuer Tastendruck geht sofort durch.
-    var armed by remember { mutableStateOf(false) }
     // Weich einblenden und leicht hochgleiten (Apple TV); Ausblenden sofort, damit nichts nachläuft.
     val appear = remember { Animatable(0f) }
     LaunchedEffect(Unit) { appear.animateTo(1f, tween(APPEAR_MS, easing = FastOutSlowInEasing)) }
@@ -142,26 +136,8 @@ fun PlayerOverlay(
                 alpha = appear.value
                 translationY = (1f - appear.value) * lift
             }
-            .onPreviewKeyEvent { event ->
-                if (armed) return@onPreviewKeyEvent false
-                val isOk = event.key == Key.DirectionCenter || event.key == Key.Enter || event.key == Key.NumPadEnter
-                when {
-                    !isOk -> false
-
-                    event.type == KeyEventType.KeyUp -> {
-                        armed = true
-                        true
-                    }
-
-                    event.nativeKeyEvent.repeatCount > 0 -> true
-
-                    else -> {
-                        // Frischer Druck (das Loslassen des Öffnens ging verloren): durchlassen.
-                        armed = true
-                        false
-                    }
-                }
-            },
+            // Der OK-Druck, der das Overlay geöffnet hat, darf nicht gleich "Pause" auslösen (gleiche Sperre wie im Kontextmenü).
+            .ignoreOpeningOkRelease(),
     ) {
         Box(
             Modifier

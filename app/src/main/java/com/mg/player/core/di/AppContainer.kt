@@ -345,7 +345,8 @@ class AppContainer(context: Context, settingsOverride: SettingsRepository? = nul
             StreamRecorder(httpFetcher.client),
             streamUrlResolver,
             channelLookup = { id -> liveRepository.channel(id) },
-            connectionStatus = { id -> connectionMonitor.status.value[id] },
+            // Frisch abfragen statt den Cache zu lesen: Der wird nur aufgefrischt, solange ein Bildschirm zusieht.
+            connectionStatus = { id -> connectionMonitor.checkNow(id, timeoutMs = RECORDING_CONNECTION_CHECK_MS) },
         )
     }
     val autoRecorder: AutoRecorder by lazy {
@@ -448,3 +449,6 @@ class AppContainer(context: Context, settingsOverride: SettingsRepository? = nul
 
 /** Wie oft handoffLoop() nachsieht, ob der Server nach einem Netzwechsel noch lauscht - selbes Intervall wie SportModule.shareLoop. */
 private const val HANDOFF_RECHECK_MS = 60_000L
+
+/** Frist für die frische Verbindungsabfrage vor einer Aufnahme; danach gilt der Stand als unbekannt und die Aufnahme startet. */
+private const val RECORDING_CONNECTION_CHECK_MS = 4_000L

@@ -41,7 +41,14 @@ class HandoffServer(private val context: Context, private val onPlay: (PlayReque
     /** Zufallswerte der letzten Anfragen – jede signierte Anfrage gilt nur einmal. */
     private val seen = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
-    /** Lauschen. Ein geändertes Geheimnis wird sofort übernommen (Server neu anmelden). */
+    /**
+     * Lauschen. Ein geändertes Geheimnis wird sofort übernommen (Server neu anmelden).
+     *
+     * Synchronisiert: AppContainer.handoffLoop() ruft start() aus zwei Coroutinen (Einstellungsänderung und
+     * Minuten-Nachprüfung) auf Dispatchers.IO – ohne Sperre sähen beide „kein Server“ und bauten zwei Server auf,
+     * von denen der erste nie wieder beendet würde (offener Port, doppelte Anmeldung im Heimnetz).
+     */
+    @Synchronized
     fun start(secret: String) {
         if (secret.isBlank()) return
         // Nicht nur "ein Server existiert", sondern "er nimmt noch Verbindungen an": Ein Netzwechsel kann den
@@ -69,6 +76,7 @@ class HandoffServer(private val context: Context, private val onPlay: (PlayReque
             .onSuccess { registration = listener }
     }
 
+    @Synchronized
     fun stop() {
         registration?.let { listener -> runCatching { context.getSystemService(NsdManager::class.java)?.unregisterService(listener) } }
         registration = null

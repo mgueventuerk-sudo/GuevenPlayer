@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +35,8 @@ import com.mg.player.ui.navigation.LocalNavigator
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
 import com.mg.player.ui.theme.StaticIcon
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.io.InputStream
 import java.net.InetAddress
@@ -67,16 +70,18 @@ fun TrailerScreen(youtubeKey: String) {
     var failDetail by remember { mutableStateOf<String?>(null) }
     var baseUrl by remember { mutableStateOf<String?>(null) }
 
-    DisposableEffect(youtubeKey) {
-        val server = TrailerLocalServer(youtubeKey)
-        val url = server.start()
+    val server = remember(youtubeKey) { TrailerLocalServer(youtubeKey) }
+    DisposableEffect(server) { onDispose { server.stop() } }
+    // start() wartet auf das Binden im Hintergrund-Thread (bis zu BIND_TIMEOUT_MS) - das gehört nicht in den
+    // Hauptthread, der hier gerade das Bild aufbaut.
+    LaunchedEffect(server) {
+        val url = withContext(Dispatchers.IO) { server.start() }
         if (url == null) {
             failed = true
             failDetail = server.lastFailureReason
         } else {
             baseUrl = url
         }
-        onDispose { server.stop() }
     }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
@@ -168,6 +173,12 @@ internal class TrailerLocalServer(private val youtubeKey: String) {
      */
     fun start(): String? {
         lastFailureReason = null
+        // Die Kennung kommt von TMDB (fremde Daten) und landet unten unmaskiert im HTML eines WebView mit JavaScript:
+        // Nur das YouTube-Alphabet durchlassen, sonst liesse sich mit einem Anfuehrungszeichen eigenes Markup einschleusen.
+        if (!KEY_PATTERN.matches(youtubeKey)) {
+            lastFailureReason = "Ungültige Video-Kennung"
+            return null
+        }
         val result = AtomicReference<String?>(null)
         val bound = CountDownLatch(1)
         Thread {
@@ -253,5 +264,8 @@ internal class TrailerLocalServer(private val youtubeKey: String) {
         const val BACKLOG = 8
         const val REQUEST_TIMEOUT_MS = 5_000
         const val BIND_TIMEOUT_MS = 2_000L
+
+        /** YouTube-Video-Kennungen: Buchstaben, Ziffern, „-“ und „_“ (heute 11 Zeichen; etwas Luft nach oben). */
+        val KEY_PATTERN = Regex("[A-Za-z0-9_-]{6,32}")
     }
 }

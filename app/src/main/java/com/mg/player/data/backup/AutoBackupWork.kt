@@ -18,15 +18,23 @@ import com.mg.player.domain.repository.SettingsRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.security.SecureRandom
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
+import kotlin.random.asKotlinRandom
 
-/** Zufälliges Kennwort für die automatische Sicherung - niemand gibt es ein, also lang statt merkbar. */
+/**
+ * Zufälliges Kennwort für die automatische Sicherung - niemand gibt es ein, also lang statt merkbar.
+ *
+ * Aus [SecureRandom], nicht aus `kotlin.random.Random`: Dessen Standardquelle ist kein kryptografischer Zufall – wer den
+ * Startwert kennt oder eingrenzt, kann das Kennwort nachrechnen, und die Sicherung enthält Xtream-Passwörter und den
+ * privaten WireGuard-Schlüssel. [random] bleibt austauschbar für deterministische Tests.
+ */
 object AutoBackupPassphrase {
     private const val LENGTH = 32
     private const val CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
-    fun generate(random: Random = Random): String = (1..LENGTH).map { CHARS[random.nextInt(CHARS.length)] }.joinToString("")
+    fun generate(random: Random = SecureRandom().asKotlinRandom()): String = (1..LENGTH).map { CHARS[random.nextInt(CHARS.length)] }.joinToString("")
 }
 
 /**

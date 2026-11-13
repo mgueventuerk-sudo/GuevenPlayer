@@ -39,13 +39,13 @@ import com.mg.player.ui.common.LocalSurfaceFocused
 import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.RowColors
 import com.mg.player.ui.common.glass
-import com.mg.player.ui.theme.AppShapes
+import com.mg.player.ui.common.requestFocusWhenReady
 import com.mg.player.ui.theme.AnimatedIcon
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcon
 import com.mg.player.ui.theme.AppIcons
+import com.mg.player.ui.theme.AppShapes
 import com.mg.player.ui.theme.Dimens
-import kotlinx.coroutines.delay
 
 /**
  * Schnellwechsel zwischen mehreren Zugängen (Xtream oder M3U). Als eigenes Fenster umgesetzt,
@@ -68,13 +68,8 @@ fun AccountSwitcherDialog(
         val monitor = LocalAppContainer.current.connectionMonitor
         // Beim Öffnen frisch abfragen – der Wechsel hängt davon ab, ob ein Zugang gerade frei ist.
         LaunchedEffect(monitor) { monitor.refresh() }
-        LaunchedEffect(Unit) {
-            // Das Dialogfenster braucht einen Moment, bis es Fokus annehmen kann.
-            repeat(10) {
-                if (runCatching { requester.requestFocus() }.isSuccess) return@LaunchedEffect
-                delay(50)
-            }
-        }
+        // Das Dialogfenster braucht einen Moment, bis es Fokus annehmen kann.
+        LaunchedEffect(Unit) { requester.requestFocusWhenReady() }
         Column(
             Modifier
                 .padding(horizontal = 16.dp)

@@ -40,8 +40,12 @@ class RecordingManager(
     private val recorder: StreamRecorder,
     private val urls: StreamUrlResolver,
     private val channelLookup: suspend (String) -> Channel?,
-    /** Aktuell bekannter Verbindungsstand des Zugangs (zwischengespeichert, siehe ConnectionMonitor.status). */
-    private val connectionStatus: (playlistId: Long) -> ConnectionStatus? = { null },
+    /**
+     * Verbindungsstand des Zugangs **frisch** abgefragt (siehe ConnectionMonitor.checkNow); null = unbekannt. Kein
+     * zwischengespeicherter Wert: Der Cache wird nur aufgefrischt, solange ein Bildschirm ihn beobachtet – eine geplante
+     * Aufnahme am nächsten Morgen scheiterte sonst an einem „1/1“ vom Vorabend, obwohl längst niemand mehr schaute.
+     */
+    private val connectionStatus: suspend (playlistId: Long) -> ConnectionStatus? = { null },
 ) {
     private val store = RecordingStore(File(context.filesDir, "recordings.json"))
     private val alarms = RecordingAlarms(context)

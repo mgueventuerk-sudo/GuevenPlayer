@@ -271,6 +271,51 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.58 (Fernbedienung und Fokus am Fernseher, Review über den gesamten Code)
+
+**Fokus (Fernseher).** Ursache vieler „der Cursor ist weg / springt von selbst“-Momente: `requestFocus()` meldet seit
+Compose 1.6 „noch nicht fokussierbar“ als **false**, nicht als Ausnahme. Der zentrale Helfer prüfte nur auf die
+Ausnahme und brach deshalb nach dem ersten Versuch ab – genau im Fall des frisch geöffneten Dialogfensters, für den er
+geschrieben war. Behoben in einer Stelle (`requestFocusWhenReady`, jetzt mit ehrlichem Ergebnis), dazu dieselbe Logik
+an allen Stellen, die ihr eigenes Süppchen kochten. Sichtbar:
+
+- **Dialoge** (Bestätigung, PIN, Kontextmenü, Zugangswechsel, Sport-Ereignis, Player-Panels): Der erste Eintrag ist
+  nach dem Öffnen zuverlässig markiert; der erste Tastendruck geht nicht mehr ins Leere.
+- **Kontextmenü schloss sich von selbst:** Das Loslassen der OK-Taste, deren langer Druck das Menü öffnete, traf den
+  gerade markierten ersten Eintrag („Abspielen“) und löste ihn aus. Das Loslassen (und Tasten-Wiederholungen) wird
+  jetzt verworfen; ein frischer Druck geht sofort durch. Gilt genauso fürs Player-Overlay (gemeinsamer Baustein statt
+  zweier Kopien). **Am echten Fernseher ungeprüft** – das Tastentiming lässt sich in Robolectric nicht nachstellen.
+- **Filme/Serien-Raster:** Nach „Zurück“ aus der Detailseite landet der Fokus wieder auf dem gewählten Poster, auch wenn
+  die Kachel erst ein, zwei Bilder später fokussierbar ist (vorher: ein Versuch, dann Fokus im Nichts oder erste Kachel).
+- **Serien-Detailseite:** Der nachgeladene Knopf „Weiterschauen“ riss den Fokus an sich, egal wo man war (z. B. mitten
+  in der Episodenliste). Jetzt Fokus-Speicher wie beim Film; ohne begonnene Folge ist der Favoriten-Knopf markiert
+  statt nichts.
+- **TMDB-Titel:** Der Fokus sprang bei jeder Änderung der Trefferliste zurück auf den ersten „Abspielen“-Knopf – jetzt
+  nur beim ersten fertigen Ergebnis.
+- **Leiste → Gruppen:** „Runter“ aus der oberen Leiste wurde als verbraucht gemeldet, auch wenn die Gruppen noch nicht
+  fokussierbar waren (Taste „tat nichts“). Jetzt nur, wenn der Fokus wirklich gewandert ist.
+- **Einstellungen:** Nach dem Schließen einer Unterseite kommt der Fokus mit Wiederholung auf die Zeile zurück, die sie
+  geöffnet hat.
+- Regressionstests: `RequestFocusWhenReadyTest` (Ziel wird erst später fokussierbar; Ziel wird nie fokussierbar),
+  `FocusMemoryTest` (gemerktes Element lehnt ab → Ersatz greift).
+
+**Review über den gesamten Code** (Korrektheit, Sicherheit, Nebenläufigkeit):
+
+- **Handy → TV weiterschauen** übergab den *Start*-Wunsch statt des *laufenden* Inhalts: Nach Zappen oder „Nächste
+  Folge“ startete der Fernseher den falschen Sender bzw. die vorige Folge. Jetzt wird übergeben, was gerade läuft.
+- **Aufnahme „Verbindungslimit erreicht“ ohne Grund:** Die Prüfung las einen alten Zwischenstand der Verbindungen (nur
+  frisch, solange ein Bildschirm ihn beobachtet). Jetzt eine frische Abfrage (4 s); unbekannt = Aufnahme startet.
+- **Automatische Sicherung:** Das Kennwort kam aus `kotlin.random.Random` (kein kryptografischer Zufall) – jetzt
+  `SecureRandom`. Betroffen sind nur Sicherungen, die seit der automatischen Sicherung (3.57) erzeugt wurden; wer die
+  nutzt, sollte sie einmal neu anlegen lassen (Einstellungen → Sicherung).
+- **Trailer:** YouTube-Kennung aus der TMDB-Antwort wird geprüft (`[A-Za-z0-9_-]{6,32}`) statt ungeprüft ins Iframe
+  geschrieben; der lokale Server startet nicht mehr blockierend im Hauptthread.
+- **Heimnetz-Server** (Übergabe, Prüfgerät): `start()`/`stop()` synchronisiert – zwei gleichzeitige Aufrufe konnten
+  zwei Server mit demselben Namen anlegen, einer davon unerreichbar und nie beendet.
+- Offen gelassen (eigener Schritt, Protokolländerung): Die Antwort des Fernsehers bei der Übergabe ist – anders als
+  beim Prüfgerät – noch nicht signiert; ein fremdes Gerät im WLAN kann „angenommen“ melden. Ebenso: dauerhaft
+  scheiternde automatische Sicherung wird nur protokolliert, nicht angezeigt.
+
 ## Neu in 3.57 (Spiel-Finder: Pairing, ehrliche Quoten, nachvollziehbare Beweise)
 
 - **Handy → TV weiterschauen (neu):** Im Player am Handy unter „Mehr“ steht „Auf dem Fernseher weiterschauen“.

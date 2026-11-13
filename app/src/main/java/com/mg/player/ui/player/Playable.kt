@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.mg.player.core.di.AppContainer
 import com.mg.player.core.util.TimeUtils
 import com.mg.player.data.combined.Combined
+import com.mg.player.domain.model.Category
 import com.mg.player.domain.model.Channel
 import com.mg.player.domain.model.EpgProgram
 import com.mg.player.domain.model.Episode
@@ -129,6 +130,20 @@ sealed interface PlayerEvent {
     data object Close : PlayerEvent
     data class ApplyFrameRate(val fps: Float) : PlayerEvent
     data class Toast(val message: String) : PlayerEvent
+}
+
+/**
+ * Der **laufende** Inhalt als Abspiel-Wunsch für ein anderes Gerät („Auf dem Fernseher weiterschauen“) – nicht der
+ * Wunsch, mit dem der Player geöffnet wurde: Nach dem Zappen oder „Nächste Folge“ läuft längst etwas anderes, und der
+ * Fernseher startete sonst den falschen Sender bzw. die falsche Folge. [positionMs]: aktuelle Position (Filme/Folgen).
+ * Null für Arten, die sich nicht übergeben lassen (Catch-up: Archivfenster je Zugang).
+ */
+fun Playable.toPlayRequest(positionMs: Long): PlayRequest? = when (kind) {
+    PlayableKind.LIVE -> PlayRequest.Live(channel?.id ?: id, Category.ALL)
+    PlayableKind.MOVIE -> PlayRequest.Movie(id, positionMs)
+    PlayableKind.EPISODE -> (seriesId ?: episode?.seriesId)?.let { PlayRequest.Episode(id, it, positionMs) }
+    PlayableKind.RECORDING -> PlayRequest.Recording(id)
+    PlayableKind.CATCHUP -> null
 }
 
 /** Meldung, wenn sich eine Abspiel-Anfrage nicht auflösen lässt. */

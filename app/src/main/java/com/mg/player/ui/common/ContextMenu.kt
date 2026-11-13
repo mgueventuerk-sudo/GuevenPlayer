@@ -78,7 +78,10 @@ fun ContextMenuHost(state: ContextMenuState) {
 private fun ContextMenuContent(spec: ContextMenuSpec, onDismiss: () -> Unit) {
     val firstRequester = remember(spec) { FocusRequester() }
     LaunchedEffect(spec) { firstRequester.requestFocusWhenReady() }
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    // Das OK, dessen langer Druck dieses Menü geöffnet hat, wird meist erst jetzt losgelassen. Ohne die Sperre traf
+    // das Loslassen den gerade fokussierten ersten Eintrag und löste ihn aus - das Menü „schloss sich von selbst“ und
+    // startete nebenbei „Abspielen“ (Nutzerbericht 13.11.). Deterministisch statt einer geratenen Wartezeit.
+    Box(Modifier.fillMaxSize().ignoreOpeningOkRelease(spec), contentAlignment = Alignment.Center) {
         Column(
             Modifier
                 .padding(horizontal = Spacing.M)

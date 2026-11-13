@@ -352,6 +352,20 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] W6 Kindersicherung aktiv und der Inhalt gesperrt → der Fernseher fragt nach der PIN, startet nicht einfach.
 - [ ] W7 Zeitversetzte Sendung (Archiv) → der Eintrag erscheint gar nicht erst.
 
+## 16r. Neu in 3.58 – Fernbedienung und Fokus
+
+- [ ] F1 Sender in der Liste: OK gedrückt halten, loslassen → Kontextmenü bleibt offen, „Abspielen“ ist markiert, nichts startet von selbst. Erst ein neuer OK-Druck wählt.
+- [ ] F2 Dasselbe auf einer Film-Kachel und einer „Läuft gerade“-Kachel der Startseite.
+- [ ] F3 Player: Taste drücken → Overlay erscheint, kein Knopf löst beim Loslassen aus.
+- [ ] F4 Dialog „Beenden?“ (Zurück auf der Startseite), PIN-Dialog, Zugang wechseln: direkt nach dem Öffnen ist ein Eintrag markiert; der erste Tastendruck bewegt den Fokus wie erwartet.
+- [ ] F5 Filme: Poster weit unten öffnen, Zurück → genau dieses Poster ist markiert (nicht das erste, nicht nichts).
+- [ ] F6 Serie mit begonnener Folge öffnen, sofort nach unten in die Episoden gehen → der Fokus springt nicht zurück auf „Weiterschauen“, wenn der Knopf nachlädt.
+- [ ] F7 Serie ohne begonnene Folge öffnen → Favoriten-Knopf ist markiert (nicht nichts).
+- [ ] F8 Startseite: Sofort nach dem Start „Runter“ aus der Leiste drücken, während die Gruppen noch laden → entweder passiert nichts sichtbar und ein erneutes „Runter“ wirkt, oder der Fokus ist in den Gruppen – nie „geschluckt“ ohne Wirkung danach.
+- [ ] F9 Einstellungen → Unterseite öffnen → Zurück → die Zeile, die sie geöffnet hat, ist markiert.
+- [ ] F10 Handy → TV: Sender A starten, auf B zappen, „Auf dem Fernseher weiterschauen“ → Fernseher startet B.
+- [ ] F11 Geplante Aufnahme bei länger laufender App (Home gedrückt, nicht geschaut) startet, statt „Verbindungslimit erreicht“ zu melden.
+
 ## 16q. Neu in 3.57 – Pairing, ehrliche Quoten, nachvollziehbare Beweise
 
 - [ ] P1 Cube: „Dieses Gerät prüft im Hintergrund“ an → es erscheint ein Geheimnis in Vierergruppen (`X4K9-2M7P-0ABC-DEFG`),

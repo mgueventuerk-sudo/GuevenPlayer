@@ -9,6 +9,7 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assert
@@ -73,5 +74,27 @@ class FocusMemoryTest {
         onScreen = true
         compose.settle()
         compose.onNode(isFocused()).assert(hasText("Favorit"))
+    }
+
+    /** Das gemerkte Element lehnt den Fokus ab (z. B. noch nicht fokussierbar): Der Ersatz greift – kein Fokus im Nichts. */
+    @Test
+    fun rememberedElementThatRefusesFocusFallsBackToTheDefault() {
+        compose.setContent {
+            TvHostPlain {
+                val memory = remember { FocusMemory("favorite") }
+                val play = remember { FocusRequester() }
+                LaunchedEffect(Unit) { memory.restoreWhenReady(play) }
+                Row {
+                    ActionButton("Abspielen", onClick = {}, modifier = Modifier.focusRequester(play).remembered(memory, "play"))
+                    ActionButton(
+                        "Favorit",
+                        onClick = {},
+                        modifier = Modifier.focusProperties { canFocus = false }.remembered(memory, "favorite"),
+                    )
+                }
+            }
+        }
+        compose.settle()
+        compose.onNode(isFocused()).assert(hasText("Abspielen"))
     }
 }

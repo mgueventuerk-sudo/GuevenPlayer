@@ -15,8 +15,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -46,6 +48,7 @@ import com.mg.player.ui.common.MetaLine
 import com.mg.player.ui.common.SpoilerDescription
 import com.mg.player.ui.common.appViewModel
 import com.mg.player.ui.common.isTouch
+import com.mg.player.ui.common.requestFocusWhenReady
 import com.mg.player.ui.navigation.LocalNavigator
 import com.mg.player.ui.navigation.Screen
 import com.mg.player.ui.theme.AppColors
@@ -72,8 +75,12 @@ fun TmdbCatalogTitleScreen(recommendation: TmdbRecommendation) {
     val touch = isTouch
     val firstPlayRequester = remember { FocusRequester() }
 
-    LaunchedEffect(searching, copies, touch) {
-        if (!touch && !searching && copies.isNotEmpty()) runCatching { firstPlayRequester.requestFocus() }
+    // Nur beim ersten fertigen Suchergebnis: Danach bleibt der Fokus, wo man ihn hingelegt hat – bis 3.57 sprang er
+    // bei jeder Änderung der Trefferliste zurück auf den ersten „Abspielen“-Knopf.
+    var firstFocusDone by remember { mutableStateOf(false) }
+    LaunchedEffect(searching, copies.isEmpty(), touch) {
+        if (touch || searching || copies.isEmpty() || firstFocusDone) return@LaunchedEffect
+        firstFocusDone = firstPlayRequester.requestFocusWhenReady()
     }
 
     BoxScreenBackground(recommendation.backdropUrl ?: recommendation.posterUrl) {

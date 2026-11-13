@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import kotlinx.coroutines.delay
 
 /**
  * Fokus-Speicher eines Screens: merkt sich das zuletzt fokussierte Element über eine feste ID und holt den Fokus
@@ -29,10 +30,22 @@ class FocusMemory(initial: String?) {
         key = id
     }
 
-    /** Fokus auf das gemerkte Element, sonst auf [fallback]. */
-    fun restore(fallback: FocusRequester) {
+    /** Fokus auf das gemerkte Element, sonst auf [fallback]. @return true, wenn eines von beiden den Fokus hat. */
+    fun restore(fallback: FocusRequester): Boolean {
         val remembered = key?.let(requesters::get)
-        if (remembered == null || runCatching { remembered.requestFocus() }.isFailure) runCatching { fallback.requestFocus() }
+        return (remembered != null && remembered.tryRequestFocus()) || fallback.tryRequestFocus()
+    }
+
+    /**
+     * Wie [restore], aber mit Wiederholung: Nach dem Zurückkehren auf einen Screen ist das Ziel oft erst nach ein,
+     * zwei Bildern wieder fokussierbar. Bricht ab, sobald der Fokus sitzt.
+     */
+    suspend fun restoreWhenReady(fallback: FocusRequester, attempts: Int = 20, pauseMs: Long = 50): Boolean {
+        repeat(attempts) {
+            if (restore(fallback)) return true
+            delay(pauseMs)
+        }
+        return false
     }
 
     companion object {

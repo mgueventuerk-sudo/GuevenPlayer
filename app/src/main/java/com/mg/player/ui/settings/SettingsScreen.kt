@@ -42,6 +42,7 @@ import com.mg.player.ui.common.PinDialog
 import com.mg.player.ui.common.ScreenTitle
 import com.mg.player.ui.common.appViewModel
 import com.mg.player.ui.common.isTouch
+import com.mg.player.ui.common.requestFocusWhenReady
 import com.mg.player.ui.navigation.LocalNavigator
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.vpn.LocalVpnState
@@ -174,7 +175,7 @@ private fun TvSettings(nav: SettingsNav, c: SettingsContext, status: String?, vp
     // Unterseite geöffnet: Fokus in ihre Liste; geschlossen: zurück auf die Zeile, die sie geöffnet hat.
     LaunchedEffect(nav.sub) {
         delay(FOCUS_SETTLE_MS)
-        if (nav.sub != null) runCatching { contentRequester.requestFocus() } else nav.restoreFocus()
+        if (nav.sub != null) contentRequester.requestFocusWhenReady() else nav.restoreFocus()
     }
     LaunchedEffect(nav.page, contentEntryRequest.intValue) {
         if (contentEntryRequest.intValue == 0) return@LaunchedEffect
@@ -301,11 +302,14 @@ internal class SettingsNav(
 
     fun requesterFor(key: String): FocusRequester = requesters.getOrPut(key) { FocusRequester() }
 
-    /** Nach dem Schließen einer Unterseite: Fokus auf die Zeile, die sie geöffnet hat (falls sichtbar). */
-    fun restoreFocus() {
+    /**
+     * Nach dem Schließen einer Unterseite: Fokus auf die Zeile, die sie geöffnet hat (falls sichtbar). Mit
+     * Wiederholung – direkt nach dem Umbau der Liste ist die Zeile oft erst ein, zwei Bilder später fokussierbar.
+     */
+    suspend fun restoreFocus() {
         val key = returnState.value ?: return
         returnState.value = null
-        runCatching { requesters[key]?.requestFocus() }
+        requesters[key]?.requestFocusWhenReady()
     }
 
     @Composable

@@ -54,7 +54,11 @@ class ProofShareServer(private val context: Context, private val proofs: ProofSt
      * Prüfgerät bereitstellen. Läuft es schon mit einem **anderen** Geheimnis (der Nutzer hat in den Einstellungen ein
      * neues erzeugt), wird es erst beendet und dann neu angemeldet: Sonst signierte es bis zum nächsten App-Start
      * weiter mit dem alten Schlüssel, und das neue Geheimnis bliebe wirkungslos.
+     *
+     * Synchronisiert wie HandoffServer: start() und stop() kommen aus Coroutinen auf Dispatchers.IO; zwei gleichzeitige
+     * Aufrufe dürfen nicht zwei Server aufbauen, von denen einer nie wieder beendet würde.
      */
+    @Synchronized
     fun start(secret: String) {
         // Nicht nur "ein Server existiert", sondern "er nimmt noch Verbindungen an": Ein Netzwechsel kann den
         // gebundenen Socket unter accept() wegziehen, ohne dass das Feld selbst null wird (MiniHttpServer.isAccepting).
@@ -83,6 +87,7 @@ class ProofShareServer(private val context: Context, private val proofs: ProofSt
             .onSuccess { registration = listener }
     }
 
+    @Synchronized
     fun stop() {
         registration?.let { listener -> runCatching { context.getSystemService(NsdManager::class.java)?.unregisterService(listener) } }
         registration = null

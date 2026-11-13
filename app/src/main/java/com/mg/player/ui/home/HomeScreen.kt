@@ -54,6 +54,7 @@ import com.mg.player.ui.common.TopBarItem
 import com.mg.player.ui.common.appViewModel
 import com.mg.player.ui.common.findActivity
 import com.mg.player.ui.common.glass
+import com.mg.player.ui.common.tryRequestFocus
 import com.mg.player.ui.guide.GuideScreen
 import com.mg.player.ui.library.MoviesScreen
 import com.mg.player.ui.library.SeriesScreen
@@ -237,7 +238,9 @@ fun HomeScreen() {
                 .padding(top = 14.dp)
                 .onFocusChanged { topBarFocused = it.hasFocus },
             selectedRequester = topBarRequester,
-            onDown = { hasGroups && runCatching { groupRequester.requestFocus() }.isSuccess },
+            // Nur „verbraucht“, wenn der Fokus wirklich in die Gruppen gewandert ist – sonst schluckte die Leiste den
+            // Tastendruck, während die Gruppen noch luden, und nichts passierte.
+            onDown = { hasGroups && groupRequester.tryRequestFocus() },
             // Liquid Glass: Fokus im Inhalt → Leiste zieht sich ein.
             collapsed = !topBarFocused,
             trailing = {

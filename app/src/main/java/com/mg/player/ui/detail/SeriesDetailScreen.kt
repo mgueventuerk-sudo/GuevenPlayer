@@ -44,6 +44,8 @@ import com.mg.player.ui.common.MarqueeText
 import com.mg.player.ui.common.MetaLine
 import com.mg.player.ui.common.SpoilerDescription
 import com.mg.player.ui.common.appViewModel
+import com.mg.player.ui.common.rememberFocusMemory
+import com.mg.player.ui.common.remembered
 import com.mg.player.ui.navigation.LocalNavigator
 import com.mg.player.ui.navigation.Screen
 import com.mg.player.ui.theme.AppColors
@@ -69,6 +71,10 @@ fun SeriesDetailScreen(seriesId: String) {
     val searching by vm.tmdb.searching.collectAsStateWithLifecycle()
     var showEnginePicker by rememberSaveable { mutableStateOf(false) }
     val continueRequester = remember { FocusRequester() }
+    // Immer vorhanden – Ersatzziel, wenn es (noch) kein „Weiterschauen“ gibt; sonst war nach dem Öffnen nichts markiert.
+    val favoriteRequester = remember { FocusRequester() }
+    // Zurück aus Player, Trailer oder Engine-Auswahl: Fokus wieder auf den zuletzt gewählten Knopf (wie beim Film).
+    val memory = rememberFocusMemory()
 
     val current = series
     if (current == null) {
@@ -76,7 +82,10 @@ fun SeriesDetailScreen(seriesId: String) {
         return
     }
     val play: (Episode, Long) -> Unit = { ep, pos -> navigator.push(Screen.Player(PlayRequest.Episode(ep.id, current.id, pos, engine))) }
-    LaunchedEffect(target != null) { runCatching { continueRequester.requestFocus() } }
+    // „Weiterschauen“ lädt nach dem Öffnen nach. Bis 3.57 zog das den Fokus dorthin, egal wo man gerade war
+    // (z. B. mitten in der Episodenliste). Der Speicher kennt den zuletzt gewählten Knopf und lässt ihn in Ruhe;
+    // nur beim ersten Mal (noch nichts gemerkt) landet der Fokus auf „Weiterschauen“ bzw. dem ersten Knopf.
+    LaunchedEffect(current.id, target != null) { memory.restoreWhenReady(if (target != null) continueRequester else favoriteRequester) }
     BackHandler(enabled = candidates != null) { vm.tmdb.closeRematch() }
     val tmdbInfo = info
     // Beide liefen bisher ungeschützt im Composable-Body - das berechnet bei jeder Rekomposition neu (z. B. wenn
@@ -122,22 +131,38 @@ fun SeriesDetailScreen(seriesId: String) {
                                 text = t.label,
                                 icon = AppIcons.Play,
                                 primary = true,
-                                modifier = Modifier.focusRequester(continueRequester),
+                                modifier = Modifier.focusRequester(continueRequester).remembered(memory, "continue"),
                                 onClick = { play(t.episode, t.positionMs) },
                             )
                         }
                         tmdbInfo?.trailerKey?.let { key ->
-                            IconActionButton(AppIcons.Movie, "Trailer", onClick = { navigator.push(Screen.Trailer(key)) })
+                            IconActionButton(
+                                AppIcons.Movie,
+                                "Trailer",
+                                onClick = { navigator.push(Screen.Trailer(key)) },
+                                modifier = Modifier.remembered(memory, "trailer"),
+                            )
                         }
                         IconActionButton(
                             icon = if (isFavorite) AppIcons.HeartFilled else AppIcons.Heart,
                             label = if (isFavorite) "Aus Favoriten entfernen" else "Zu Favoriten",
                             iconTint = if (isFavorite) AppColors.Live else null,
                             onClick = vm::toggleFavorite,
+                            modifier = Modifier.focusRequester(favoriteRequester).remembered(memory, "favorite"),
                         )
-                        IconActionButton(AppIcons.Engine, "Player-Engine", onClick = { showEnginePicker = !showEnginePicker })
+                        IconActionButton(
+                            AppIcons.Engine,
+                            "Player-Engine",
+                            onClick = { showEnginePicker = !showEnginePicker },
+                            modifier = Modifier.remembered(memory, "engine"),
+                        )
                         if (tmdbEnabled) {
-                            IconActionButton(AppIcons.Search, "Falsche Serie?", onClick = { vm.tmdb.openRematch(current.name) })
+                            IconActionButton(
+                                AppIcons.Search,
+                                "Falsche Serie?",
+                                onClick = { vm.tmdb.openRematch(current.name) },
+                                modifier = Modifier.remembered(memory, "rematch"),
+                            )
                         }
                     }
                     if (showEnginePicker) EnginePicker(selected = engine, onPick = vm::pickEngine, modifier = Modifier.padding(top = 14.dp))
