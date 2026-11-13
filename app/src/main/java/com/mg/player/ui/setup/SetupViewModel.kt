@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 enum class SetupPhase { FORM, IMPORTING, DONE, ERROR }
 
@@ -125,8 +126,21 @@ class SetupViewModel(private val container: AppContainer) : ViewModel() {
                 return@launch
             }
             lastPlaylistId = id
+            if (input.type == PlaylistType.XTREAM) {
+                val quickProblem = quickConnectionCheck(id)
+                if (quickProblem != null) {
+                    _state.update { it.copy(phase = SetupPhase.ERROR, error = quickProblem) }
+                    return@launch
+                }
+            }
             runImport(id)
         }
+    }
+
+    /** Siehe XtreamApi.quickRejection(): meldet nur eine eindeutige Ablehnung sofort, alles andere bleibt unverändert. */
+    private suspend fun quickConnectionCheck(id: Long): String? = withContext(Dispatchers.IO) {
+        val entity = container.database.playlistDao().get(id) ?: return@withContext null
+        withTimeoutOrNull(QUICK_CHECK_TIMEOUT_MS) { container.xtreamApi.quickRejection(container.xtreamApi.credentials(entity)) }
     }
 
     fun retry() {
@@ -174,5 +188,9 @@ class SetupViewModel(private val container: AppContainer) : ViewModel() {
                 if (s.activePlaylistId == unfinished) s.copy(activePlaylistId = restore) else s
             }
         }
+    }
+
+    private companion object {
+        const val QUICK_CHECK_TIMEOUT_MS = 5_000L
     }
 }
