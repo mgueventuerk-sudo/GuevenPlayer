@@ -231,7 +231,7 @@ private fun ManualForm(state: SetupUiState, vm: SetupViewModel) {
     if (form.type == PlaylistType.XTREAM) {
         TvTextField(
             form.server,
-            { v -> vm.updateForm { it.copy(server = v) } },
+            vm::updateServerField,
             "Server-URL",
             fieldModifier,
             placeholder = "https://anbieter.tv:8080",

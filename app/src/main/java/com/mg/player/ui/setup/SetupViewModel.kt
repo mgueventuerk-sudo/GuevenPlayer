@@ -9,6 +9,7 @@ import com.mg.player.core.di.AppContainer
 import com.mg.player.core.security.SecretStorageUnavailable
 import com.mg.player.core.util.QrCodeGenerator
 import com.mg.player.data.qr.QrSetupServer
+import com.mg.player.data.remote.ConnectionMonitor
 import com.mg.player.domain.model.PlaylistType
 import com.mg.player.domain.repository.PlaylistInput
 import kotlinx.coroutines.Dispatchers
@@ -87,6 +88,18 @@ class SetupViewModel(private val container: AppContainer) : ViewModel() {
 
     fun updateForm(transform: (SetupForm) -> SetupForm) {
         _state.update { it.copy(form = transform(it.form)) }
+    }
+
+    /**
+     * Manche Anbieter verschicken eine komplette "get.php?username=…&password=…"-URL - bisher musste man die
+     * drei Teile für Xtream händisch trennen. Steckt eine solche URL im neuen Wert (z. B. eingefügt), wird sie
+     * sofort in Server/Benutzername/Passwort zerlegt, statt sie unverändert ins Server-Feld zu übernehmen.
+     */
+    fun updateServerField(value: String) {
+        val parsed = ConnectionMonitor.credentialsFromM3u(value)
+        updateForm { form ->
+            if (parsed != null) form.copy(server = parsed.baseUrl, username = parsed.username, password = parsed.password) else form.copy(server = value)
+        }
     }
 
     fun submitForm() {
