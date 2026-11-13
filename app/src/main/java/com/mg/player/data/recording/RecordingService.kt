@@ -59,14 +59,13 @@ class RecordingService : Service() {
         private const val NOTIFICATION_ID = 4711
         private const val EXTRA_TEXT = "text"
 
-        fun start(context: Context, text: String) {
-            runCatching {
-                ContextCompat.startForegroundService(
-                    context,
-                    Intent(context, RecordingService::class.java).putExtra(EXTRA_TEXT, text),
-                )
-            }.onFailure { AppLog.error("Aufnahme", "Hintergrunddienst konnte nicht starten", it) }
-        }
+        /** true, wenn der Vordergrund-Dienst lief - false bedeutet: Aufnahme ohne Android-Schutz vor dem Beenden. */
+        fun start(context: Context, text: String): Boolean = runCatching {
+            ContextCompat.startForegroundService(
+                context,
+                Intent(context, RecordingService::class.java).putExtra(EXTRA_TEXT, text),
+            )
+        }.onFailure { AppLog.error("Aufnahme", "Hintergrunddienst konnte nicht starten", it) }.isSuccess
 
         fun stop(context: Context) {
             runCatching { context.stopService(Intent(context, RecordingService::class.java)) }

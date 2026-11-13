@@ -171,8 +171,12 @@ object AppLog {
                 // Synchron schreiben – der Prozess endet gleich.
                 // Eigener Formatierer: Der Schreib-Thread könnte gerade den gemeinsamen benutzen.
                 val stamp = SimpleDateFormat("dd.MM. HH:mm:ss", Locale.GERMANY).format(Date())
-                append(target, "$stamp  [ABSTURZ]  Thread ${thread.name}\n$trace\n")
-                runCatching { crashMarker?.writeText("$stamp · ${throwable.javaClass.simpleName}: ${throwable.message}\n$trace") }
+                // Schwärzen wie jeder andere Schreibpfad (write(), Audit A-09) – Fehlertexte enthalten oft
+                // Adressen mit Zugangsdaten, und dieser Pfad ging bisher roh durch (Fund: Crash-Log-Leak).
+                append(target, LogRedactor.redact("$stamp  [ABSTURZ]  Thread ${thread.name}\n$trace\n"))
+                runCatching {
+                    crashMarker?.writeText(LogRedactor.redact("$stamp · ${throwable.javaClass.simpleName}: ${throwable.message}\n$trace"))
+                }
             }
             previous?.uncaughtException(thread, throwable)
         }

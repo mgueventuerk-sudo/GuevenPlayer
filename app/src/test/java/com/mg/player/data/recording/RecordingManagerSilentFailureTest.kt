@@ -21,18 +21,21 @@ import okhttp3.OkHttpClient
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 /**
- * Misst (nicht vermutet): RecordingManager.begin() (RecordingManager.kt:204-210) persistiert den Status
- * RECORDING, BEVOR RecordingService.start() aufgerufen wird; RecordingService.start() selbst (RecordingService.kt:
- * 62-69) fängt jeden Fehler beim Start des Vordergrund-Dienstes nur mit AppLog.error() ab und gibt Unit zurück.
- * Dieser Test erzwingt einen echten Fehlschlag (ein ContextWrapper, dessen startForegroundService() wirft - wie
- * es auf Android 12+ real passieren kann, z. B. ForegroundServiceStartNotAllowedException) und prüft: start()
- * meldet trotzdem keinen Fehler, und der gespeicherte Status bleibt RECORDING.
+ * Regressionsschutz für den Fund "stiller Recording-Fehler": RecordingService.start() gab früher immer Unit
+ * zurück, auch wenn ContextCompat.startForegroundService() scheiterte (nur AppLog.error(), kein Signal an den
+ * Aufrufer) - RecordingManager.begin() persistierte den Status trotzdem als RECORDING, ohne sichtbaren Fehler.
+ * Jetzt gibt RecordingService.start() zurück, ob der Dienst wirklich lief, und begin() markiert die Aufnahme bei
+ * false als FAILED mit einer Fehlermeldung, die über GuideViewModel.toggleRecording()/onResult() beim Nutzer
+ * ankommt.
+ *
+ * Erzwingt einen echten Fehlschlag (ein ContextWrapper, dessen startForegroundService() wirft - wie es auf
+ * Android 12+ real passieren kann, z. B. ForegroundServiceStartNotAllowedException) und prüft: start() meldet
+ * jetzt einen Fehler, und der gespeicherte Status wird FAILED statt RECORDING.
  */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [34])
@@ -48,7 +51,7 @@ class RecordingManagerSilentFailureTest {
     }
 
     @Test
-    fun foregroundServiceFailureLeavesStatusRecordingWithoutVisibleError() = runBlocking {
+    fun foregroundServiceFailureIsNowSurfacedAsFailedWithAnError() = runBlocking {
         val baseContext = ApplicationProvider.getApplicationContext<Context>()
         val throwingContext = object : ContextWrapper(baseContext) {
             override fun startForegroundService(service: Intent): ComponentName? {
@@ -77,16 +80,15 @@ class RecordingManagerSilentFailureTest {
 
         val error = manager.start(channel, "Testaufnahme", System.currentTimeMillis() + 60_000)
 
-        assertNull(
-            "start() meldet keinen Fehler zurück, obwohl der Vordergrunddienst nachweislich nicht starten konnte",
+        assertNotNull(
+            "Regression: start() meldet wieder keinen Fehler, obwohl der Vordergrunddienst nicht starten konnte",
             error,
         )
         val recording = manager.recordings.value.firstOrNull { it.channelId == channel.id }
         assertNotNull("Aufnahme wurde nicht gespeichert", recording)
         assertEquals(
-            "Status bleibt RECORDING, obwohl der schützende Vordergrund-Dienst nachweislich nicht lief - der " +
-                "Nutzer sieht eine 'läuft'-Aufnahme ohne jede sichtbare Fehlermeldung",
-            RecordingStatus.RECORDING,
+            "Regression: Status ist nicht mehr FAILED, obwohl der schützende Vordergrund-Dienst nicht lief",
+            RecordingStatus.FAILED,
             recording?.status,
         )
     }

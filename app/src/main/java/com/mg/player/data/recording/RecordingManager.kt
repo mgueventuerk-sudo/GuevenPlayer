@@ -207,7 +207,15 @@ class RecordingManager(
         val session = RecordingSession(recording.id, channel.id, allowInsecureHttp = urls.isHttpAllowed(channel.id))
         sessions[recording.id] = session
         _activeChannels.update { it + channel.id }
-        RecordingService.start(context, "${channel.name}: ${recording.title}")
+        if (!RecordingService.start(context, "${channel.name}: ${recording.title}")) {
+            // Ohne den Vordergrund-Dienst kann Android die App jederzeit beenden - weiterlaufen lassen wäre ein
+            // Schein-Erfolg, den der Nutzer erst beim Scheitern der Aufnahme bemerkt (Fund: stiller Recording-Fehler).
+            val message = "Aufnahme ohne Android-Schutz vor dem Beenden – bitte Akku-Optimierung für die App ausschalten"
+            sessions.remove(recording.id)
+            _activeChannels.update { it - channel.id }
+            store.update(recording.id) { it.copy(status = RecordingStatus.FAILED, error = message) }
+            return message
+        }
         AppLog.log("Aufnahme", "Start: ${channel.name} – ${recording.title}")
         scope.launch { run(recording, channel, session) }
         return null

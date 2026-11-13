@@ -79,9 +79,9 @@ fun SeriesDetailScreen(seriesId: String) {
     LaunchedEffect(target != null) { runCatching { continueRequester.requestFocus() } }
     BackHandler(enabled = candidates != null) { vm.tmdb.closeRematch() }
     val tmdbInfo = info
-    val seasons = episodes.map { it.season }.distinct()
-    // Lief bisher im LazyColumn-Content-Lambda - das filtert bei jeder Rekomposition neu (z. B. wenn progress
-    // emittiert), statt nur wenn episodes oder season sich tatsächlich ändern.
+    // Beide liefen bisher ungeschützt im Composable-Body - das berechnet bei jeder Rekomposition neu (z. B. wenn
+    // progress emittiert), statt nur wenn episodes oder season sich tatsächlich ändern.
+    val seasons = remember(episodes) { episodes.map { it.season }.distinct() }
     val seasonEpisodes = remember(episodes, season) { episodes.filter { it.season == season } }
 
     Box(Modifier.fillMaxSize()) {
