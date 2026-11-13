@@ -16,12 +16,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -66,6 +70,16 @@ fun TrailerScreen(youtubeKey: String) {
     var failed by remember { mutableStateOf(false) }
     var failDetail by remember { mutableStateOf<String?>(null) }
     var baseUrl by remember { mutableStateOf<String?>(null) }
+    // TrailerScreen hat sonst kein fokussierbares Element (die WebView selbst nimmt keinen D-Pad-Fokus an) - ohne
+    // diese Anfrage blieb der Schliessen-Knopf per Fernbedienung unerreichbar (Audit-Fund, auf echtem Gerät
+    // bestätigt: TrailerFocusDeviceTest).
+    val closeRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        // Ohne diesen Frame-Durchlauf kann requestFocus() vor der eigentlichen Anlage des Fokus-Knotens im
+        // Layoutbaum laufen und wirkungslos bleiben (reproduzierbar: direkter Aufruf blieb ohne Effekt).
+        withFrameNanos {}
+        runCatching { closeRequester.requestFocus() }
+    }
 
     DisposableEffect(youtubeKey) {
         val server = TrailerLocalServer(youtubeKey)
@@ -122,6 +136,7 @@ fun TrailerScreen(youtubeKey: String) {
                 .align(Alignment.TopEnd)
                 .padding(20.dp)
                 .size(40.dp)
+                .focusRequester(closeRequester)
                 .glass(CircleShape, raised = true)
                 .clickable(onClickLabel = "Zurück", onClick = navigator::pop),
             contentAlignment = Alignment.Center,
