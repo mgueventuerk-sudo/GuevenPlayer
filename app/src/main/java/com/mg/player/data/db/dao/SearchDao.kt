@@ -56,6 +56,18 @@ interface SearchDao {
     @Query("SELECT rowid AS rowId, id, name FROM series WHERE +playlistId = :playlistId AND rowid > :afterRowId ORDER BY rowid LIMIT :limit")
     suspend fun seriesSource(playlistId: Long, afterRowId: Long, limit: Int): List<IndexSource>
 
+    /**
+     * Sendungstitel des aktiven EPG (laufende und kommende), verweist auf den Sender, nicht auf die Sendung selbst
+     * - es gibt keine eigene Such-Kategorie dafür, nur den schon vorhandenen Sender-Treffer (Fund: eine Suche nach
+     * einer Einzelsendung wie "Tatort" fand bisher nichts, obwohl das EPG den Titel längst kennt).
+     */
+    @Query(
+        "SELECT p.rowid AS rowId, c.id AS id, p.title AS name FROM epg_programs p " +
+            "INNER JOIN channels c ON c.playlistId = p.playlistId AND c.epgKey = p.channelKey " +
+            "WHERE p.playlistId = :playlistId AND p.rowid > :afterRowId AND $ACTIVE_EPG ORDER BY p.rowid LIMIT :limit",
+    )
+    suspend fun epgProgramSource(playlistId: Long, afterRowId: Long, limit: Int): List<IndexSource>
+
     // Gesucht wird in zwei Schritten: erst nur im Index (liefert IDs), dann die Einträge per Primärschlüssel.
     // Eine gemeinsame Abfrage (Index JOIN Tabelle) ließ SQLite bei großen Mediatheken die Tabelle durchlaufen und
     // für JEDE Zeile den Index neu durchsuchen – eine einzige Suche dauerte dann Minuten.
