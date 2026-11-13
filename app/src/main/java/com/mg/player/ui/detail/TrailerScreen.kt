@@ -75,10 +75,14 @@ fun TrailerScreen(youtubeKey: String) {
     // bestätigt: TrailerFocusDeviceTest).
     val closeRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) {
-        // Ohne diesen Frame-Durchlauf kann requestFocus() vor der eigentlichen Anlage des Fokus-Knotens im
-        // Layoutbaum laufen und wirkungslos bleiben (reproduzierbar: direkter Aufruf blieb ohne Effekt).
-        withFrameNanos {}
-        runCatching { closeRequester.requestFocus() }
+        // Ein einzelner Frame-Durchlauf reichte auf echten Geräten nicht zuverlässig (Audit-Fund, auf echten
+        // CI-Emulatoren bestätigt: API 24 bestand, API 28 scheiterte bei identischem Code - ein echtes
+        // Zeit-Rennen, kein Logikfehler). requestFocus() kann vor der Anlage des Fokus-Knotens im Layoutbaum
+        // laufen; mehrere Frame-Durchläufe geben dem echten Choreographer-Takt genug Spielraum.
+        repeat(5) {
+            withFrameNanos {}
+            runCatching { closeRequester.requestFocus() }
+        }
     }
 
     DisposableEffect(youtubeKey) {
