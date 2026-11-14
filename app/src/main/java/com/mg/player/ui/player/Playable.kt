@@ -256,7 +256,8 @@ class PlayableResolver(private val container: AppContainer) {
     private suspend fun recording(id: String): Playable? {
         val recording = container.recordingManager.recording(id) ?: return null
         val file = java.io.File(recording.filePath)
-        if (!file.exists()) return null
+        // Plattenzugriff: Der Player löst im Hauptthread auf (Labor-Build: StrictMode beendete sonst die Wiedergabe).
+        if (!withContext(Dispatchers.IO) { file.exists() }) return null
         return Playable(
             kind = PlayableKind.RECORDING,
             id = recording.id,
