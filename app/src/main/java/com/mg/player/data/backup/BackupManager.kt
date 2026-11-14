@@ -7,6 +7,7 @@ import com.mg.player.core.vpn.VpnImporter
 import com.mg.player.data.db.AppDatabase
 import com.mg.player.data.recording.RecordingManager
 import com.mg.player.data.reminder.ReminderManager
+import com.mg.player.domain.model.AudioLanguages
 import com.mg.player.domain.repository.PlaylistRepository
 import com.mg.player.domain.repository.SettingsRepository
 import kotlinx.coroutines.Dispatchers
@@ -78,6 +79,8 @@ class BackupManager(
                 put("reducedEffects", s.reducedEffects)
                 put("preload", s.preload)
                 put("preloadDiskOnly", s.preloadDiskOnly)
+                put("audioLanguages", JSONArray(s.audioLanguages))
+                put("onlyPreferredLanguages", s.onlyPreferredLanguages)
                 put("automaticOptimization", s.automaticOptimization)
             },
         )
@@ -249,6 +252,9 @@ class BackupManager(
                 reducedEffects = s.optBoolean("reducedEffects", current.reducedEffects),
                 preload = s.optBoolean("preload", current.preload),
                 preloadDiskOnly = s.optBoolean("preloadDiskOnly", current.preloadDiskOnly),
+                audioLanguages = s.optJSONArray("audioLanguages")?.let { a -> AudioLanguages.sanitize((0 until a.length()).map(a::optString)) }
+                    ?: current.audioLanguages,
+                onlyPreferredLanguages = s.optBoolean("onlyPreferredLanguages", current.onlyPreferredLanguages),
                 automaticOptimization = s.optBoolean("automaticOptimization", current.automaticOptimization),
                 activePlaylistId = active,
                 lastChannelId = null,

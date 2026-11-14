@@ -108,6 +108,7 @@ class NativeEngine(context: Context) : VideoPlayerEngine {
         currentHolder?.let { mp.setDisplay(it) }
         mp.setOnPreparedListener {
             prepared = true
+            selectPreferredAudio(it)
             if (request.startPositionMs > 0) it.seekTo(request.startPositionMs.toInt())
             it.start()
             _state.update { s -> s.copy(status = PlaybackStatus.READY, isPlaying = true, tracksVersion = s.tracksVersion + 1) }
@@ -168,6 +169,17 @@ class NativeEngine(context: Context) : VideoPlayerEngine {
             if (info.trackType != MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO) return@mapIndexedNotNull null
             val language = info.language?.takeIf { it != "und" } ?: "Spur ${index + 1}"
             TrackOption(index.toString(), language, index == selected)
+        }
+    }
+
+    /** Bevorzugte Tonsprache wählen (Einstellungen → Sprache) – der System-Player nimmt sonst die erste Spur. */
+    private fun selectPreferredAudio(mp: MediaPlayer) {
+        runCatching {
+            val audio = mp.trackInfo.withIndex().filter { it.value.trackType == MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO }
+            if (audio.size < 2) return
+            val codes = AudioPreference.trackCodes()
+            val best = audio.filter { it.value.language?.lowercase() in codes }.minByOrNull { codes.indexOf(it.value.language?.lowercase()) } ?: return
+            if (best.index != mp.getSelectedTrack(MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO)) mp.selectTrack(best.index)
         }
     }
 

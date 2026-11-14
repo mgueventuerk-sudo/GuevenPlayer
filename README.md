@@ -271,6 +271,17 @@ Events direkt aus dem Sport-Programm (als live gekennzeichnet bzw. erste Ausstra
   Aufnahmen werden ausgelassen (viele Anbieter erlauben nur eine Verbindung). Gelöschte kommen nicht wieder.
 - **Handy → TV weiterschauen:** noch nicht enthalten (braucht eine sichere Kopplung beider Geräte, eigener Schritt).
 
+## Neu in 3.60 (Sprache: Standardsprache und weitere, gilt überall)
+
+*Einstellungen → Wiedergabe → Sprache*: eine **Standardsprache** (Voreinstellung Deutsch) und beliebig viele **weitere
+Sprachen** in Reihenfolge. Gilt für die Tonspur in jedem Player (ExoPlayer, LibVLC, System-Player) und für die Wahl der
+Quelle in „Alle Zugänge“ – auch beim automatischen Wechsel zur nächsten Folge. **Nur diese Sprachen**: Die App nimmt nie
+von selbst eine Fassung in einer anderen Sprache, solange es eine in den gewählten (oder ohne Sprachangabe) gibt. Eine
+Tonspur, die man bei einer Serie oder einem Sender selbst wählt, geht weiter vor. In der Sicherung enthalten.
+
+Grenzen: Trägt eine Tonspur keine Sprachangabe, kann kein Player sie erkennen; das Protokoll zeigt dann „Tonspur: Spur 1 …“.
+Liefert ein Zugang eine Serie nur auf Englisch, bleibt sie dort englisch. Ungeprüft auf dem Gerät.
+
 ## Neu in 3.60 (Vorladen, erste Stufe: Bilder – auch in den Arbeitsspeicher, mit Freigabe)
 
 Wunsch: Vorladen, wenn genug Arbeitsspeicher da ist – und was nicht genutzt wird, soll wieder freigegeben werden, aber nur,

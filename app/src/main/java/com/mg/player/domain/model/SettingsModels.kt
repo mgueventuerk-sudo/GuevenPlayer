@@ -160,6 +160,10 @@ data class AppSettings(
     val preload: Boolean = true,
     /** Vorladen nur in den Datei-Cache im internen Speicher, nie in den Arbeitsspeicher (ab 3.60). */
     val preloadDiskOnly: Boolean = false,
+    /** Bevorzugte Sprachen, die erste ist die Standardsprache (ISO 639-1, siehe [AudioLanguages]); ab 3.60. */
+    val audioLanguages: List<String> = AudioLanguages.DEFAULT,
+    /** Nie von selbst eine Fassung in einer anderen als den gewählten Sprachen nehmen, solange es eine gibt. */
+    val onlyPreferredLanguages: Boolean = false,
     /** Selbst gewählter Ordner (SAF) für die automatische, wiederkehrende Sicherung; null = aus. Nie im Backup. */
     val autoBackupFolderUri: String? = null,
     /** Kennwort der automatischen Sicherung, zufällig erzeugt und nur verschlüsselt gespeichert. Nie im Backup. */

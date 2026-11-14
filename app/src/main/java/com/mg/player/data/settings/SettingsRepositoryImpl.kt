@@ -16,6 +16,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.mg.player.core.log.AppLog
 import com.mg.player.core.security.SecretCipher
 import com.mg.player.domain.model.AppSettings
+import com.mg.player.domain.model.AudioLanguages
 import com.mg.player.domain.repository.SettingsRepository
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.flow.Flow
@@ -109,6 +110,8 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         val REDUCED_EFFECTS = booleanPreferencesKey("reduced_effects")
         val PRELOAD = booleanPreferencesKey("preload")
         val PRELOAD_DISK_ONLY = booleanPreferencesKey("preloadDiskOnly")
+        val AUDIO_LANGUAGES = stringPreferencesKey("audio_languages")
+        val ONLY_PREFERRED_LANGUAGES = booleanPreferencesKey("only_preferred_languages")
         val AUTOMATIC_OPTIMIZATION = booleanPreferencesKey("automatic_optimization")
         val HIDE_GUIDE = booleanPreferencesKey("hide_guide")
         val AUTO_BACKUP_FOLDER = stringPreferencesKey("auto_backup_folder")
@@ -184,6 +187,8 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
             reducedEffects = this[Keys.REDUCED_EFFECTS] ?: defaults.reducedEffects,
             preload = this[Keys.PRELOAD] ?: defaults.preload,
             preloadDiskOnly = this[Keys.PRELOAD_DISK_ONLY] ?: defaults.preloadDiskOnly,
+            audioLanguages = this[Keys.AUDIO_LANGUAGES]?.split(',')?.let(AudioLanguages::sanitize) ?: defaults.audioLanguages,
+            onlyPreferredLanguages = this[Keys.ONLY_PREFERRED_LANGUAGES] ?: defaults.onlyPreferredLanguages,
             automaticOptimization = this[Keys.AUTOMATIC_OPTIMIZATION] ?: defaults.automaticOptimization,
             autoBackupFolderUri = this[Keys.AUTO_BACKUP_FOLDER],
             autoBackupPassphrase = this[Keys.AUTO_BACKUP_PASSPHRASE]?.let(SecretCipher::decrypt).orEmpty(),
@@ -234,6 +239,8 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
         this[Keys.REDUCED_EFFECTS] = s.reducedEffects
         this[Keys.PRELOAD] = s.preload
         this[Keys.PRELOAD_DISK_ONLY] = s.preloadDiskOnly
+        this[Keys.AUDIO_LANGUAGES] = AudioLanguages.sanitize(s.audioLanguages).joinToString(",")
+        this[Keys.ONLY_PREFERRED_LANGUAGES] = s.onlyPreferredLanguages
         this[Keys.SPORT_MANUAL] = s.sportManualChannels.mapTo(HashSet()) { (league, channel) -> "$league\t$channel" }
         putOrRemove(Keys.AUTO_BACKUP_FOLDER, s.autoBackupFolderUri)
         // Schlüssel nur verschlüsselt speichern; geht das nicht, lieber gar nicht (nie Klartext).

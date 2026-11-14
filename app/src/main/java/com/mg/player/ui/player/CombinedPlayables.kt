@@ -5,7 +5,6 @@ import com.mg.player.core.util.MediaTitle
 import com.mg.player.domain.model.Channel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.util.Locale
 
 /**
  * Quellenwahl für „Alle Zugänge“ (Live, Filme, Folgen): Rangfolge nach [SourceRanker] mit dem aktuellen Verbindungsstand
@@ -21,9 +20,6 @@ internal object CombinedPlayables {
         "SD" -> 60
         else -> 50
     }
-
-    /** Eigene Sprache für Filme/Serien: Sprache des Geräts („de“ → „DE“). */
-    fun preferredLanguage(): String = Locale.getDefault().language.uppercase(Locale.ROOT)
 
     suspend fun rankLive(container: AppContainer, all: List<Channel>, remembered: String?, supports4K: Boolean): List<Channel> {
         val config = container.combined.settings.current()
@@ -71,12 +67,14 @@ internal object CombinedPlayables {
             }
             val now = System.currentTimeMillis()
             val breaker = container.playback.providerBreaker
+            val settings = container.settingsRepository.current()
+            val languages = settings.audioLanguages
             SourceRanker.rank(
-                candidates,
+                if (settings.onlyPreferredLanguages) SourceRanker.onlyLanguages(candidates, languages) else candidates,
                 rememberedId = remembered,
                 supports4K = supports4K,
                 statuses = SourceRanker.withoutOwnUse(container.connectionMonitor.status.value, container.connectionMonitor::recentlyUsedHere),
-                preferredLanguage = preferredLanguage(),
+                preferredLanguages = languages,
                 unreliable = { breaker.isOpen(it.toString(), now) },
                 accountRank = container.combined.settings.current()::rankOf,
                 health = container.playback.sourceHealth::rank,

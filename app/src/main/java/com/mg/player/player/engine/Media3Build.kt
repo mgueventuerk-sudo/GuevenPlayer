@@ -49,12 +49,12 @@ internal object Media3Build {
             .setMediaCodecSelector(Media3Support.codecSelector(config.hw))
         val extractors = DefaultExtractorsFactory()
             .setTsExtractorFlags(DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES)
-        // Deutsch als bevorzugte Tonspur; Tunneling (nur Live, falls Gerät/Stream es können) entlastet schwache Sticks –
+        // Bevorzugte Tonspur aus den Einstellungen (Standard Deutsch); Tunneling (nur Live, falls Gerät/Stream es können) entlastet schwache Sticks –
         // bei Filmen verzögert es auf manchen Geräten den Start und stört Ton-Passthrough.
         val trackSelector = DefaultTrackSelector(context).apply {
             setParameters(
                 buildUponParameters()
-                    .setPreferredAudioLanguages("de", "deu", "ger")
+                    .setPreferredAudioLanguages(*AudioPreference.trackCodes().toTypedArray())
                     .setTunnelingEnabled(config.tunneling),
             )
         }

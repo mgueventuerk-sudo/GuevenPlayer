@@ -29,6 +29,7 @@ import com.mg.player.data.sport.proof.ProofAlarm
 import com.mg.player.data.sync.AutoRefreshWork
 import com.mg.player.data.sync.AutoRefresher
 import com.mg.player.domain.model.MatchSource
+import com.mg.player.player.engine.AudioPreference
 import com.wireguard.android.backend.GoBackend
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -120,6 +121,10 @@ open class PlayerApp :
                 PreloadPolicy.enabled = on
                 PreloadPolicy.diskOnly = diskOnly
             }
+        }
+        // „Sprache“ (Einstellungen → Wiedergabe): Vorgabe für die Tonspur in jedem Player.
+        container.appScope.launch {
+            container.settingsRepository.settings.map { it.audioLanguages }.distinctUntilChanged().collect { AudioPreference.languages = it }
         }
         GoBackend.setAlwaysOnCallback { container.appScope.launch { container.vpn.wake() } }
         // Kindersicherung: Freischaltung endet, sobald die App in den Hintergrund geht (Home-Taste, Standby).

@@ -37,9 +37,31 @@ class SourceRankerTest {
             rememberedId = null,
             supports4K = true,
             statuses = statuses,
-            preferredLanguage = "DE",
+            preferredLanguages = listOf("de"),
         )
         assertEquals(listOf("de", "en"), ranked)
+    }
+
+    /** „Nur diese Sprachen“: Die englische Fassung fällt weg, solange es eine deutsche oder unbekannte gibt. */
+    @Test
+    fun onlyPreferredLanguagesDropsForeignVersionsButNeverAll() {
+        val all = listOf(c("en", 2, "4K", "US"), c("de", 1, "HD", "DE"), c("unknown", 3, "FHD"))
+        assertEquals(listOf("de", "unknown"), SourceRanker.onlyLanguages(all, listOf("de")).map { it.id })
+        val onlyEnglish = listOf(c("en", 2, "FHD", "US"))
+        assertEquals(listOf("en"), SourceRanker.onlyLanguages(onlyEnglish, listOf("de")).map { it.id })
+    }
+
+    /** Weitere Sprachen in Reihenfolge: Türkisch vor Englisch, Deutsch vor beiden. */
+    @Test
+    fun secondLanguageRanksAfterTheDefault() {
+        val ranked = SourceRanker.rank(
+            listOf(c("en", 3, "FHD", "UK"), c("tr", 2, "FHD", "TR"), c("de", 1, "HD", "DE")),
+            rememberedId = null,
+            supports4K = true,
+            statuses = emptyMap(),
+            preferredLanguages = listOf("de", "tr"),
+        )
+        assertEquals(listOf("de", "tr", "en"), ranked)
     }
 
     @Test
@@ -73,7 +95,7 @@ class SourceRankerTest {
             rememberedId = null,
             supports4K = true,
             statuses = mapOf(1L to ConnectionStatus(1, 1)),
-            preferredLanguage = "DE",
+            preferredLanguages = listOf("de"),
         )
         assertEquals(listOf("de", "en", "full"), ranked)
     }

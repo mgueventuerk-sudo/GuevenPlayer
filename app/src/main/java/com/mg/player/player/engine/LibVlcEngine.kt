@@ -158,6 +158,8 @@ class LibVlcEngine(context: Context) : VideoPlayerEngine {
                 addOption(":network-caching=$caching")
                 addOption(":live-caching=$caching")
                 addOption(":http-user-agent=${target.userAgent ?: IPTV_USER_AGENT}")
+                // Bevorzugte Tonsprachen wie bei ExoPlayer – sonst nahm LibVLC die Standardspur der Datei.
+                addOption(":audio-language=${AudioPreference.trackCodes().joinToString(",")}")
                 target.headers[StreamTarget.REFERER]?.let { addOption(":http-referrer=$it") }
                 if (request.startPositionMs > 0) addOption(":start-time=${request.startPositionMs / 1000.0}")
             }

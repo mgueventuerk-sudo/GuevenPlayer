@@ -1,6 +1,7 @@
 package com.mg.player.ui.player
 
 import androidx.compose.runtime.Immutable
+import com.mg.player.domain.model.AudioLanguages
 import com.mg.player.domain.model.ConnectionStatus
 
 /** Eine Quelle eines Films bzw. einer Folge aus „Alle Zugänge“ (ein Original in einem echten Zugang). */
@@ -55,7 +56,8 @@ object SourceRanker {
         rememberedId: String?,
         supports4K: Boolean,
         statuses: Map<Long, ConnectionStatus>,
-        preferredLanguage: String? = null,
+        /** Bevorzugte Sprachen, erste = Standard (ISO 639-1); leer = Sprache spielt keine Rolle. */
+        preferredLanguages: List<String> = emptyList(),
         unreliable: (Long) -> Boolean = { false },
         accountRank: (Long) -> Int = { 0 },
         health: (String) -> Int = { 0 },
@@ -66,7 +68,7 @@ object SourceRanker {
         return candidates.withIndex().sortedWith(
             compareBy<IndexedValue<Candidate<T>>> { if (!supports4K && it.value.quality in beyondFullHd) 1 else 0 }
                 .thenBy { if (statuses[it.value.playlistId]?.full == true) 1 else 0 }
-                .thenBy { languagePenalty(it.value.language, preferredLanguage) }
+                .thenBy { if (preferredLanguages.isEmpty()) 0 else AudioLanguages.rank(it.value.language, preferredLanguages) }
                 .thenBy { healthOf[it.value.id] ?: 0 }
                 .thenBy { if (it.value.id == rememberedId) 0 else 1 }
                 .thenBy { if (preferredPlaylist != null && it.value.playlistId == preferredPlaylist) 0 else 1 }
@@ -95,11 +97,12 @@ object SourceRanker {
         else -> (status.max - status.active).coerceAtLeast(0)
     }
 
-    private fun languagePenalty(language: String?, preferred: String?): Int = when {
-        preferred == null || language == null -> 1
-        language.equals(preferred, ignoreCase = true) -> 0
-        else -> 2
-    }
+    /**
+     * „Nur diese Sprachen“: Quellen in einer erkannt anderen Sprache weglassen – aber nur, wenn danach noch eine übrig
+     * bleibt (sonst lieber die fremde Fassung als gar nichts). Unbekannte Sprache bleibt immer.
+     */
+    fun <T> onlyLanguages(candidates: List<Candidate<T>>, languages: List<String>): List<Candidate<T>> =
+        candidates.filterNot { AudioLanguages.isForeign(it.language, languages) }.ifEmpty { candidates }
 
     private const val UNLIMITED_FREE = 1_000
     private const val UNKNOWN_FREE = 1

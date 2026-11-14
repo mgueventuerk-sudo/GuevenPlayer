@@ -352,6 +352,14 @@ schicken (Zeilen beginnen mit „Wächter:“).
 - [ ] W6 Kindersicherung aktiv und der Inhalt gesperrt → der Fernseher fragt nach der PIN, startet nicht einfach.
 - [ ] W7 Zeitversetzte Sendung (Archiv) → der Eintrag erscheint gar nicht erst.
 
+## 16v. Neu in 3.60 – Sprache
+
+- [ ] S1 *Einstellungen → Wiedergabe → Sprache*: Standardsprache Deutsch. Serie über „Alle Zugänge“ mehrere Folgen am Stück: Ton bleibt Deutsch; Protokoll je Folge „Quelle: …“ mit demselben Zugang und „Tonspur: Deutsch …“.
+- [ ] S2 Standardsprache auf Türkisch, Deutsch als weitere Sprache: Film mit beiden Tonspuren startet Türkisch; Zeile „Weitere Sprachen“ zeigt Deutsch mit „Rang 2“.
+- [ ] S3 „Nur diese Sprachen“ an, Titel in „Alle Zugänge“ mit deutscher und englischer Fassung: Auch bei einem Hänger wechselt die App nicht auf die englische.
+- [ ] S4 Player auf LibVLC gestellt: Film mit Englisch als erster und Deutsch als zweiter Spur startet Deutsch.
+- [ ] S5 Sicherung exportieren und auf einem anderen Gerät einspielen: Sprachen und „Nur diese Sprachen“ sind übernommen.
+
 ## 16u. Neu in 3.60 – Vorladen (Bilder, auch im Arbeitsspeicher)
 
 Ziel ist ein Vergleich, kein Haken: Bitte mit und ohne Vorladen dieselbe Liste gleich lang scrollen und die Zeile „Bildzeiten …“

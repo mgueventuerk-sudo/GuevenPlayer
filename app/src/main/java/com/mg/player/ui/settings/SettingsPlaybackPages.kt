@@ -3,6 +3,7 @@ package com.mg.player.ui.settings
 import androidx.compose.foundation.lazy.LazyListScope
 import com.mg.player.domain.model.AccentColor
 import com.mg.player.domain.model.AppSettings
+import com.mg.player.domain.model.AudioLanguages
 import com.mg.player.domain.model.BufferProfile
 import com.mg.player.domain.model.HwDecoding
 import com.mg.player.domain.model.IntroSkipMode
@@ -15,6 +16,7 @@ import com.mg.player.ui.theme.accentGradient
 /** Bereich „Wiedergabe“: Player, Serien, Bild & Ton (Feineinstellungen auf einer Unterseite). */
 internal fun LazyListScope.playbackItems(c: SettingsContext) {
     playerItems(c)
+    languageItems(c)
     seriesItems(c)
     pictureItems(c)
     handoffItems(c)
@@ -44,6 +46,54 @@ private fun LazyListScope.handoffItems(c: SettingsContext) {
                 },
                 AppIcons.Play,
             )
+        }
+    }
+}
+
+/**
+ * Sprache (ab 3.60): Standardsprache plus weitere in Reihenfolge – gilt für die Tonspur in jedem Player und für die Wahl
+ * der Quelle in „Alle Zugänge“. Eine von Hand gewählte Tonspur einer Serie bzw. eines Senders geht weiter vor.
+ */
+private fun LazyListScope.languageItems(c: SettingsContext) {
+    val languages = AudioLanguages.sanitize(c.s.audioLanguages)
+    val standard = languages.first()
+    val codes = AudioLanguages.choices.map { it.first }
+    settingsGroup(
+        "language",
+        "Sprache",
+        footer = "Gilt für Filme, Serien und Live-TV: Ton in dieser Reihenfolge, und in „Alle Zugänge“ zuerst die Fassung " +
+            "in diesen Sprachen. Eine Tonspur, die du bei einer Serie selbst wählst, gilt dort weiter.",
+    ) {
+        row("language-default") {
+            ChoiceRow("Standardsprache", AudioLanguages.label(standard), {
+                c.vm.update { it.copy(audioLanguages = AudioLanguages.withDefault(it.audioLanguages, codes.nextAfter(standard))) }
+            }, "Wird zuerst gewählt, wo es sie gibt", AppIcons.Globe)
+        }
+        row("language-only") {
+            ToggleRow(
+                "Nur diese Sprachen",
+                c.s.onlyPreferredLanguages,
+                { c.vm.update { it.copy(onlyPreferredLanguages = !it.onlyPreferredLanguages) } },
+                if (c.s.onlyPreferredLanguages) {
+                    "Nie von selbst eine andere Fassung – außer es gibt nur die"
+                } else {
+                    "Aus – fehlt deine Sprache, nimmt die App eine andere Fassung"
+                },
+                AppIcons.Audio,
+            )
+        }
+    }
+    settingsGroup("language-more", "Weitere Sprachen (nach der Standardsprache)") {
+        AudioLanguages.choices.filter { it.first != standard }.forEach { (code, name) ->
+            row("language-$code") {
+                val position = languages.indexOf(code)
+                ToggleRow(
+                    name,
+                    position > 0,
+                    { c.vm.update { it.copy(audioLanguages = AudioLanguages.toggled(it.audioLanguages, code)) } },
+                    if (position > 0) "Rang ${position + 1}" else null,
+                )
+            }
         }
     }
 }

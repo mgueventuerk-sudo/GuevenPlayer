@@ -27,6 +27,7 @@ import com.mg.player.data.combined.CombinedConfig
 import com.mg.player.data.combined.CombinedStats
 import com.mg.player.data.sync.SyncState
 import com.mg.player.domain.model.AppSettings
+import com.mg.player.domain.model.AudioLanguages
 import com.mg.player.domain.model.ConnectionStatus
 import com.mg.player.domain.model.Playlist
 import com.mg.player.domain.model.StationReport
@@ -318,7 +319,11 @@ internal fun SettingsPage.status(c: SettingsContext, vpnLine: String): String = 
         else -> "${c.playlists.size} Zugänge · ${activeName(c)}"
     }
 
-    SettingsPage.PLAYBACK -> if (c.s.automaticOptimization) "Automatisch optimiert" else "${c.s.liveEngine.label} · Wächter ${onOff(c.s.playbackSupervisor)}"
+    SettingsPage.PLAYBACK -> {
+        val language = AudioLanguages.label(AudioLanguages.sanitize(c.s.audioLanguages).first())
+        val player = if (c.s.automaticOptimization) "Automatisch optimiert" else "${c.s.liveEngine.label} · Wächter ${onOff(c.s.playbackSupervisor)}"
+        "$player · $language"
+    }
 
     SettingsPage.CONTENT -> if (c.s.tmdbActive) "TMDB an" else "Kategorien, Favoriten"
 
