@@ -13,6 +13,7 @@ import com.mg.player.data.sport.guide.GuideSeries
 import com.mg.player.data.sport.guide.KickoffCheck
 import com.mg.player.data.sport.guide.SportChannelFinder
 import com.mg.player.data.sport.guide.SportGuideStore
+import com.mg.player.data.sport.proof.ActiveProbes
 import com.mg.player.data.sport.proof.ProofActions
 import com.mg.player.data.sport.proof.ProofHunter
 import com.mg.player.data.sport.proof.ProofLook
@@ -184,7 +185,10 @@ class SportModule(private val container: AppContainer) {
         if (s.sportProofDevice) hunter.release(account) else shareClient.release(s.sportHubJoinCode, account)
     }
 
-    /** Stream-Adresse des Senders auflösen und hineinsehen; null = nicht abspielbar. */
+    /** Laufende Blicke je Zugang: Zuschauen auf diesem Gerät hat Vorfahrt (Regel „Freie Playlist“ 4). */
+    val probes = ActiveProbes()
+
+    /** Stream-Adresse des Senders auflösen und hineinsehen; null = nicht abspielbar oder für das Zuschauen beendet. */
     private suspend fun probeChannel(channelId: String): ProofLook? {
         val channel = container.liveRepository.channel(channelId) ?: return null
         val url = container.streamUrlResolver.resolve(channel.streamUrl, channel.id)
@@ -197,7 +201,7 @@ class SportModule(private val container: AppContainer) {
             hwDecoding = HwDecoding.AUTO,
             allowInsecureHttp = container.streamUrlResolver.isHttpAllowed(channel.id),
         )
-        return probe.look(request)
+        return probes.run(channel.playlistId) { probe.look(request) }
     }
 
     /** 15 min vor Anstoß: Event- und Sport-Gruppen der Xtream-Zugänge neu abfragen (umbenannte Event-Sender). */

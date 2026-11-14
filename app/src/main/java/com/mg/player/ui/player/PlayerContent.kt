@@ -143,7 +143,9 @@ internal suspend fun PlayerViewModel.startPlayable(requested: Playable) {
     switchingAccount = false
     (playable.activePlaylistId ?: playlistIdOf(playable.id))?.let { playlistId ->
         container.connectionMonitor.markOwnUse(playlistId)
-        // Vorfahrt fürs Zuschauen: Prüft das Prüfgerät gerade über diesen Zugang, gibt es ihn sofort frei (Spiel-Finder O).
+        // Vorfahrt fürs Zuschauen: Ein Blick der Bildbeweis-Suche dieses Geräts über den Zugang endet sofort, bevor der
+        // Player die eine erlaubte Verbindung braucht; ein Prüfgerät im Heimnetz gibt ihn ebenfalls frei (Spiel-Finder O).
+        if (container.sport.probes.stop(playlistId)) AppLog.log("Player", "Bildbeweis-Blick über denselben Zugang beendet")
         scope.launch { runCatchingCancellable { container.sport.releaseForViewing(playlistId) } }
     }
     bingeSession.reset()

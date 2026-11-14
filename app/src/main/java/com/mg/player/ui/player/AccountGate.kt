@@ -54,7 +54,9 @@ class AccountGate(private val container: AppContainer) {
         val monitor = container.connectionMonitor
         if (monitor.recentlyUsedHere(playlistId)) return AccountChoice.Continue
         val status = monitor.checkNow(playlistId) ?: return AccountChoice.Continue
-        if (!status.full) return AccountChoice.Continue
+        // Der eigene Blick der Bildbeweis-Suche ist kein fremder Zuschauer: Er endet beim Start (startPlayable).
+        val ownProbe = if (container.sport.probes.isRunning(playlistId)) 1 else 0
+        if (!status.copy(active = status.active - ownProbe).full) return AccountChoice.Continue
         val name = playlistName(playlistId)
         AppLog.log("Zugang", "$name belegt (${status.label}) – Nachfrage vor dem Start")
         return ask(

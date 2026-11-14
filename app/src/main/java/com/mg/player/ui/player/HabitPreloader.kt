@@ -152,6 +152,8 @@ internal class HabitPreloader(private val vm: PlayerViewModel) {
      */
     private suspend fun accountIsFree(playlistId: Long): Boolean {
         if (playlistId in slots) return true
+        // Die Bildbeweis-Suche belegt den Zugang gerade selbst – sonst lägen zwei Verbindungen darauf.
+        if (vm.container.sport.probes.isRunning(playlistId)) return false
         val monitor = vm.container.connectionMonitor
         val now = SystemClock.elapsedRealtime()
         val known = monitor.status.value[playlistId]
