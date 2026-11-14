@@ -139,10 +139,12 @@ internal suspend fun PlayerViewModel.startPlayable(playable: Playable) {
     // War für den letzten Inhalt eine andere Engine als Notlösung aktiv: der neue startet wieder mit der eingestellten.
     restorePreferredEngine()
     decoderOverride = StartHint()
-    guard?.onContentStarted(playable)
     lastKnownPosition = playable.startPositionMs
     positionState.value = PlaybackPosition(playable.startPositionMs, 0)
     uiState.update { it.copy(playable = playable, nextEpisode = null) }
+    // Erst jetzt: Der Wächter darf auf eine gemerkte Engine wechseln (useFallbackEngine prüft gegen den **neuen** Inhalt, nicht
+    // gegen den vorigen – vorher sah er den alten oder keinen).
+    guard?.onContentStarted(playable)
     if (playable.kind == PlayableKind.LIVE) {
         habitPreload.take(playable)?.let { ready ->
             AppLog.log("Player", "Sehgewohnheits-Sender war vorgeladen · ${playable.title}")
@@ -243,9 +245,13 @@ fun PlayerViewModel.playNextEpisode() {
     val next = uiState.value.nextEpisode ?: return
     switchingEpisode = true
     scope.launch {
-        progress.markWatched(current, durationMs())
-        startPlayable(resolver.episode(next, 0))
-        switchingEpisode = false
+        try {
+            progress.markWatched(current, durationMs())
+            startPlayable(resolver.episode(next, 0))
+        } finally {
+            // Auch bei Fehler oder Abbruch freigeben – sonst bliebe „nächste Folge“ bis zum Schließen des Players gesperrt.
+            switchingEpisode = false
+        }
     }
 }
 

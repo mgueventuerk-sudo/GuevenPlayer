@@ -5,6 +5,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
@@ -48,5 +49,13 @@ class TrailerLocalServerTest {
         } catch (expected: IOException) {
             // Server nimmt nach stop() keine Verbindungen mehr an - genau das wird hier erwartet.
         }
+    }
+
+    @Test
+    fun stopBeforeTheBackgroundThreadHasBoundNeverLeavesAListeningSocket() {
+        // Screen verlassen, bevor der Hintergrund-Thread gebunden hat: Der Server darf danach weder horchen noch laufen bleiben.
+        val server = TrailerLocalServer("abc123XYZ_-")
+        server.stop()
+        assertNull(server.start())
     }
 }

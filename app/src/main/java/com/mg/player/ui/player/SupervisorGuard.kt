@@ -215,7 +215,8 @@ internal class SupervisorGuard(private val vm: PlayerViewModel) : PlaybackGuard 
             RecoveryStep.SafeAudio -> applyOverride(vm.decoderOverride.copy(safeAudio = true)) { vm.settings.audioPassthrough }
 
             is RecoveryStep.SwitchEngine -> {
-                if (vm.uiState.value.engineType == step.target) return false
+                // Nicht möglich (gleicher Player, HTTPS-Sperre, Aufnahme): nicht „ausgeführt“ melden, die nächste Stufe folgt.
+                if (!vm.canSwitchEngine(step.target)) return false
                 vm.toast("${symptom.label} – wechsle automatisch zu ${step.target.label} …")
                 vm.switchEngine(step.target, byUser = false)
                 true

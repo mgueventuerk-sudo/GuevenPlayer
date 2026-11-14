@@ -11,6 +11,7 @@ import com.mg.player.core.log.AppLog
 import com.mg.player.core.network.HttpFetcher
 import com.mg.player.core.network.HttpStatusException
 import com.mg.player.core.util.runCatchingCancellable
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -98,10 +99,16 @@ class AppUpdater(
         }
         _status.value = UpdateStatus.Checking
         lastCheckMs = clock()
-        val result = runCatchingCancellable { latest(token) }.fold(
-            onSuccess = { update -> update?.takeIf { it.versionCode > BuildConfig.VERSION_CODE }?.let(UpdateStatus::Available) ?: UpdateStatus.UpToDate },
-            onFailure = { e -> UpdateStatus.Failed(problem(e)) },
-        )
+        val result = try {
+            runCatchingCancellable { latest(token) }.fold(
+                onSuccess = { update -> update?.takeIf { it.versionCode > BuildConfig.VERSION_CODE }?.let(UpdateStatus::Available) ?: UpdateStatus.UpToDate },
+                onFailure = { e -> UpdateStatus.Failed(problem(e)) },
+            )
+        } catch (e: CancellationException) {
+            // Abgebrochen (Bildschirm verlassen, App im Hintergrund): „Prüfe …“ bliebe sonst für immer stehen.
+            _status.value = UpdateStatus.Idle
+            throw e
+        }
         _status.value = result
         result
     }

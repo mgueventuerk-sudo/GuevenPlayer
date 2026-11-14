@@ -124,7 +124,16 @@ object Ladders {
 
             Symptom.RATE_LIMITED -> "Der Anbieter ist gerade überlastet$code. Bitte gleich noch einmal versuchen."
 
-            else -> "Keine Verbindung zum Stream$code. Die Wiedergabe startet automatisch, sobald das Netzwerk wieder stabil ist."
+            Symptom.START_NO_PICTURE ->
+                "Der Stream liefert Daten, aber das Gerät zeigt kein Bild – im Player-Menü eine andere Engine oder Quelle wählen."
+
+            Symptom.LIVE_ENDED -> "Der Live-Stream ist beendet$code – bitte später erneut öffnen oder eine andere Quelle wählen."
+
+            // Nur echte Verbindungsstörungen versprechen den automatischen Neustart – alles andere ist keine fehlende Verbindung.
+            Symptom.NETWORK, Symptom.START_NO_DATA, Symptom.STALL ->
+                "Keine Verbindung zum Stream$code. Die Wiedergabe startet automatisch, sobald das Netzwerk wieder stabil ist."
+
+            else -> "Die Wiedergabe ist fehlgeschlagen$code – bitte erneut versuchen oder im Player-Menü eine andere Quelle oder Engine wählen."
         }
     }
 

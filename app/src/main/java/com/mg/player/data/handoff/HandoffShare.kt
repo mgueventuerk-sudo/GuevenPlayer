@@ -50,7 +50,11 @@ class HandoffServer(private val context: Context, private val onPlay: (PlayReque
      */
     @Synchronized
     fun start(secret: String) {
-        if (secret.isBlank()) return
+        if (secret.isBlank()) {
+            // Kein Kennwort (mehr): Ein noch laufender Server mit dem alten Schlüssel muss weg – sonst bliebe sein Port offen.
+            stop()
+            return
+        }
         // Nicht nur "ein Server existiert", sondern "er nimmt noch Verbindungen an": Ein Netzwechsel kann den
         // gebundenen Socket unter accept() wegziehen, ohne dass das Feld selbst null wird (MiniHttpServer.isAccepting).
         if (server?.isAccepting() == true && keyFor == secret) return

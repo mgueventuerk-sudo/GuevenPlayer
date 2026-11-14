@@ -254,6 +254,18 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
     }
 
     /** Engine wechseln. [byUser] = Auswahl im Menü (bricht laufende Maßnahmen ab); sonst automatisch für diesen Inhalt. */
+    /**
+     * Ob der Wechsel zu [type] hier überhaupt möglich ist – ohne Meldung und ohne etwas zu ändern. Der Wächter fragt vorher,
+     * damit „Maßnahme ausgeführt“ nicht gemeldet wird, wenn [switchEngine] sofort aussteigt (Scheinmaßnahme).
+     */
+    fun canSwitchEngine(type: PlayerEngineType): Boolean {
+        val playable = uiState.value.playable ?: return false
+        return type != uiState.value.engineType && EngineFallback.canSwitchTo(type, playable) && !isRecordingOnExternal(type, playable)
+    }
+
+    private fun isRecordingOnExternal(type: PlayerEngineType, playable: Playable) =
+        type == PlayerEngineType.EXTERNAL && playable.kind == PlayableKind.RECORDING
+
     fun switchEngine(type: PlayerEngineType, byUser: Boolean = true) {
         val playable = uiState.value.playable ?: return
         if (type == uiState.value.engineType) return
@@ -261,7 +273,7 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
             toast("Media3 bleibt für diesen HTTPS-Zugang aktiv, damit HTTP-Unterstreams gesperrt bleiben")
             return
         }
-        if (type == PlayerEngineType.EXTERNAL && playable.kind == PlayableKind.RECORDING) {
+        if (isRecordingOnExternal(type, playable)) {
             toast("Aufnahmen lassen sich nur mit den eingebauten Playern abspielen")
             return
         }

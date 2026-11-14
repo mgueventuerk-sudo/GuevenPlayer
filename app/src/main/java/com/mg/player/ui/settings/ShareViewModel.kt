@@ -132,13 +132,15 @@ class ShareViewModel(private val container: AppContainer, private val mode: Shar
 
     private suspend fun receive(text: String): DeviceShareServer.Reply {
         if (!BackupCrypto.isEncrypted(text)) {
-            // Ältere, unverschlüsselte Sicherungen brauchen kein Kennwort.
-            val error = restore(text, null)
-            return if (error == null) {
-                DeviceShareServer.Reply(true, "Wiederhergestellt ✓", "Der Fernseher lädt jetzt deine Playlists neu.")
-            } else {
-                DeviceShareServer.Reply(false, "Fehlgeschlagen", error)
-            }
+            // Übers Heimnetz (unverschlüsseltes HTTP) nimmt der Fernseher nur verschlüsselte Sicherungen an: Eine unverschlüsselte
+            // würde ohne Kennwort sofort Playlists und Zugangsdaten ersetzen – jeder im WLAN mit dem Code-Token könnte sie
+            // unterschieben oder mitlesen. Ältere Dateien lassen sich weiter direkt am Gerät auswählen (loadPickedBackup).
+            return DeviceShareServer.Reply(
+                false,
+                "Nicht angenommen",
+                "Unverschlüsselte Sicherungen werden übers WLAN nicht angenommen. Bitte die Sicherung mit Kennwort neu erstellen " +
+                    "oder die Datei direkt am Fernseher auswählen.",
+            )
         }
         pendingBackup = text
         _awaitingPassphrase.value = true

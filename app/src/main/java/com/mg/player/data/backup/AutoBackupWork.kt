@@ -1,5 +1,6 @@
 package com.mg.player.data.backup
 
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -91,11 +92,25 @@ object AutoBackup {
 
     private fun write(context: Context, tree: Uri, text: String) {
         val resolver = context.contentResolver
+        val bytes = text.toByteArray(Charsets.UTF_8)
         val treeDocId = DocumentsContract.getTreeDocumentId(tree)
-        val target = findExisting(context, tree, treeDocId)
-            ?: DocumentsContract.createDocument(resolver, DocumentsContract.buildDocumentUriUsingTree(tree, treeDocId), MIME_TYPE, FILE_NAME)
-            ?: error("Ordner „${tree}“ nicht beschreibbar")
-        resolver.openOutputStream(target, "wt")?.use { it.write(text.toByteArray(Charsets.UTF_8)) } ?: error("Sicherungsdatei nicht beschreibbar")
+        val folder = DocumentsContract.buildDocumentUriUsingTree(tree, treeDocId)
+        val existing = findExisting(context, tree, treeDocId)
+        val target = existing ?: DocumentsContract.createDocument(resolver, folder, MIME_TYPE, FILE_NAME) ?: error("Ordner „${tree}“ nicht beschreibbar")
+        if (writeAndVerify(resolver, target, bytes)) return
+        // Nicht „wt“ jedes Anbieters schneidet die alte Datei ab (dann bliebe hinter dem neuen Inhalt Rest der alten Sicherung,
+        // und sie ließe sich nicht mehr lesen) – die Datei wurde nach dem Schreiben nachgelesen und passt nicht: neu anlegen.
+        AppLog.log("Sicherung", "Sicherungsdatei stimmt nach dem Schreiben nicht – lege sie neu an")
+        if (existing != null) DocumentsContract.deleteDocument(resolver, existing)
+        val fresh = DocumentsContract.createDocument(resolver, folder, MIME_TYPE, FILE_NAME) ?: error("Ordner „${tree}“ nicht beschreibbar")
+        check(writeAndVerify(resolver, fresh, bytes)) { "Sicherungsdatei nach dem Schreiben nicht vollständig" }
+    }
+
+    /** Schreibt und liest zurück: true, wenn genau [bytes] in der Datei stehen. */
+    private fun writeAndVerify(resolver: ContentResolver, target: Uri, bytes: ByteArray): Boolean {
+        resolver.openOutputStream(target, "wt")?.use { it.write(bytes) } ?: error("Sicherungsdatei nicht beschreibbar")
+        val written = resolver.openInputStream(target)?.use { it.readBytes() } ?: return false
+        return written.contentEquals(bytes)
     }
 
     private fun findExisting(context: Context, tree: Uri, treeDocId: String): Uri? {

@@ -145,7 +145,13 @@ fun TrailerScreen(youtubeKey: String) {
 internal class TrailerLocalServer(private val youtubeKey: String) {
     @Volatile
     private var running = false
+
+    @Volatile
     private var socket: ServerSocket? = null
+
+    /** stop() kann vor dem Binden kommen (Screen verlassen, bevor der Hintergrund-Thread so weit ist): Dann nie mehr horchen. */
+    @Volatile
+    private var stopped = false
 
     /**
      * Nur gesetzt, wenn [start] zuletzt mit `null` zurückkam - der Grund dafür, zur Anzeige in der Fehlerkarte
@@ -192,6 +198,12 @@ internal class TrailerLocalServer(private val youtubeKey: String) {
                 return@Thread
             }
             socket = server
+            if (stopped) {
+                // stop() lief schon, bevor der Socket bekannt war: Er wäre sonst offen geblieben und der Thread nie beendet worden.
+                runCatching { server.close() }
+                bound.countDown()
+                return@Thread
+            }
             running = true
             result.set("http://${server.inetAddress.hostAddress}:${server.localPort}/")
             bound.countDown()
@@ -214,6 +226,7 @@ internal class TrailerLocalServer(private val youtubeKey: String) {
     }
 
     fun stop() {
+        stopped = true
         running = false
         runCatching { socket?.close() }
     }
