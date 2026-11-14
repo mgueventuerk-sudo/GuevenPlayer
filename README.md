@@ -283,11 +283,16 @@ Arbeitsspeicher**, in genau der Größe, in der die Anzeige das Bild braucht (da
 mit fester Größe). Poster und Logo werden dafür aus derselben Quelle gebaut wie in der Anzeige (`ImageRequests`), sonst träfe
 die Anzeige den Eintrag nicht.
 
-**Streams (Zapping):** Läuft ein Sender ruhig (etwa 3 s), wird der nächste oder vorige Sender der Liste **vorgeladen, wenn er auf
-einem anderen Zugang liegt** (eigene Verbindung) und dieser nachweislich einen freien Platz hat – nie auf dem Zugang des
-laufenden Senders. Wer auf genau diesen Sender zappt, sieht ihn ohne Puffern. Bleibt der Wechsel aus, wird die vorgeladene
-Verbindung beim nächsten Senderstart freigegeben. Wie bisher nur auf leistungsstarken Geräten (≥ 3,5 GB RAM) – Fire TV mit 2 GB
-laden keine Streams vor. Die Sehgewohnheits-Vorladung (nach 2 min) gilt unverändert und hat Vorrang.
+**Streams auf einem anderen Zugang (Zapping):** Jeder Zugang erlaubt nur **eine** Verbindung – ein zweiter Stream auf dem Zugang
+des laufenden Senders geht nicht. Auf einem **anderen** Zugang mit nachweislich freiem Platz ist es eine eigene Verbindung: Dort
+lädt die App einen Stream auf Vorrat (stumm, ohne Wiedergabe) und übernimmt ihn, wenn du dorthin umschaltest – ohne Puffern.
+Gewählt wird (1) ein Sender aus deinen Sehgewohnheiten (zu dieser Tageszeit sonst als Nächstes), danach (2) der nächste oder
+vorige Sender der Liste, jeweils in der **Variante auf dem anderen Zugang**. Das gibt es in „Alle Zugänge“, wo ein Sender mehrere
+Quellen auf mehreren Zugängen hat; eine Einzel-Playlist hat nur Sender auf demselben Zugang (dort lädt kein Stream vor). Der
+Verbindungsstatus des anderen Zugangs wird dafür frisch erfragt (höchstens alle 20 s). Nach etwa 3 s ruhiger Wiedergabe. Auf
+mittleren Geräten (Fire TV) nur, solange der Arbeitsspeicher reicht (Android-Schwelle + 200 MB, 48 MB Heap); schwache Geräte
+nie. Bis 3.60 war das auf starke Geräte (≥ 3,5 GB) beschränkt und in „Alle Zugänge“ gar nicht aktiv. Die Einstellung „Vorladen“
+schaltet auch das aus. Bleibt der Wechsel aus, wird die Verbindung beim nächsten Senderstart freigegeben.
 
 **Wie viel, entscheidet der freie Speicher** (nicht nur die Geräteklasse):
 - *Aus:* „wenig Speicher“ laut Android, 2 min nach einer Speicherwarnung, unter 24 MB freiem Heap oder **unter 500 MB freiem

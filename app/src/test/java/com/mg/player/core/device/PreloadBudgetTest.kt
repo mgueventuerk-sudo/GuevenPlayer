@@ -28,8 +28,10 @@ class PreloadBudgetTest {
 
     @Test
     fun plentyOfMemoryOnANormalDeviceGivesTheFullBudget() {
-        assertEquals(PreloadBudget(PreloadLevel.FULL, 30, warmMemory = true, keepBehind = 15, diskAhead = 120), decide(DeviceTier.NORMAL, memory()))
-        assertEquals(PreloadBudget(PreloadLevel.FULL, 60, warmMemory = true, keepBehind = 30, diskAhead = 120), decide(DeviceTier.HIGH, memory()))
+        val normal = PreloadBudget(PreloadLevel.FULL, 30, warmMemory = true, keepBehind = 15, diskAhead = 120, streamsOk = true)
+        val high = PreloadBudget(PreloadLevel.FULL, 60, warmMemory = true, keepBehind = 30, diskAhead = 120, streamsOk = true)
+        assertEquals(normal, decide(DeviceTier.NORMAL, memory()))
+        assertEquals(high, decide(DeviceTier.HIGH, memory()))
     }
 
     @Test
@@ -42,7 +44,7 @@ class PreloadBudgetTest {
     fun lessRoomMeansLessPreloadingInsteadOfNone() {
         // 250 MB über der Schwelle reichen für „leicht“, aber nicht für „voll“.
         val budget = decide(DeviceTier.NORMAL, memory(avail = 450, threshold = 200))
-        assertEquals(PreloadBudget(PreloadLevel.LIGHT, 18, diskAhead = 120), budget)
+        assertEquals(PreloadBudget(PreloadLevel.LIGHT, 18, diskAhead = 120, streamsOk = true), budget)
         // Genug System-Speicher, aber wenig freier Heap: ebenfalls nur „leicht“.
         assertEquals(PreloadLevel.LIGHT, decide(DeviceTier.HIGH, memory(heapFree = 60)).level)
     }
@@ -148,5 +150,26 @@ class PreloadBudgetTest {
         assertFalse(decide(DeviceTier.LOW, memory(avail = 4_000, heapFree = 400)).warmMemory)
         assertFalse(decide(DeviceTier.HIGH, memory(low = true)).warmMemory)
         assertEquals(0, decide(DeviceTier.HIGH, memory(low = true)).keepBehind)
+    }
+
+    @Test
+    fun anExtraStreamNeedsRamButNotTheFullBudgetAndNeverOnWeakDevices() {
+        // Fire TV (mittel): zusätzlicher Stream, sobald der Arbeitsspeicher „gut“ ist – nicht erst bei der großen Stufe.
+        assertTrue(decide(DeviceTier.NORMAL, memory(avail = 450, threshold = 200)).streamsOk)
+        assertTrue(decide(DeviceTier.HIGH, memory()).streamsOk)
+        // Schwache Geräte nie, auch nicht bei viel RAM.
+        assertFalse(decide(DeviceTier.LOW, memory(avail = 4_000, heapFree = 400)).streamsOk)
+        // Knapper RAM oder Heap, Speicherwarnung, Aus: kein Stream auf Vorrat.
+        assertFalse(decide(DeviceTier.NORMAL, memory(avail = 380, threshold = 200)).streamsOk)
+        assertFalse(decide(DeviceTier.NORMAL, memory(heapFree = 40)).streamsOk)
+        assertFalse(decide(DeviceTier.HIGH, memory(trimmed = true)).streamsOk)
+        assertFalse(decide(DeviceTier.HIGH, memory(), enabled = false).streamsOk)
+    }
+
+    @Test
+    fun diskOnlyNeverPreloadsStreams() {
+        // „Nur interner Speicher“ betrifft nur Bilder, aber auch es lädt keinen zusätzlichen Stream – ein Decoder ist Arbeitsspeicher.
+        val budget = PreloadPolicyRules.decide(DeviceTier.HIGH, memory(), enabled = true, diskOnly = true)
+        assertFalse(budget.streamsOk)
     }
 }

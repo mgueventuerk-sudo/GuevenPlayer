@@ -369,8 +369,8 @@ im Fehlerprotokoll vergleichen (siehe K3, 3.22). Ergebnis in `config/perf-budget
 - [ ] U11 Protokollzeile „Vorladen: …“ nennt jetzt „Speicherplatz frei … MB, Datei-Cache … voraus, Arbeitsspeicher … voraus“: bei viel freiem Platz bis 120 voraus, bei wenig Platz (500–1000 MB) 30; unter 500 MB frei kein Vorladen.
 - [ ] U12 Viele andere Apps offen (Arbeitsspeicher knapp), aber Platz frei: Stufe LEICHT, „Arbeitsspeicher 0 voraus“, Datei-Cache weiter > 0 – Blättern trotzdem ohne Nachladeruckeln bei bereits besuchten/vorgeladenen Listen.
 - [ ] U13 *Einstellungen → Wiedergabe → „Vorladen nur im internen Speicher“* an: Protokoll zeigt „Arbeitsspeicher 0 voraus“ und „im Speicher vorgeladen“ steigt nicht mehr; Datei-Cache voraus > 0. Nach dem Ausschalten wieder Stufe VOLL (bei viel freiem Speicher).
-- [ ] U14 (nur Gerät ≥ 3,5 GB RAM, zwei Zugänge mit je 1 Verbindung, Sender-Liste mit Kanälen beider Zugänge nebeneinander) Sender auf Zugang 1 laufen lassen, 5 s warten: Protokoll „Vorgeladen auf einem anderen Zugang: …“ für den Nachbarn auf Zugang 2. Dorthin zappen: Bild ohne Puffern, Zugang 1 danach frei.
-- [ ] U15 Dasselbe, aber Nachbar liegt auf **demselben** Zugang: keine Protokollzeile, kein zweiter Stream. Nach dem Zappen auf einen anderen Sender: „Vorgeladen“ wird freigegeben (Zugang 2 zeigt wieder 0/1).
+- [ ] U14 („Alle Zugänge“ mit mindestens zwei Zugängen, je 1 Verbindung; Sender mit Quellen auf beiden) Sender laufen lassen, 5 s warten: Protokoll „Vorgeladen auf einem anderen Zugang: … (Zugang N)“. Zu diesem Sender zappen: Bild ohne Puffern; Protokoll „Vorrat … übernommen“ bzw. „war vorgeladen“. Funktioniert auch am Fire TV (mittleres Gerät), solange der Speicher reicht.
+- [ ] U15 Dasselbe in einer Einzel-Playlist: keine Protokollzeile, kein zweiter Stream auf demselben Zugang. Nach dem Zappen auf einen anderen Sender wird die vorgeladene Verbindung freigegeben (der andere Zugang zeigt wieder 0/1).
 - [ ] U10 Vorher/Nachher: „Bildzeiten live/…: … % verpasst“ je 3 Läufe mit und ohne Vorladen; dazu „angezeigt seit zuletzt: Speicher/Platte/Netz“.
 
 ## 16t. Neu in 3.59 – Wächter: Ton ohne Bild

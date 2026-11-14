@@ -1,79 +1,93 @@
 package com.mg.player.ui.player
 
-import com.mg.player.data.combined.Combined
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * Sehgewohnheits-Vorladung darf nie auf demselben Zugang landen wie der laufende Sender - die meisten Zugänge
- * erlauben nur eine Verbindung (siehe LiveSession.prepareNeighbours, die aus demselben Grund nie einen echten
- * zweiten Stream öffnet).
+ * Welcher Stream auf einem anderen Zugang vorgeladen wird. Jeder Zugang erlaubt nur eine Verbindung: Auf dem Zugang des
+ * laufenden Senders darf nie vorgeladen werden, auf einem anderen nur mit nachweislich freiem Platz. In „Alle Zugänge“
+ * hat ein Sender mehrere Varianten auf mehreren Zugängen – gewählt wird die Variante auf dem anderen Zugang.
  */
 class HabitPreloaderTest {
 
-    private val playlists = mapOf("A1" to 1L, "A2" to 1L, "B1" to 2L, "C1" to 3L)
-    private val freeSlots = mutableSetOf<Long>()
-
-    private suspend fun pick(habits: List<String>, currentId: String, currentPlaylistId: Long) = HabitPreloader.pickCandidate(
-        habitChannelIds = habits,
-        currentChannelId = currentId,
-        currentPlaylistId = currentPlaylistId,
-        playlistIdOf = { playlists[it] },
-        hasFreeSlot = { it in freeSlots },
+    /** Sender -> Varianten (Zugang, Original-ID), beste zuerst. */
+    private val variants = mapOf(
+        "A1" to listOf(1L to "a1"),
+        "A2" to listOf(1L to "a2"),
+        "B1" to listOf(2L to "b1"),
+        "C1" to listOf(3L to "c1"),
+        // „Alle Zugänge“: derselbe Sender auf Zugang 1 (beste Quelle) und Zugang 2.
+        "X1" to listOf(1L to "x1-a", 2L to "x1-b"),
+        "X2" to listOf(1L to "x2-a", 3L to "x2-c"),
     )
+    private val freeSlots = mutableSetOf<Long>()
+    private val asked = mutableListOf<Long>()
+
+    private fun pick(candidates: List<String>, active: Long = 1L) = runBlocking {
+        PreloadTargets.pick(
+            candidateIds = candidates,
+            activePlaylistId = active,
+            variantsOf = { variants[it].orEmpty() },
+            hasFreeSlot = {
+                asked += it
+                it in freeSlots
+            },
+        )
+    }
 
     @Test
-    fun picksTheFirstHabitChannelOnAFreeDifferentAccount() = runBlocking {
+    fun picksTheFirstChannelOnAFreeDifferentAccount() {
         freeSlots += 2L
-        assertEquals("B1", pick(listOf("A2", "B1", "C1"), currentId = "A1", currentPlaylistId = 1L))
+        assertEquals(PreloadTarget("B1", "b1", 2L), pick(listOf("A2", "B1", "C1")))
     }
 
     @Test
-    fun skipsTheCurrentChannelEvenIfItLeadsTheHabitList() = runBlocking {
-        freeSlots += 2L
-        assertEquals("B1", pick(listOf("A1", "B1"), currentId = "A1", currentPlaylistId = 1L))
+    fun neverPicksAChannelOnTheSameAccountAsTheRunningOne() {
+        freeSlots += 1L // Der laufende Zugang hätte sogar „freien Platz“ – zählt trotzdem nicht.
+        assertNull(pick(listOf("A1", "A2")))
     }
 
     @Test
-    fun neverPicksAChannelOnTheSameAccountAsTheCurrentOne() = runBlocking {
-        freeSlots += 1L // Zugang 1 (der laufende) hätte sogar einen "freien Platz" - zählt trotzdem nicht.
-        assertNull(pick(listOf("A2"), currentId = "A1", currentPlaylistId = 1L))
-    }
-
-    @Test
-    fun skipsAccountsWithoutAConfirmedFreeSlot() = runBlocking {
-        // B1 liegt auf Zugang 2, aber der hat laut Prüfung keinen freien Platz - C1 (Zugang 3) hat einen.
+    fun skipsAccountsWithoutAConfirmedFreeSlot() {
         freeSlots += 3L
-        assertEquals("C1", pick(listOf("B1", "C1"), currentId = "A1", currentPlaylistId = 1L))
+        assertEquals(PreloadTarget("C1", "c1", 3L), pick(listOf("B1", "C1")))
     }
 
     @Test
-    fun returnsNullWhenNoCandidateQualifies() = runBlocking {
-        assertNull(pick(listOf("A2", "B1"), currentId = "A1", currentPlaylistId = 1L))
+    fun returnsNullWhenNothingQualifies() {
+        assertNull(pick(listOf("A2", "B1")))
+        assertNull(pick(emptyList()))
     }
 
     @Test
-    fun neverPredictsAcrossTheCombinedView() = runBlocking {
+    fun inCombinedViewItPicksTheVariantOnTheOtherAccount() {
         freeSlots += 2L
-        // "Alle Zugänge" ist keine echte Einzelverbindung - weder als laufender noch als Ziel-Zugang.
-        assertNull(pick(listOf("B1"), currentId = "X", currentPlaylistId = Combined.ID))
+        // X1 läuft in der besten Quelle auf Zugang 1 – vorgeladen wird die Variante auf Zugang 2.
+        assertEquals(PreloadTarget("X1", "x1-b", 2L), pick(listOf("X1")))
     }
 
     @Test
-    fun habitsComeBeforeTheZapNeighboursButBothMustBeOnAFreeOtherAccount() = runBlocking {
-        freeSlots += 2L
+    fun inCombinedViewItFallsBackToAnotherChannelWhenTheOtherAccountIsFull() {
         freeSlots += 3L
-        // Gewohnheit B1 (Zugang 2) schlägt den Nachbarn C1 (Zugang 3), weil sie zuerst in der Liste steht.
-        assertEquals("B1", pick(listOf("B1", "C1"), currentId = "A1", currentPlaylistId = 1L))
-        // Ohne Gewohnheit zählt der erste Nachbar auf einem anderen Zugang; der Nachbar A2 (gleicher Zugang) wird übersprungen.
-        assertEquals("C1", pick(listOf("A2", "C1"), currentId = "A1", currentPlaylistId = 1L))
+        assertEquals(PreloadTarget("X2", "x2-c", 3L), pick(listOf("X1", "X2")))
     }
 
     @Test
-    fun aNeighbourOnTheSameAccountIsNeverPreloadedEvenIfTheAccountReportsMoreConnections() = runBlocking {
-        freeSlots += 1L
-        assertNull(pick(listOf("A2"), currentId = "A1", currentPlaylistId = 1L))
+    fun accountsWithoutARealIdAreNeverATarget() {
+        val odd = mapOf("Z" to listOf(-2L to "z", 0L to "z0"))
+        freeSlots += -2L
+        freeSlots += 0L
+        val target = runBlocking {
+            PreloadTargets.pick(listOf("Z"), 1L, { odd[it].orEmpty() }, { it in freeSlots })
+        }
+        assertNull(target)
+    }
+
+    @Test
+    fun asksEachAccountOnlyOnce() {
+        pick(listOf("B1", "B1", "C1"))
+        assertEquals(listOf(2L, 3L), asked)
     }
 }

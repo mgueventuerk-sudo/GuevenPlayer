@@ -124,7 +124,19 @@ private suspend fun PlayerViewModel.loadChannelList(playable: Playable, sameAcco
     }
 }
 
-internal suspend fun PlayerViewModel.startPlayable(playable: Playable) {
+/**
+ * Ist für diesen Sender schon eine **andere Variante** (anderer Zugang) vorgeladen, startet genau sie – sonst wäre der
+ * Vorrat umsonst. Die Variante steht im Vorrat per Original-ID, nicht per Index (die Reihenfolge kann sich inzwischen geändert haben).
+ */
+private suspend fun PlayerViewModel.preloadedVariant(requested: Playable): Playable {
+    val itemId = habitPreload.preloadedItemFor(requested) ?: return requested
+    val index = requested.variants.indexOfFirst { it.id == itemId }
+    if (index < 0 || index == requested.variantIndex) return requested
+    return resolver.variant(requested, index) ?: requested
+}
+
+internal suspend fun PlayerViewModel.startPlayable(requested: Playable) {
+    val playable = preloadedVariant(requested)
     userPaused = false
     livePauseWatchdog.resetSession()
     if (!switchingAccount) accounts.resetOffers()

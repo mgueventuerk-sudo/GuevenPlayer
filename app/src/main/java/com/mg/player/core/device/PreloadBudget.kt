@@ -25,6 +25,11 @@ data class PreloadBudget(
     val warmMemory: Boolean = false,
     val keepBehind: Int = 0,
     val diskAhead: Int = imagesAhead,
+    /**
+     * Genug Arbeitsspeicher für **einen zusätzlichen vorgeladenen Stream** (zweiter Decoder und Puffer neben dem laufenden):
+     * nie auf schwachen Geräten, sonst nur bei Android-Schwelle + 200 MB und 48 MB Heap, ohne Speichernot und ohne Warnung.
+     */
+    val streamsOk: Boolean = false,
 ) {
     val active: Boolean get() = level != PreloadLevel.OFF
 
@@ -113,12 +118,19 @@ object PreloadPolicyRules {
         val lightAhead = LIGHT_AHEAD.getValue(tier)
         if (diskOnly) return diskOnlyBudget(memory, disk, lightAhead)
         val fullAhead = FULL_AHEAD[tier]
+        val streams = ramFine && tier != DeviceTier.LOW
         return when {
-            roomy && fullAhead != null ->
-                PreloadBudget(PreloadLevel.FULL, fullAhead, warmMemory = true, keepBehind = fullAhead / 2, diskAhead = maxOf(disk, fullAhead))
+            roomy && fullAhead != null -> PreloadBudget(
+                PreloadLevel.FULL,
+                fullAhead,
+                warmMemory = true,
+                keepBehind = fullAhead / 2,
+                diskAhead = maxOf(disk, fullAhead),
+                streamsOk = streams,
+            )
 
             // RAM reicht nicht für die große Stufe: Die Festplatte lädt, so weit der Platz es erlaubt – bei knappem RAM nur wenig.
-            ramFine -> PreloadBudget(PreloadLevel.LIGHT, lightAhead, diskAhead = maxOf(disk, lightAhead))
+            ramFine -> PreloadBudget(PreloadLevel.LIGHT, lightAhead, diskAhead = maxOf(disk, lightAhead), streamsOk = streams)
 
             else -> PreloadBudget(PreloadLevel.LIGHT, lightAhead, diskAhead = lightAhead)
         }
