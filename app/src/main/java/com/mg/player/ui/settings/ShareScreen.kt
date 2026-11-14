@@ -41,7 +41,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
-import com.mg.player.core.log.AppLog
 import com.mg.player.data.backup.BackupCrypto
 import com.mg.player.ui.common.ActionButton
 import com.mg.player.ui.common.FocusSurface
@@ -51,6 +50,7 @@ import com.mg.player.ui.common.TvTextField
 import com.mg.player.ui.common.appViewModel
 import com.mg.player.ui.common.glass
 import com.mg.player.ui.common.isTouch
+import com.mg.player.ui.common.logReport
 import com.mg.player.ui.common.shareText
 import com.mg.player.ui.navigation.LocalNavigator
 import com.mg.player.ui.navigation.Screen
@@ -267,13 +267,14 @@ private fun LogPanel(vm: ShareViewModel) {
     val log by vm.log.collectAsStateWithLifecycle()
     val touch = isTouch
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     // Am Handy liegt das Panel in einer scrollbaren Seite: feste Höhe, sonst scrollt hier ein Bereich im anderen
     // (das bringt Compose zum Absturz).
     Column(if (touch) Modifier else Modifier.fillMaxHeight()) {
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             if (touch) {
                 ActionButton("Teilen", onClick = {
-                    context.shareText("GuevenPlayer – Fehlerprotokoll", AppLog.report())
+                    scope.launch { context.shareText("GuevenPlayer – Fehlerprotokoll", logReport()) }
                 }, icon = AppIcons.Upload, primary = true)
             }
             ActionButton("Aktualisieren", onClick = vm::reloadLog, icon = AppIcons.Refresh)

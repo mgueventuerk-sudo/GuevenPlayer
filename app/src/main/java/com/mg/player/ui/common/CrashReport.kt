@@ -5,11 +5,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.mg.player.core.log.AppLog
 import com.mg.player.core.log.ExitReasons
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -29,6 +31,7 @@ fun CrashReportHost(onOpenLog: () -> Unit) {
             crash ?: exit
         }
     }
+    val scope = rememberCoroutineScope()
     val text = problem ?: return
     val touch = isTouch
     ConfirmDialog(
@@ -36,13 +39,23 @@ fun CrashReportHost(onOpenLog: () -> Unit) {
         confirmText = if (touch) "Bericht teilen" else "Protokoll ansehen",
         dismissText = "Schließen",
         onConfirm = {
-            if (touch) context.shareText("GuevenPlayer – Fehlerbericht", crashReportText(text, AppLog.report())) else onOpenLog()
+            if (touch) {
+                scope.launch { context.shareText("GuevenPlayer – Fehlerbericht", crashReportText(text, logReport())) }
+            } else {
+                onOpenLog()
+            }
             problem = null
         },
         onDismiss = { problem = null },
         message = text.lineSequence().first().take(160) + "\n\nMit dem Bericht lässt sich der Fehler finden und beheben.",
     )
 }
+
+/**
+ * Fehlerprotokoll zum Teilen (bis 256 KB von der Platte) – nie im Hauptthread: Der Labor-Build (StrictMode mit
+ * penaltyDeath) beendete sonst die App beim Tippen auf „Teilen“.
+ */
+suspend fun logReport(): String = withContext(Dispatchers.IO) { AppLog.report() }
 
 /** Was geteilt wird: die Ursache ganz oben, darunter Gerät, Version und das Protokoll. */
 internal fun crashReportText(problem: String, report: String): String = "Ursache:\n$problem\n\n----- Protokoll -----\n$report"
