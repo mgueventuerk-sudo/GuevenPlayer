@@ -176,7 +176,12 @@ class AppContainer(context: Context, settingsOverride: SettingsRepository? = nul
     val searchRepository: SearchRepository by lazy { SearchRepositoryImpl(database, searchIndexer, appScope) }
 
     /** Belegte Verbindungen je Zugang ("1/1") – für die Anzeige überall, wo Zugänge erscheinen. */
-    val connectionMonitor: ConnectionMonitor by lazy { ConnectionMonitor(database, xtreamApi, appScope) }
+    val connectionMonitor: ConnectionMonitor by lazy {
+        ConnectionMonitor(database, xtreamApi, appScope).apply {
+            // Eigene Wiedergabe hat Vorfahrt: Ein Bildbeweis-Blick über denselben Zugang endet sofort (Regel „Freie Playlist“ 4).
+            onOwnUse = { playlistId -> if (sport.probes.stop(playlistId)) AppLog.log("Sport", "Bildbeweis-Blick beendet – Zugang wird hier gebraucht") }
+        }
+    }
 
     val categoryRepository: CategoryRepository by lazy {
         CategoryRepositoryImpl(database) { playlistId, becameVisible ->

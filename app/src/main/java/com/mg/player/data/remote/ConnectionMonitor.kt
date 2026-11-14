@@ -82,7 +82,14 @@ class ConnectionMonitor(
      */
     fun markOwnUse(playlistId: Long) {
         lastOwnUse[playlistId] = clock()
+        onOwnUse?.invoke(playlistId)
     }
+
+    /**
+     * Wird bei jeder eigenen Nutzung gerufen (Player, Vorschau, Standbilder, Stream-Vorrat). Die Bildbeweis-Suche hängt
+     * sich hier ein: Ein laufender Blick über denselben Zugang weicht sofort – viele Zugänge erlauben nur eine Verbindung.
+     */
+    @Volatile var onOwnUse: ((playlistId: Long) -> Unit)? = null
 
     /**
      * Hat dieses Gerät in den letzten [OWN_USE_GRACE_MS] über den Zugang geschaut? Dann stammt „belegt“ sehr
