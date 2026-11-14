@@ -33,7 +33,8 @@ data class VodSource(
  * Rangfolge der Quellen eines Inhalts über alle Zugänge (Plan „Alle Zugänge“, Entscheidungen 03.11.2026):
  * 1. auf dem Gerät abspielbar (kein 4K auf 1080p-Geräten), 2. Zugang nicht voll belegt, 3. eigene Sprache,
  * 3a. die wenigsten Hänger und Fehler (Gedächtnis des Wächters, ab 3.50), 4. die zuletzt bewährte Quelle,
- * 5. Qualität, 6. Zuverlässigkeit (kürzlich ausgefallene Zugänge nach hinten),
+ * 4a. derselbe Zugang wie die vorige Folge der Serie ([preferredPlaylist], ab 3.60 – sonst wechselte die Fassung
+ * und damit oft die Sprache von Folge zu Folge), 5. Qualität, 6. Zuverlässigkeit (kürzlich ausgefallene Zugänge nach hinten),
  * 7. bei Gleichstand der freieste Zugang, 8. dann die eigene Rangfolge der Zugänge.
  */
 object SourceRanker {
@@ -58,6 +59,7 @@ object SourceRanker {
         unreliable: (Long) -> Boolean = { false },
         accountRank: (Long) -> Int = { 0 },
         health: (String) -> Int = { 0 },
+        preferredPlaylist: Long? = null,
     ): List<T> {
         // Einmal je Quelle abfragen: Der Rang verfällt mit der Uhr – mitten im Sortieren darf er sich nicht ändern.
         val healthOf = candidates.associate { it.id to health(it.id) }
@@ -67,6 +69,7 @@ object SourceRanker {
                 .thenBy { languagePenalty(it.value.language, preferredLanguage) }
                 .thenBy { healthOf[it.value.id] ?: 0 }
                 .thenBy { if (it.value.id == rememberedId) 0 else 1 }
+                .thenBy { if (preferredPlaylist != null && it.value.playlistId == preferredPlaylist) 0 else 1 }
                 .thenBy { it.value.qualityRank }
                 .thenBy { if (unreliable(it.value.playlistId)) 1 else 0 }
                 .thenByDescending { freeSlots(statuses[it.value.playlistId]) }
@@ -74,6 +77,16 @@ object SourceRanker {
                 .thenBy { it.index },
         ).map { it.value.item }
     }
+
+    /**
+     * Verbindungsstand ohne die eigene, gerade beendete Wiedergabe: Anbieter zählen sie noch ein, zwei Minuten mit. Ohne
+     * das galt der Zugang der vorigen Folge beim Wechsel zur nächsten als „voll“ – und die Folge kam aus einem anderen
+     * Zugang, oft in einer anderen Sprache. [usedHere]: Hat dieses Gerät den Zugang gerade selbst genutzt?
+     */
+    fun withoutOwnUse(statuses: Map<Long, ConnectionStatus>, usedHere: (Long) -> Boolean): Map<Long, ConnectionStatus> =
+        statuses.mapValues { (playlistId, status) ->
+            if (status.active > 0 && usedHere(playlistId)) status.copy(active = status.active - 1) else status
+        }
 
     /** Freie Verbindungen; unbegrenzt bzw. unbekannt zählt wie „viel frei“, aber hinter echten Angaben gleicher Güte. */
     private fun freeSlots(status: ConnectionStatus?): Int = when {

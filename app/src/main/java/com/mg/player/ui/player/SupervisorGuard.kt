@@ -141,7 +141,12 @@ internal class SupervisorGuard(private val vm: PlayerViewModel) : PlaybackGuard 
             val variant = playable.activeVariant
             val source = playable.activeVodSource
             when {
-                source != null -> container.playback.streamMemory.remember(Combined.ID, playable.id, source.itemId)
+                source != null -> {
+                    container.playback.streamMemory.remember(Combined.ID, playable.id, source.itemId)
+                    // Die nächste Folge derselben Serie soll aus demselben Zugang kommen (Fassung, Sprache).
+                    playable.seriesId?.let { container.playback.streamMemory.remember(Combined.ID, seriesSourceKey(it), source.itemId) }
+                    AppLog.log("Player", "Quelle: ${source.label}")
+                }
                 channel != null && variant != null -> container.playback.streamMemory.remember(channel.playlistId, channel.groupKey, variant.id)
             }
         }

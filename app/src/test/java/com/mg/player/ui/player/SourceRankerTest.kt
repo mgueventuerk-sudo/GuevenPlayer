@@ -13,6 +13,35 @@ class SourceRankerTest {
         SourceRanker.Candidate(id, id, pid, quality, CombinedPlayables.qualityRank(quality), lang)
 
     /** Ab 3.50: Quelle mit Hängern hinter einer schlechteren Qualität ohne Probleme. */
+    /** Stargate in „Alle Zugänge“: Die nächste Folge bleibt beim Zugang der vorigen, auch wenn ein anderer FHD hat. */
+    @Test
+    fun nextEpisodeStaysOnTheAccountOfThePreviousOne() {
+        val ranked = SourceRanker.rank(
+            listOf(c("en-fhd", 2, "FHD"), c("de-hd", 1, "HD")),
+            rememberedId = null,
+            supports4K = true,
+            statuses = emptyMap(),
+            preferredPlaylist = 1,
+        )
+        assertEquals(listOf("de-hd", "en-fhd"), ranked)
+    }
+
+    /** Die eigene, gerade beendete Folge belegt den Zugang beim Anbieter noch kurz – das ist kein fremder Zuschauer. */
+    @Test
+    fun ownJustEndedPlaybackDoesNotMakeTheAccountFull() {
+        val statuses = SourceRanker.withoutOwnUse(mapOf(1L to ConnectionStatus(1, 1), 2L to ConnectionStatus(1, 1))) { it == 1L }
+        assertEquals(ConnectionStatus(0, 1), statuses[1L])
+        assertEquals(ConnectionStatus(1, 1), statuses[2L])
+        val ranked = SourceRanker.rank(
+            listOf(c("en", 2, "FHD", "EN"), c("de", 1, "FHD", "DE")),
+            rememberedId = null,
+            supports4K = true,
+            statuses = statuses,
+            preferredLanguage = "DE",
+        )
+        assertEquals(listOf("de", "en"), ranked)
+    }
+
     @Test
     fun healthBeatsQuality() {
         val ranked = SourceRanker.rank(

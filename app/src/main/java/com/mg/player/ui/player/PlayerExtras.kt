@@ -1,5 +1,6 @@
 package com.mg.player.ui.player
 
+import com.mg.player.core.log.AppLog
 import com.mg.player.player.TrackMemory
 import com.mg.player.player.engine.PlaybackStatus
 import com.mg.player.player.engine.TrackOption
@@ -31,11 +32,13 @@ internal fun Playable.trackKey(): String? = when (kind) {
 internal class AudioTrackRestorer(private val memory: TrackMemory) {
     private var doneFor: String? = null
     private var seenTracks = -1
+    private var singleLoggedFor: String? = null
 
     /** Neuer Start (Sender, Folge, Neuversuch): Die Engine beginnt wieder mit ihrer Standardspur. */
     fun reset() {
         doneFor = null
         seenTracks = -1
+        singleLoggedFor = null
     }
 
     fun onTracks(playable: Playable?, engine: VideoPlayerEngine, tracksVersion: Int) {
@@ -44,8 +47,18 @@ internal class AudioTrackRestorer(private val memory: TrackMemory) {
         val key = playable?.trackKey() ?: return
         if (key == doneFor) return
         val options = engine.audioTracks().ifEmpty { return }
+        // LibVLC meldet die Spuren nacheinander: Bei nur einer bekannten noch nicht abschließen, sonst wurde die zweite
+        // (etwa Deutsch) nie mehr gewählt.
+        if (options.size < 2) {
+            if (singleLoggedFor != key) AppLog.log("Player", "Tonspur: ${options.first().label} (bisher einzige)")
+            singleLoggedFor = key
+            return
+        }
         doneFor = key
-        memory.restore(key, options)?.let { engine.selectAudioTrack(it.id) }
+        val restored = memory.restore(key, options)?.also { engine.selectAudioTrack(it.id) }
+        val playing = restored ?: options.firstOrNull { it.selected }
+        val how = if (restored != null) " (gemerkt)" else ""
+        AppLog.log("Player", "Tonspur: ${playing?.label ?: "unbekannt"}$how · zur Wahl: ${options.joinToString(", ") { it.label }}")
     }
 
     fun remember(playable: Playable?, engine: VideoPlayerEngine, option: TrackOption) {

@@ -49,6 +49,8 @@ internal object SharedLibVlc {
         "--no-sub-autodetect-file",
         // Kein Log-Spam ins Systemprotokoll: kostet auf schwachen Boxen spürbar CPU.
         "--quiet",
+        // Deutsche Tonspur bevorzugen wie bei ExoPlayer (Media3Build) – sonst nahm LibVLC die Standardspur der Datei.
+        "--audio-language=de,deu,ger",
     ).apply { if (tier == DeviceTier.LOW) add("--avcodec-skiploopfilter=1") }
 }
 

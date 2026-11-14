@@ -41,7 +41,14 @@ internal object CombinedPlayables {
     }
 
     /** Quellen eines Films ([episode] = false) bzw. einer Folge, beste zuerst; gesperrte Gruppen nie. */
-    suspend fun vodSources(container: AppContainer, combinedId: String, episode: Boolean, remembered: String?, supports4K: Boolean): List<VodSource> =
+    suspend fun vodSources(
+        container: AppContainer,
+        combinedId: String,
+        episode: Boolean,
+        remembered: String?,
+        supports4K: Boolean,
+        preferredPlaylist: Long? = null,
+    ): List<VodSource> =
         withContext(Dispatchers.IO) {
             val db = container.database
             val names = db.playlistDao().all().associate { it.id to it.name }
@@ -68,11 +75,12 @@ internal object CombinedPlayables {
                 candidates,
                 rememberedId = remembered,
                 supports4K = supports4K,
-                statuses = container.connectionMonitor.status.value,
+                statuses = SourceRanker.withoutOwnUse(container.connectionMonitor.status.value, container.connectionMonitor::recentlyUsedHere),
                 preferredLanguage = preferredLanguage(),
                 unreliable = { breaker.isOpen(it.toString(), now) },
                 accountRank = container.combined.settings.current()::rankOf,
                 health = container.playback.sourceHealth::rank,
+                preferredPlaylist = preferredPlaylist,
             )
         }
 

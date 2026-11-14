@@ -10,6 +10,7 @@ import com.mg.player.domain.model.EpgProgram
 import com.mg.player.domain.model.Episode
 import com.mg.player.domain.model.PlayRequest
 import com.mg.player.domain.model.PlaybackProgress
+import com.mg.player.domain.model.playlistIdOf
 import com.mg.player.domain.model.PlayerEngineType
 import com.mg.player.player.device.DeviceVideo
 import com.mg.player.player.device.VariantOrder
@@ -233,9 +234,12 @@ class PlayableResolver(private val container: AppContainer) {
      * Favorit hängen an der kombinierten ID – egal, aus welchem Zugang gerade gespielt wird.
      */
     private suspend fun combinedVod(id: String, title: String, subtitle: String?, startPositionMs: Long, episode: Episode?): Playable? {
-        val remembered = container.playback.streamMemory[Combined.ID, id]
+        val memory = container.playback.streamMemory
+        val remembered = memory[Combined.ID, id]
+        // Folge einer Serie: beim Zugang der zuletzt gespielten Folge bleiben (dieselbe Fassung, dieselbe Sprache).
+        val seriesAccount = episode?.let { memory[Combined.ID, seriesSourceKey(it.seriesId)] }?.let(::playlistIdOf)
         val supports4K = withContext(Dispatchers.Default) { DeviceVideo.supports4K(container.appContext) }
-        val sources = CombinedPlayables.vodSources(container, id, episode != null, remembered, supports4K)
+        val sources = CombinedPlayables.vodSources(container, id, episode != null, remembered, supports4K, seriesAccount)
         val first = sources.firstOrNull() ?: return null
         return Playable(
             kind = if (episode != null) PlayableKind.EPISODE else PlayableKind.MOVIE,
@@ -304,3 +308,6 @@ class PlayableResolver(private val container: AppContainer) {
         )
     }
 }
+
+/** Gedächtnis-Schlüssel für die Quelle der zuletzt gespielten Folge einer Serie aus „Alle Zugänge“. */
+internal fun seriesSourceKey(seriesId: String): String = "series:$seriesId"
