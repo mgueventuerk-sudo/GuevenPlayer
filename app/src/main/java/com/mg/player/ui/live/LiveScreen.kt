@@ -41,6 +41,7 @@ import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import com.mg.player.core.image.PrefetchKind
 import com.mg.player.domain.model.Category
 import com.mg.player.domain.model.Channel
 import com.mg.player.domain.model.PlayRequest
@@ -52,7 +53,6 @@ import com.mg.player.ui.common.GlassPanel
 import com.mg.player.ui.common.LocalContextMenu
 import com.mg.player.ui.common.LocalToast
 import com.mg.player.ui.common.PrefetchAhead
-import com.mg.player.ui.common.PrefetchKind
 import com.mg.player.ui.common.appViewModel
 import com.mg.player.ui.common.glass
 import com.mg.player.ui.navigation.LocalNavigator

@@ -1,4 +1,4 @@
-package com.mg.player.ui.common
+package com.mg.player.core.image
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

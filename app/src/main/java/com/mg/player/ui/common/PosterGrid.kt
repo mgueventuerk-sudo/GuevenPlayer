@@ -41,6 +41,8 @@ import androidx.paging.compose.itemKey
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
+import com.mg.player.core.image.ImageRequests
+import com.mg.player.core.image.PrefetchKind
 import com.mg.player.ui.home.SkeletonCard
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcon

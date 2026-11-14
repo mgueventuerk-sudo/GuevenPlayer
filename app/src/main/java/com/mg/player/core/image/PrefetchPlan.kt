@@ -1,4 +1,4 @@
-package com.mg.player.ui.common
+package com.mg.player.core.image
 
 /** Erster und letzter sichtbarer Eintrag (-1 = nichts sichtbar). */
 internal data class Visible(val first: Int, val last: Int)

@@ -1,4 +1,4 @@
-package com.mg.player.ui.common
+package com.mg.player.core.image
 
 /**
  * Buch über die Bilder, die wir **von uns aus** in den Arbeitsspeicher geladen haben (nicht über die, die die Oberfläche

@@ -18,6 +18,8 @@ import com.mg.player.core.device.DeviceTier
 import com.mg.player.core.device.DiskCachePlan
 import com.mg.player.core.device.PreloadPolicy
 import com.mg.player.core.di.AppContainer
+import com.mg.player.core.image.ImagePrefetcher
+import com.mg.player.core.image.ImageUsage
 import com.mg.player.core.log.AppLog
 import com.mg.player.core.log.DebugChecks
 import com.mg.player.core.log.StartupClock
@@ -26,8 +28,6 @@ import com.mg.player.data.sport.proof.ProofAlarm
 import com.mg.player.data.sync.AutoRefreshWork
 import com.mg.player.data.sync.AutoRefresher
 import com.mg.player.domain.model.MatchSource
-import com.mg.player.ui.common.ImagePrefetcher
-import com.mg.player.ui.common.ImageUsage
 import com.wireguard.android.backend.GoBackend
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged

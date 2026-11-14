@@ -27,10 +27,10 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
+import com.mg.player.core.image.ImageRequests
 import com.mg.player.core.util.TimeUtils
 import com.mg.player.domain.model.Channel
 import com.mg.player.domain.model.EpgProgram
-import com.mg.player.ui.common.ImageRequests
 import com.mg.player.ui.common.ListSurface
 import com.mg.player.ui.common.LocalSurfaceFocused
 import com.mg.player.ui.common.MarqueeText

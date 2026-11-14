@@ -1,4 +1,4 @@
-package com.mg.player.ui.common
+package com.mg.player.core.image
 
 import android.content.Context
 import androidx.compose.ui.unit.IntSize

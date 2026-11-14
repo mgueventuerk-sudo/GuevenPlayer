@@ -1,4 +1,4 @@
-package com.mg.player.ui.common
+package com.mg.player.core.image
 
 import coil3.decode.DataSource
 import coil3.intercept.Interceptor
