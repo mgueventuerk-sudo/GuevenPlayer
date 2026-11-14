@@ -35,17 +35,27 @@ import kotlinx.coroutines.withContext
 internal class HabitPreloader(private val vm: PlayerViewModel) {
 
     private val resolver = PlayableResolver(vm.container)
-    private var engine: VideoPlayerEngine? = null
-    private var forChannelId: String? = null
-    private var forItemId: String? = null
-    private var forPlaylistId: Long? = null
+
+    /** Ein vorgeladener Stream: die stumme Engine, der Sender und die Variante (Original-ID), die sie lädt. */
+    private class Slot(val engine: VideoPlayerEngine, val channelId: String, val itemId: String)
+
+    /** Je anderem Zugang höchstens ein Stream auf Vorrat (jeder Zugang erlaubt nur eine Verbindung). */
+    private val slots = HashMap<Long, Slot>()
     private var job: Job? = null
 
     /** Wann der Verbindungsstatus eines Zugangs zuletzt frisch erfragt wurde – nicht bei jedem Sender neu abfragen. */
     private val checkedAtMs = HashMap<Long, Long>()
 
-    /** Schwache Geräte laden nie einen zusätzlichen Stream; sonst entscheidet der freie Arbeitsspeicher ([PreloadBudget.streamsOk]). */
-    private val tierAllowed = DeviceTier.of(vm.container.appContext) != DeviceTier.LOW
+    /**
+     * Wie viele Streams zugleich auf Vorrat liegen dürfen. Jeder ist ein zusätzlicher Decoder samt Puffer neben dem laufenden;
+     * TV-Sticks haben nur wenige Hardware-Decoder. Mittlere Geräte (Fire TV): einer, starke: zwei, schwache: keiner. Dazu
+     * entscheidet der freie Arbeitsspeicher ([PreloadBudget.streamsOk]).
+     */
+    private val maxSlots = when (DeviceTier.of(vm.container.appContext)) {
+        DeviceTier.LOW -> 0
+        DeviceTier.NORMAL -> 1
+        DeviceTier.HIGH -> 2
+    }
 
     /**
      * Ein Sender auf einem **anderen** Zugang wird vorgeladen: zuerst aus den Sehgewohnheiten ([includeHabits], erst nach
@@ -55,7 +65,7 @@ internal class HabitPreloader(private val vm: PlayerViewModel) {
     fun predict(current: Channel, neighbourIds: List<String> = emptyList(), includeHabits: Boolean = true) {
         job?.cancel()
         job = null
-        if (!tierAllowed || vm.standby.isActive) {
+        if (maxSlots == 0 || vm.standby.isActive) {
             release()
             return
         }
@@ -76,33 +86,40 @@ internal class HabitPreloader(private val vm: PlayerViewModel) {
         val budget = withContext(Dispatchers.IO) { PreloadPolicy.current(vm.container.appContext) }
         val active = vm.uiState.value.playable?.activePlaylistId
         if (!budget.streamsOk || active == null) {
-            dropEngine()
+            dropAll()
             return
         }
         val habits = if (includeHabits) withContext(Dispatchers.IO) { vm.container.channelHabits.top() } else emptyList()
-        val target = PreloadTargets.pick(
+        val targets = PreloadTargets.pick(
             candidateIds = (habits + neighbourIds).distinct().filter { it != current.id }.take(MAX_CANDIDATES),
             activePlaylistId = active,
+            maxTargets = maxSlots,
             variantsOf = ::variantsOf,
             hasFreeSlot = ::accountIsFree,
         )
-        if (target == null) {
-            dropEngine()
-            return
+        // Was nicht mehr gewollt ist (anderer Sender, anderer Zugang), wird freigegeben; passende Streams bleiben.
+        val wanted = targets.associateBy { it.playlistId }
+        for ((playlistId, slot) in slots.entries.toList()) {
+            val target = wanted[playlistId]
+            if (target == null || target.channelId != slot.channelId || target.itemId != slot.itemId) {
+                slot.engine.release()
+                slots.remove(playlistId)
+            }
         }
-        if (target.channelId == forChannelId && target.itemId == forItemId && engine != null) return
-        dropEngine()
+        for (target in targets) {
+            if (target.playlistId !in slots) preload(target)
+        }
+    }
+
+    private suspend fun preload(target: PreloadTarget) {
         val base = resolver.channel(target.channelId) ?: return
         val index = base.variants.indexOfFirst { it.id == target.itemId }.takeIf { it >= 0 } ?: return
         val playable = resolver.variant(base, index) ?: return
-        val preload = vm.container.playback.engineFactory.create(PlayerEngineType.MEDIA3)
-        preload.setMuted(true)
-        preload.prepare(vm.streamRequest(playable, 0, autoPlay = false))
-        engine = preload
-        forChannelId = target.channelId
-        forItemId = target.itemId
-        forPlaylistId = target.playlistId
-        AppLog.log("Player", "Vorgeladen auf einem anderen Zugang: ${playable.title} (Zugang ${target.playlistId})")
+        val engine = vm.container.playback.engineFactory.create(PlayerEngineType.MEDIA3)
+        engine.setMuted(true)
+        engine.prepare(vm.streamRequest(playable, 0, autoPlay = false))
+        slots[target.playlistId] = Slot(engine, target.channelId, target.itemId)
+        AppLog.log("Player", "Vorgeladen auf einem anderen Zugang: ${playable.title} (Zugang ${target.playlistId}, ${slots.size} von $maxSlots)")
     }
 
     /** (Zugang, Original-ID) jeder Variante des Senders, beste zuerst; Fehler zählen als „keine Varianten“. */
@@ -120,7 +137,7 @@ internal class HabitPreloader(private val vm: PlayerViewModel) {
      * Verbindung): bleibt erlaubt. Sonst frisch erfragt (höchstens alle [RECHECK_MS]), nicht aus dem alten Stand.
      */
     private suspend fun accountIsFree(playlistId: Long): Boolean {
-        if (playlistId == forPlaylistId && engine != null) return true
+        if (playlistId in slots) return true
         val monitor = vm.container.connectionMonitor
         val now = SystemClock.elapsedRealtime()
         val known = monitor.status.value[playlistId]
@@ -134,35 +151,30 @@ internal class HabitPreloader(private val vm: PlayerViewModel) {
     }
 
     /** Welche Quelle des Senders vorgeladen ist (Original-ID) – damit der Player dieselbe Variante startet, sonst null. */
-    fun preloadedItemFor(target: Playable): String? =
-        forItemId.takeIf { engine != null && target.kind == PlayableKind.LIVE && forChannelId == target.channel?.id }
+    fun preloadedItemFor(target: Playable): String? {
+        if (target.kind != PlayableKind.LIVE) return null
+        return slots.values.firstOrNull { it.channelId == target.channel?.id }?.itemId
+    }
 
     /** Vorgeladene Engine für genau diesen Sender in genau dieser Variante (danach gehört sie dem Player), sonst null. */
     fun take(target: Playable): VideoPlayerEngine? {
-        val ready = engine?.takeIf {
-            target.kind == PlayableKind.LIVE && forChannelId == target.channel?.id && forItemId == target.activeItemId
-        } ?: return null
-        engine = null
-        forChannelId = null
-        forItemId = null
-        forPlaylistId = null
+        if (target.kind != PlayableKind.LIVE) return null
+        val entry = slots.entries.firstOrNull { it.value.channelId == target.channel?.id && it.value.itemId == target.activeItemId } ?: return null
+        slots.remove(entry.key)
         job?.cancel()
         job = null
-        return ready
+        return entry.value.engine
     }
 
     fun release() {
         job?.cancel()
         job = null
-        dropEngine()
+        dropAll()
     }
 
-    private fun dropEngine() {
-        engine?.release()
-        engine = null
-        forChannelId = null
-        forItemId = null
-        forPlaylistId = null
+    private fun dropAll() {
+        slots.values.forEach { it.engine.release() }
+        slots.clear()
     }
 
     /** Der laufende Sender spielt gerade ruhig: Sonst würde ein zweiter Decoder seinen Start stören. */
@@ -172,7 +184,7 @@ internal class HabitPreloader(private val vm: PlayerViewModel) {
     }
 
     fun releaseForDevicePressure() {
-        if (engine != null || job?.isActive == true) AppLog.log("Player", "Vorgeladener Stream bei Gerätebelastung freigegeben")
+        if (slots.isNotEmpty() || job?.isActive == true) AppLog.log("Player", "Vorgeladener Stream bei Gerätebelastung freigegeben")
         release()
     }
 

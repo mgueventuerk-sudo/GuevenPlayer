@@ -288,7 +288,9 @@ des laufenden Senders geht nicht. Auf einem **anderen** Zugang mit nachweislich 
 lädt die App einen Stream auf Vorrat (stumm, ohne Wiedergabe) und übernimmt ihn, wenn du dorthin umschaltest – ohne Puffern.
 Gewählt wird (1) ein Sender aus deinen Sehgewohnheiten (zu dieser Tageszeit sonst als Nächstes), danach (2) der nächste oder
 vorige Sender der Liste, jeweils in der **Variante auf dem anderen Zugang**. Das gibt es in „Alle Zugänge“, wo ein Sender mehrere
-Quellen auf mehreren Zugängen hat; eine Einzel-Playlist hat nur Sender auf demselben Zugang (dort lädt kein Stream vor). Der
+Quellen auf mehreren Zugängen hat; eine Einzel-Playlist hat nur Sender auf demselben Zugang (dort lädt kein Stream vor). **Je
+anderem Zugang liegt höchstens ein Stream auf Vorrat; gleichzeitig höchstens 1 (mittlere Geräte, z. B. Fire TV) bzw. 2 (starke
+Geräte)** – jeder ist ein zusätzlicher Decoder, und TV-Sticks haben nur wenige. Der
 Verbindungsstatus des anderen Zugangs wird dafür frisch erfragt (höchstens alle 20 s). Nach etwa 3 s ruhiger Wiedergabe. Auf
 mittleren Geräten (Fire TV) nur, solange der Arbeitsspeicher reicht (Android-Schwelle + 200 MB, 48 MB Heap); schwache Geräte
 nie. Bis 3.60 war das auf starke Geräte (≥ 3,5 GB) beschränkt und in „Alle Zugänge“ gar nicht aktiv. Die Einstellung „Vorladen“
