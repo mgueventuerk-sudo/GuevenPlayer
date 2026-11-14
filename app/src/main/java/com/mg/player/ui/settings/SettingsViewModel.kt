@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -121,12 +122,14 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     fun deletePlaylist(id: Long) {
-        viewModelScope.launch {
+        // App-Scope wie switchTo: Verlässt man die Seite während des Löschens (große Zugänge brauchen Sekunden), liefe es
+        // sonst halb – der Zugang wäre weg, der aktive Zugang zeigte aber noch auf ihn (leere Listen).
+        container.appScope.launch {
             container.playlistRepository.deletePlaylist(id)
             container.combined.onSourceChanged(id, "Zugang gelöscht")
             container.playback.streamMemory.forget(id)
             container.playback.sourceHealth.forget(id)
-            val remaining = playlists.value.filter { it.id != id }
+            val remaining = container.playlistRepository.observePlaylists().first().filter { it.id != id }
             container.settingsRepository.update { s ->
                 // Auch „Alle Zugänge“ endet, wenn nur noch ein Zugang übrig ist.
                 val lost = s.activePlaylistId == id || (Combined.isCombined(s.activePlaylistId) && remaining.size < 2)
