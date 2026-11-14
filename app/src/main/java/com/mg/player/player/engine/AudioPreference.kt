@@ -1,5 +1,6 @@
 package com.mg.player.player.engine
 
+import androidx.media3.common.TrackSelectionParameters
 import com.mg.player.domain.model.AudioLanguages
 
 /**
@@ -12,4 +13,9 @@ object AudioPreference {
 
     /** Kürzel in Vorrang-Reihenfolge („de, deu, ger, tr, tur“). */
     fun trackCodes(): List<String> = AudioLanguages.trackCodes(languages)
+
+    /** Vorgabe in ExoPlayers Spurwahl eintragen. Media3 kennt dafür nur vararg; die Liste ist kurz und wird je Start einmal kopiert. */
+    @Suppress("SpreadOperator")
+    fun applyTo(builder: TrackSelectionParameters.Builder): TrackSelectionParameters.Builder =
+        builder.setPreferredAudioLanguages(*trackCodes().toTypedArray())
 }

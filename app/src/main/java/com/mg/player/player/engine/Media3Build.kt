@@ -52,11 +52,7 @@ internal object Media3Build {
         // Bevorzugte Tonspur aus den Einstellungen (Standard Deutsch); Tunneling (nur Live, falls Gerät/Stream es können) entlastet schwache Sticks –
         // bei Filmen verzögert es auf manchen Geräten den Start und stört Ton-Passthrough.
         val trackSelector = DefaultTrackSelector(context).apply {
-            setParameters(
-                buildUponParameters()
-                    .setPreferredAudioLanguages(*AudioPreference.trackCodes().toTypedArray())
-                    .setTunnelingEnabled(config.tunneling),
-            )
+            setParameters(AudioPreference.applyTo(buildUponParameters().setTunnelingEnabled(config.tunneling)).build())
         }
         return ExoPlayer.Builder(context, renderers)
             .setTrackSelector(trackSelector)

@@ -12,14 +12,15 @@ internal object ReleaseNotes {
         var skipping = false
         for (line in raw.lines().map { it.trim() }) {
             val heading = HEADING.matchEntire(line)?.groupValues?.get(1)?.trim()
-            if (heading != null) {
-                // GitHub-eigene Abschnitte: „What's Changed“ ohne Überschrift, „New Contributors“ gar nicht.
-                skipping = heading == NEW_CONTRIBUTORS
-                if (heading != WHATS_CHANGED && !skipping) out += "$heading:"
-                continue
+            when {
+                heading != null -> {
+                    // GitHub-eigene Abschnitte: „What's Changed“ ohne Überschrift, „New Contributors“ gar nicht.
+                    skipping = heading == NEW_CONTRIBUTORS
+                    if (heading != WHATS_CHANGED && !skipping) out += "$heading:"
+                }
+
+                !skipping -> bullet(line)?.let { out += "• $it" }
             }
-            if (skipping) continue
-            bullet(line)?.let { out += "• $it" }
         }
         // Überschrift nur mit Punkten darunter – auch nicht als letzte Zeile, wenn die Grenze sie abschneidet.
         val lines = out.filterIndexed { i, l -> l.startsWith("•") || out.getOrNull(i + 1)?.startsWith("•") == true }

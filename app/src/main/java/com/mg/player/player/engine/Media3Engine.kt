@@ -241,9 +241,7 @@ class Media3Engine(context: Context, httpClient: OkHttpClient) : VideoPlayerEngi
         hlsRetried = false
         // Sprache je Start nachführen: Die Einstellung kann sich geändert haben, seit die Instanz gebaut wurde.
         player?.let { p ->
-            p.trackSelectionParameters = p.trackSelectionParameters.buildUpon()
-                .setPreferredAudioLanguages(*AudioPreference.trackCodes().toTypedArray())
-                .build()
+            p.trackSelectionParameters = AudioPreference.applyTo(p.trackSelectionParameters.buildUpon()).build()
         }
         val target = StreamTarget.parse(request.url)
         httpFactory?.setUserAgent(target.userAgent ?: IPTV_USER_AGENT)

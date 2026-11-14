@@ -111,21 +111,7 @@ open class PlayerApp :
         container.startEpgWatch()
         container.watchTunnel()
         container.watchGroupSort()
-        // „Ohne Verlauf“ schaltet auch das Aktivitätsprotokoll leise.
-        container.appScope.launch {
-            container.settingsRepository.settings.map { it.noHistory }.distinctUntilChanged().collect { AppLog.quiet = it }
-        }
-        // „Vorladen“ (Einstellungen → Wiedergabe): hier nur der Schalter; ob wirklich geladen wird, entscheidet der freie Speicher.
-        container.appScope.launch {
-            container.settingsRepository.settings.map { it.preload to it.preloadDiskOnly }.distinctUntilChanged().collect { (on, diskOnly) ->
-                PreloadPolicy.enabled = on
-                PreloadPolicy.diskOnly = diskOnly
-            }
-        }
-        // „Sprache“ (Einstellungen → Wiedergabe): Vorgabe für die Tonspur in jedem Player.
-        container.appScope.launch {
-            container.settingsRepository.settings.map { it.audioLanguages }.distinctUntilChanged().collect { AudioPreference.languages = it }
-        }
+        watchProcessSwitches()
         GoBackend.setAlwaysOnCallback { container.appScope.launch { container.vpn.wake() } }
         // Kindersicherung: Freischaltung endet, sobald die App in den Hintergrund geht (Home-Taste, Standby).
         ProcessLifecycleOwner.get().lifecycle.addObserver(
@@ -189,6 +175,22 @@ open class PlayerApp :
         }
         .crossfade(false)
         .build()
+
+    /** Schalter, die prozessweit gelten (Protokoll, Vorladen, Sprache): aus den Einstellungen nachführen. */
+    private fun watchProcessSwitches() {
+        val settings = container.settingsRepository.settings
+        // „Ohne Verlauf“ schaltet auch das Aktivitätsprotokoll leise.
+        container.appScope.launch { settings.map { it.noHistory }.distinctUntilChanged().collect { AppLog.quiet = it } }
+        // „Vorladen“ (Einstellungen → Darstellung): hier nur der Schalter; ob wirklich geladen wird, entscheidet der freie Speicher.
+        container.appScope.launch {
+            settings.map { it.preload to it.preloadDiskOnly }.distinctUntilChanged().collect { (on, diskOnly) ->
+                PreloadPolicy.enabled = on
+                PreloadPolicy.diskOnly = diskOnly
+            }
+        }
+        // „Sprache“ (Einstellungen → Wiedergabe): Vorgabe für die Tonspur in jedem Player.
+        container.appScope.launch { settings.map { it.audioLanguages }.distinctUntilChanged().collect { AudioPreference.languages = it } }
+    }
 }
 
 /** Deckel fuer den Startzaehler: Mehr als die Schwelle muss nicht gespeichert werden. */

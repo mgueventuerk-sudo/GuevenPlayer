@@ -187,13 +187,17 @@ class SettingsRepositoryImpl internal constructor(private val store: DataStore<P
             reducedEffects = this[Keys.REDUCED_EFFECTS] ?: defaults.reducedEffects,
             preload = this[Keys.PRELOAD] ?: defaults.preload,
             preloadDiskOnly = this[Keys.PRELOAD_DISK_ONLY] ?: defaults.preloadDiskOnly,
-            audioLanguages = this[Keys.AUDIO_LANGUAGES]?.split(',')?.let(AudioLanguages::sanitize) ?: defaults.audioLanguages,
-            onlyPreferredLanguages = this[Keys.ONLY_PREFERRED_LANGUAGES] ?: defaults.onlyPreferredLanguages,
             automaticOptimization = this[Keys.AUTOMATIC_OPTIMIZATION] ?: defaults.automaticOptimization,
             autoBackupFolderUri = this[Keys.AUTO_BACKUP_FOLDER],
             autoBackupPassphrase = this[Keys.AUTO_BACKUP_PASSPHRASE]?.let(SecretCipher::decrypt).orEmpty(),
-        )
+        ).withLanguagesFrom(this)
     }
+
+    /** Einstellung „Sprache“ (eigene Funktion: toSettings ist an der Längengrenze). */
+    private fun AppSettings.withLanguagesFrom(prefs: Preferences): AppSettings = copy(
+        audioLanguages = prefs[Keys.AUDIO_LANGUAGES]?.split(',')?.let(AudioLanguages::sanitize) ?: audioLanguages,
+        onlyPreferredLanguages = prefs[Keys.ONLY_PREFERRED_LANGUAGES] ?: onlyPreferredLanguages,
+    )
 
     private fun MutablePreferences.write(s: AppSettings) {
         this[Keys.HIDE_GUIDE] = s.hideGuide

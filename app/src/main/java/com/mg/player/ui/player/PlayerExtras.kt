@@ -44,8 +44,8 @@ internal class AudioTrackRestorer(private val memory: TrackMemory) {
     fun onTracks(playable: Playable?, engine: VideoPlayerEngine, tracksVersion: Int) {
         if (tracksVersion == seenTracks) return
         seenTracks = tracksVersion
-        val key = playable?.trackKey() ?: return
-        if (key == doneFor) return
+        val key = playable?.trackKey()
+        if (key == null || key == doneFor) return
         val options = engine.audioTracks().ifEmpty { return }
         // LibVLC meldet die Spuren nacheinander: Bei nur einer bekannten noch nicht abschließen, sonst wurde die zweite
         // (etwa Deutsch) nie mehr gewählt.
