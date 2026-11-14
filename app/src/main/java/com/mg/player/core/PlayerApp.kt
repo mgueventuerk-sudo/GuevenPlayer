@@ -1,6 +1,7 @@
 package com.mg.player.core
 
 import android.app.Application
+import android.os.StrictMode
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -146,6 +147,20 @@ open class PlayerApp :
         }
     }
 
+    /**
+     * Coil legt den Bild-Lader beim ersten Bild lazy an – meist auf dem Hauptthread. Der eine statfs-Aufruf (Mikrosekunden)
+     * zählt für StrictMode trotzdem als Plattenzugriff und beendete den Labor-Build (penaltyDeath). Ausdrücklich erlaubt,
+     * statt die Cache-Größe vom Zufall abhängig zu machen, wann ein Hintergrund-Thread sie vorher gemessen hat.
+     */
+    private fun storageFreeMbOnAnyThread(): Long {
+        val policy = StrictMode.allowThreadDiskReads()
+        return try {
+            PreloadPolicy.storageFreeMb(cacheDir)
+        } finally {
+            StrictMode.setThreadPolicy(policy)
+        }
+    }
+
     /** Bild-Cache für Poster und Senderlogos – schont die schwachen TV-Prozessoren beim Scrollen. */
     override fun newImageLoader(context: PlatformContext): ImageLoader = ImageLoader.Builder(this)
         // Feste Obergrenze je Geräteklasse, nie mehr als 20 % des Heaps: Mit largeHeap waren das auf 2-GB-Geräten
@@ -157,7 +172,7 @@ open class PlayerApp :
         .diskCache {
             DiskCache.Builder()
                 .directory(cacheDir.resolve("images"))
-                .maxSizeBytes(DiskCachePlan.maxBytes(PreloadPolicy.storageFreeMb(cacheDir)))
+                .maxSizeBytes(DiskCachePlan.maxBytes(storageFreeMbOnAnyThread()))
                 .build()
         }
         // Eigener OkHttp-Client wie bisher bei Coil 2; Cache-Header der Server ignoriert Coil 3 von sich aus

@@ -175,7 +175,15 @@ internal class HabitPreloader(private val vm: PlayerViewModel) {
         slots.remove(entry.key)
         job?.cancel()
         job = null
-        return entry.value.engine
+        val engine = entry.value.engine
+        // Ein Vorrat, der inzwischen gescheitert ist (z. B. Anbieter zählte unsere alte Verbindung noch mit), darf nicht
+        // übernommen werden – der Player startete sonst mit einem Fehler statt frisch.
+        if (engine.state.value.status == PlaybackStatus.ERROR) {
+            AppLog.log("Player", "Vorrat auf anderem Zugang war gescheitert – frisch starten")
+            engine.release()
+            return null
+        }
+        return engine
     }
 
     fun release() {
