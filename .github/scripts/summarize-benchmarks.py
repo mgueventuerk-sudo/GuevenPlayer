@@ -39,6 +39,11 @@ def cell(numbers):
 
 print("## Messung vorher / nachher (Emulator API 34, abwechselnd auf demselben Emulator)\n")
 print("Läufe: " + ", ".join(f"{name}: Gradle-Ausgang {code}" for name, code in status.items()) + "\n")
+for run_dir in sorted(p for p in root.iterdir() if p.is_dir()) if root.exists() else []:
+    log = run_dir / "gradle.log"
+    if status.get(run_dir.name) not in (None, "0") and log.exists():
+        lines = [l for l in log.read_text(errors="replace").splitlines() if any(k in l for k in ("FAILED", "Exception", "AssertionError", "error:", "No tests"))]
+        print(f"**{run_dir.name}: Fehlerauszug**\n```\n" + "\n".join(lines[:15]) + "\n```\n")
 if not values:
     print("**Keine Zahlen.** Kein Benchmark hat ein Ergebnis geschrieben (siehe gradle.log je Lauf im Artefakt). Es wird nichts geschätzt.")
     sys.exit(0)

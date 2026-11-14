@@ -27,9 +27,14 @@ import java.util.concurrent.atomic.AtomicInteger
 
 /** Welche Bilder die nächsten Einträge haben: Poster (undurchsichtig) oder Senderlogos (oft transparent). */
 enum class PrefetchKind(val width: Int, val height: Int, val rgb565: Boolean) {
-    POSTER(180, 270, rgb565 = true),
-    LOGO(160, 120, rgb565 = false),
+    POSTER(POSTER_WIDTH_PX, POSTER_HEIGHT_PX, rgb565 = true),
+    LOGO(LOGO_WIDTH_PX, LOGO_HEIGHT_PX, rgb565 = false),
 }
+
+private const val POSTER_WIDTH_PX = 180
+private const val POSTER_HEIGHT_PX = 270
+private const val LOGO_WIDTH_PX = 160
+private const val LOGO_HEIGHT_PX = 120
 
 /**
  * Lädt die Bilder der nächsten Einträge vor, bevor man dort ankommt:

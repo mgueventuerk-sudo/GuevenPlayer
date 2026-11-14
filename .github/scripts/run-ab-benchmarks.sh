@@ -16,10 +16,16 @@ run() { # <name> <verzeichnis> <runde>
     ./gradlew :benchmark:connectedBenchmarkAndroidTest -PbenchmarkEmulator=true \
       -Pandroid.testInstrumentationRunnerArguments.class=com.mg.player.benchmark.AppMacrobenchmark --stacktrace) \
     > "$dest/gradle.log" 2>&1
-  echo $? > "$dest/exit-code"
+  local code=$?
+  echo $code > "$dest/exit-code"
   cp -r "$dir/benchmark/build/outputs/connected_android_test_additional_output/." "$dest/" 2>/dev/null || true
-  tail -n 15 "$dest/gradle.log"
+  echo "--- $name Runde $round: Gradle-Ausgang $code, Ergebnisdateien: $(find "$dest" -name '*.json' | wc -l)"
+  # Fehlerursachen ins Job-Log, damit sie ohne Artefakt lesbar sind (kurz: nur die aussagekräftigen Zeilen).
+  grep -E "FAILED|Exception|AssertionError|Error:|error:|No tests|Unresolved|BUILD " "$dest/gradle.log" | head -n 25
+  [ "$code" -eq 0 ] || FAILED_RUNS=$((FAILED_RUNS + 1))
 }
+
+FAILED_RUNS=0
 
 for round in $(seq 1 "$ROUNDS"); do
   if [ $((round % 2)) -eq 1 ]; then
@@ -28,4 +34,6 @@ for round in $(seq 1 "$ROUNDS"); do
     run nachher "$ROOT/../wt-after" "$round"; run vorher "$ROOT/../wt-before" "$round"
   fi
 done
-exit 0
+echo "Gescheiterte Läufe: $FAILED_RUNS"
+# Ein Lauf ohne Ergebnis darf nicht als Erfolg zählen – sonst sieht „grün“ nach Messung aus, obwohl nichts gemessen wurde.
+[ "$FAILED_RUNS" -eq 0 ]
