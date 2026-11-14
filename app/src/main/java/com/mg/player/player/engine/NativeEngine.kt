@@ -136,7 +136,7 @@ class NativeEngine(context: Context) : VideoPlayerEngine {
             mp.setDataSource(appContext, target.url.toUri(), headers)
             mp.prepareAsync()
         } catch (e: Exception) {
-            _state.update { it.copy(status = PlaybackStatus.ERROR, errorMessage = e.message) }
+            _state.update { it.copy(status = PlaybackStatus.ERROR, isPlaying = false, errorMessage = e.message, errorKind = ErrorKind.OTHER) }
         }
     }
 

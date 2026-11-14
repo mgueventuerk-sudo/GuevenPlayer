@@ -157,7 +157,9 @@ internal suspend fun PlayerViewModel.startPlayable(requested: Playable) {
     // Erst jetzt: Der Wächter darf auf eine gemerkte Engine wechseln (useFallbackEngine prüft gegen den **neuen** Inhalt, nicht
     // gegen den vorigen – vorher sah er den alten oder keinen).
     guard?.onContentStarted(playable)
-    if (playable.kind == PlayableKind.LIVE) {
+    // Nur mit Media3 als laufendem Player: Der Vorrat ist immer Media3, und ein Wächter-Gedächtnis („LibVLC half zuletzt“)
+    // hat eben in onContentStarted entschieden – das darf die Übernahme nicht wieder umwerfen.
+    if (playable.kind == PlayableKind.LIVE && uiState.value.engineType == PlayerEngineType.MEDIA3) {
         habitPreload.take(playable)?.let { ready ->
             AppLog.log("Player", "Sehgewohnheits-Sender war vorgeladen · ${playable.title}")
             adoptEngine(ready, PlayerEngineType.MEDIA3)

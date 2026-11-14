@@ -65,7 +65,9 @@ internal class HabitPreloader(private val vm: PlayerViewModel) {
     fun predict(current: Channel, neighbourIds: List<String> = emptyList(), includeHabits: Boolean = true) {
         job?.cancel()
         job = null
-        if (maxSlots == 0 || vm.standby.isActive) {
+        // Vorgeladen wird immer eine Media3-Engine: Läuft der Player mit LibVLC o. Ä., würde die Übernahme den Player
+        // stillschweigend wechseln (wie StandbyPreloader.candidate) – dann lieber gar nicht vorladen.
+        if (maxSlots == 0 || vm.standby.isActive || vm.uiState.value.engineType != PlayerEngineType.MEDIA3) {
             release()
             return
         }

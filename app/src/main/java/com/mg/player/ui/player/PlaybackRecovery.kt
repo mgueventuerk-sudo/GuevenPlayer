@@ -164,7 +164,8 @@ class PlaybackRecovery(
                 ErrorKind.AUTH -> "Zugriff verweigert$code – Abo abgelaufen, gesperrt oder zu viele gleichzeitige Verbindungen."
                 ErrorKind.NOT_FOUND -> "Dieser Inhalt ist beim Anbieter nicht (mehr) verfügbar$code."
                 ErrorKind.FORMAT -> "Dieses Format kann die gewählte Player-Engine nicht abspielen – im Player-Menü eine andere Engine wählen."
-                else -> "Keine Verbindung zum Stream$code. Die Wiedergabe startet automatisch, sobald das Netzwerk wieder stabil ist."
+                ErrorKind.NETWORK -> "Keine Verbindung zum Stream$code. Die Wiedergabe startet automatisch, sobald das Netzwerk wieder stabil ist."
+                else -> "Die Wiedergabe ist fehlgeschlagen$code – bitte erneut versuchen oder im Player-Menü eine andere Quelle oder Engine wählen."
             }
         }
     }
