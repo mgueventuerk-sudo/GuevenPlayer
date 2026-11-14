@@ -119,4 +119,18 @@ class HabitPreloaderTest {
         pick(listOf("B1", "B1", "C1"), max = 3)
         assertEquals(listOf(2L, 3L), asked)
     }
+
+    @Test
+    fun channelWithAllVariantsOnTheActiveAccountIsNeverPicked() {
+        val same = mapOf("X" to listOf(1L to "x-a", 1L to "x-b"))
+        val picked = runBlocking { PreloadTargets.pick(listOf("X"), 1L, 2, { same[it].orEmpty() }, { true }) }
+        assertTrue(picked.isEmpty())
+    }
+
+    @Test
+    fun secondChannelFallsBackToItsNextVariantWhenTheAccountIsTaken() {
+        val two = mapOf("A" to listOf(2L to "a2"), "B" to listOf(2L to "b2", 3L to "b3"))
+        val picked = runBlocking { PreloadTargets.pick(listOf("A", "B"), 1L, 2, { two[it].orEmpty() }, { true }) }
+        assertEquals(listOf(PreloadTarget("A", "a2", 2L), PreloadTarget("B", "b3", 3L)), picked)
+    }
 }

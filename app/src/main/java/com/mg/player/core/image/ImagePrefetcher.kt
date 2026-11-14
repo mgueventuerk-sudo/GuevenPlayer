@@ -152,7 +152,8 @@ internal object ImagePrefetcher {
         if (!begin(url)) return
         try {
             val result = loader.execute(request)
-            markDisk(url)
+            // Nur Erfolg merken: Ein fehlgeschlagenes Bild soll beim nächsten Mal erneut versucht werden.
+            if (result is SuccessResult) markDisk(url)
             if (toMemory && result is SuccessResult) {
                 result.memoryCacheKey?.let {
                     ledger.add(it, url)

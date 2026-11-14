@@ -37,7 +37,7 @@ internal class HabitPreloader(private val vm: PlayerViewModel) {
     private val resolver = PlayableResolver(vm.container)
 
     /** Ein vorgeladener Stream: die stumme Engine, der Sender und die Variante (Original-ID), die sie lädt. */
-    private class Slot(val engine: VideoPlayerEngine, val channelId: String, val itemId: String)
+    private class Slot(val engine: VideoPlayerEngine, val channelId: String, val itemId: String, val loadedAtMs: Long)
 
     /** Je anderem Zugang höchstens ein Stream auf Vorrat (jeder Zugang erlaubt nur eine Verbindung). */
     private val slots = HashMap<Long, Slot>()
@@ -99,9 +99,13 @@ internal class HabitPreloader(private val vm: PlayerViewModel) {
         )
         // Was nicht mehr gewollt ist (anderer Sender, anderer Zugang), wird freigegeben; passende Streams bleiben.
         val wanted = targets.associateBy { it.playlistId }
+        val now = SystemClock.elapsedRealtime()
         for ((playlistId, slot) in slots.entries.toList()) {
             val target = wanted[playlistId]
-            if (target == null || target.channelId != slot.channelId || target.itemId != slot.itemId) {
+            // Ein alter, pausierter Live-Vorrat hängt hinter der Live-Kante oder hat die Verbindung verloren: neu laden.
+            val keep = target != null && target.channelId == slot.channelId && target.itemId == slot.itemId &&
+                !PreloadTiming.isOlderThan(slot.loadedAtMs, now, MAX_SLOT_AGE_MS)
+            if (!keep) {
                 slot.engine.release()
                 slots.remove(playlistId)
             }
@@ -116,9 +120,17 @@ internal class HabitPreloader(private val vm: PlayerViewModel) {
         val index = base.variants.indexOfFirst { it.id == target.itemId }.takeIf { it >= 0 } ?: return
         val playable = resolver.variant(base, index) ?: return
         val engine = vm.container.playback.engineFactory.create(PlayerEngineType.MEDIA3)
-        engine.setMuted(true)
-        engine.prepare(vm.streamRequest(playable, 0, autoPlay = false))
-        slots[target.playlistId] = Slot(engine, target.channelId, target.itemId)
+        try {
+            engine.setMuted(true)
+            engine.prepare(vm.streamRequest(playable, 0, autoPlay = false))
+        } catch (e: Exception) {
+            // Sonst bliebe die Engine samt Decoder offen, ohne dass sie jemand kennt.
+            engine.release()
+            throw e
+        }
+        // Eigene Nutzung: Ein späterer Wechsel auf diesen Zugang soll nicht „Zugang belegt“ (fremdes Gerät) melden.
+        vm.container.connectionMonitor.markOwnUse(target.playlistId)
+        slots[target.playlistId] = Slot(engine, target.channelId, target.itemId, SystemClock.elapsedRealtime())
         AppLog.log("Player", "Vorgeladen auf einem anderen Zugang: ${playable.title} (Zugang ${target.playlistId}, ${slots.size} von $maxSlots)")
     }
 
@@ -141,7 +153,7 @@ internal class HabitPreloader(private val vm: PlayerViewModel) {
         val monitor = vm.container.connectionMonitor
         val now = SystemClock.elapsedRealtime()
         val known = monitor.status.value[playlistId]
-        val fresh = if (known == null || now - (checkedAtMs[playlistId] ?: Long.MIN_VALUE) > RECHECK_MS) {
+        val fresh = if (known == null || PreloadTiming.isOlderThan(checkedAtMs[playlistId], now, RECHECK_MS)) {
             checkedAtMs[playlistId] = now
             monitor.checkNow(playlistId)
         } else {
@@ -191,5 +203,6 @@ internal class HabitPreloader(private val vm: PlayerViewModel) {
     private companion object {
         const val MAX_CANDIDATES = 6
         const val RECHECK_MS = 20_000L
+        const val MAX_SLOT_AGE_MS = 90_000L
     }
 }

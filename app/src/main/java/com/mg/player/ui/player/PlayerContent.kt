@@ -161,6 +161,8 @@ internal suspend fun PlayerViewModel.startPlayable(requested: Playable) {
         habitPreload.take(playable)?.let { ready ->
             AppLog.log("Player", "Sehgewohnheits-Sender war vorgeladen · ${playable.title}")
             adoptEngine(ready, PlayerEngineType.MEDIA3)
+            // Der Vorrat war pausiert: an die Live-Kante springen, sonst liefe er um die Wartezeit versetzt.
+            ready.seekToLiveEdge()
             ready.setMuted(false)
             ready.play()
         }
