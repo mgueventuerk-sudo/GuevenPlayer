@@ -8,16 +8,26 @@ name: Messung (Macrobenchmark, Vorher/Nachher)
 # - Emulator, kein Fire TV: Zeiten sind relativ vergleichbar (gleiche Maschine, abwechselnd), aber keine Fire-TV-Werte.
 # - Der Fixture-Aufbau (BenchmarkFixture/BenchmarkSetup) lief nach eigener Angabe nie auf einem Gerät: Scheitert ein
 #   Benchmark, steht das im Bericht – es wird keine Zahl erfunden.
+# Ein reiner workflow_dispatch wird von GitHub erst erkannt, wenn die Datei auf dem Default-Branch liegt (404). Damit nichts
+# vor der Messung dorthin muss, startet die Messung auch bei einem Push auf den Messbranch, der diese Dateien ändert.
+# Vorher = fester Stand (Remote-Stand vor 3.58–3.60), nachher = der gepushte Commit.
 on:
+  push:
+    branches: [ ccr-messung-3.60 ]
+    paths:
+      - '.github/workflows/benchmark.yml'
+      - '.github/scripts/run-ab-benchmarks.sh'
+      - '.github/scripts/summarize-benchmarks.py'
   workflow_dispatch:
     inputs:
       before:
         description: 'Stand vorher (Commit-SHA)'
-        required: true
+        required: false
+        default: 'c7b7b2c9b71f298112ea79c2eb02b88982cc28b0'
         type: string
       after:
         description: 'Stand nachher (Commit-SHA)'
-        required: true
+        required: false
         type: string
       rounds:
         description: 'Runden je Stand (abwechselnd, ab 2 sieht man Drift des Emulators)'
@@ -80,7 +90,7 @@ jobs:
           disable-animations: true
           disk-size: 6144M
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: bash "$RUNNER_TEMP/ab/run-ab-benchmarks.sh" "${{ inputs.before }}" "${{ inputs.after }}" "${{ inputs.rounds }}"
+          script: bash "$RUNNER_TEMP/ab/run-ab-benchmarks.sh" "${{ inputs.before || 'c7b7b2c9b71f298112ea79c2eb02b88982cc28b0' }}" "${{ inputs.after || github.sha }}" "${{ inputs.rounds || '2' }}"
 
       - name: Zusammenfassung
         if: always()
