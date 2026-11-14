@@ -21,6 +21,7 @@ import com.mg.player.domain.model.Reminder
 import com.mg.player.ui.navigation.Navigator
 import com.mg.player.ui.navigation.Screen
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 
 /**
  * Fällige Erinnerung bei offener App: Hinweis „Gleich: …“ mit „Jetzt umschalten“ (verschwindet nach einer Minute).
@@ -54,8 +55,13 @@ fun ReminderHost(container: AppContainer, navigator: Navigator, gate: ParentalGa
     )
 }
 
-/** Sender aus einer gesperrten Gruppe nur mit PIN (wie beim Öffnen der Gruppe). */
+/**
+ * Sender aus einer gesperrten Gruppe nur mit PIN (wie beim Öffnen der Gruppe). Mit App-Sperre erst nach der PIN – wie
+ * der Start mit dem letzten Sender in AppRoot. Bis 3.60 startete „Jetzt umschalten“ aus der Benachrichtigung bzw. die
+ * Übergabe vom Handy den Player sofort, und der Ton lief hinter der Sperre.
+ */
 private suspend fun openGuarded(container: AppContainer, gate: ParentalGateState, navigator: Navigator, request: PlayRequest) {
+    container.appLock.locked.first { !it }
     val open = { navigator.push(Screen.Player(request)) }
     val channelId = (request as? PlayRequest.Live)?.channelId ?: return open()
     val channel = container.liveRepository.channel(channelId) ?: return
