@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
@@ -78,8 +79,9 @@ private fun UpdateAvailableDialog(container: AppContainer, updater: AppUpdater, 
     // Im Updater gemerkt: Der Hinweis verlässt die Komposition während der Wiedergabe – ein lokaler Zustand ginge verloren.
     var dismissed by remember { mutableStateOf(updater.dismissedVersion) }
     if (dismissed == update.versionCode) return
+    val touch = isTouch
     ConfirmDialog(
-        title = "Update verfügbar",
+        title = "Neue Version verfügbar",
         confirmText = "Installieren",
         dismissText = "Später",
         onConfirm = {
@@ -91,14 +93,8 @@ private fun UpdateAvailableDialog(container: AppContainer, updater: AppUpdater, 
             updater.dismissedVersion = update.versionCode
             dismissed = update.versionCode
         },
-        message = buildString {
-            append("Version ${update.versionName} ist da.")
-            update.notes?.let { append("\n\n").append(it) }
-            append(
-                "\n\nDie App lädt sie herunter und öffnet den Installer – dort einmal „Installieren“ bestätigen. " +
-                    "Der Fortschritt bleibt danach an dieser Stelle sichtbar.",
-            )
-        },
+        message = updateMessage(update.versionName, update.notes, touch),
+        messageAlign = TextAlign.Start,
     )
 }
 
@@ -146,3 +142,20 @@ private fun UpdateProgressCard(updater: AppUpdater, versionCode: Int, text: Stri
 }
 
 private const val PERCENT_MAX = 100f
+
+/**
+ * Text des Update-Hinweises in Alltagssprache: was neu ist bzw. behoben wurde (aus release-notes.md), dann in einem Satz,
+ * was beim Installieren passiert. Ohne Notizen steht das ausdrücklich da – statt nichts.
+ */
+internal fun updateMessage(versionName: String, notes: String?, touch: Boolean): String = buildString {
+    append("Version ").append(versionName).append(" ist bereit.")
+    when {
+        notes == null -> append("\n\nZu dieser Version gibt es keine Beschreibung der Änderungen.")
+        // Notizen mit eigenen Abschnitten („Neu:“, „Behoben:“) brauchen keine Überschrift mehr.
+        notes.lineSequence().any { it.endsWith(":") && !it.startsWith("•") } -> append("\n\n").append(notes)
+        else -> append("\n\nDas ist neu:\n").append(notes)
+    }
+    val press = if (touch) "Tippe auf" else "Wähle"
+    append("\n\n").append(press).append(" „Installieren“: Die App lädt das Update, danach fragt Android einmal nach. ")
+    append("Deine Zugänge und Einstellungen bleiben erhalten.")
+}

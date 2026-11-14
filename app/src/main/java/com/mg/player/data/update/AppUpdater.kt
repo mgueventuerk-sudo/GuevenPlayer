@@ -243,17 +243,8 @@ class AppUpdater(
          * "**Full Changelog**: …") auf reine Stichpunkte ohne Markdown/Benutzernamen/Links reduziert.
          * Höchstens [MAX_NOTES_LINES] Zeilen – mehr passt nicht lesbar in den Hinweis-Dialog.
          */
-        internal fun cleanChangelog(raw: String): String? {
-            val lines = raw.lines()
-                .mapNotNull { line -> PR_LINE.find(line.trim())?.groupValues?.get(1)?.trim() }
-                .filter { it.isNotBlank() }
-                .take(MAX_NOTES_LINES)
-            return lines.takeIf { it.isNotEmpty() }?.joinToString("\n") { "• $it" }
-        }
-
-        /** "* Titel by @user in https://…/pull/123" bzw. "- Titel in #123" → nur "Titel". */
-        private val PR_LINE = Regex("""^[*-]\s+(.*?)(?:\s+by\s+@\S+)?\s+in\s+\S+$""")
-        private const val MAX_NOTES_LINES = 6
+        /** Lesbare Notizen für den Update-Hinweis, siehe [ReleaseNotes]. */
+        internal fun cleanChangelog(raw: String): String? = ReleaseNotes.clean(raw)
 
         internal fun problem(e: Throwable): String = when (val code = (e as? HttpStatusException)?.code) {
             401 -> "Schlüssel ungültig oder abgelaufen (HTTP 401)"

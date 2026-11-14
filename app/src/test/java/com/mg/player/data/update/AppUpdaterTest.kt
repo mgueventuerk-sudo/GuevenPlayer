@@ -48,9 +48,44 @@ class AppUpdaterTest {
 
     @Test
     fun capsTheNumberOfChangelogLines() {
-        val body = (1..10).joinToString("\n") { "* Punkt $it by @user in https://github.com/owner/repo/pull/$it" }
+        val body = (1..14).joinToString("\n") { "* Punkt $it by @user in https://github.com/owner/repo/pull/$it" }
         val notes = AppUpdater.cleanChangelog(body)!!
-        assertEquals(6, notes.lines().size)
+        assertEquals(10, notes.lines().size)
+    }
+
+    /** release-notes.md: Überschriften und Punkte in Alltagssprache, Kommentare bleiben weg. */
+    @Test
+    fun readsPlainReleaseNotesWithSections() {
+        val body = """
+            <!-- Vor jedem Release anpassen -->
+
+            ## Neu
+            - Einstellung „Sprache“
+
+            ## Behoben
+            - Serien wechseln nicht mehr die Sprache
+            - App-Sperre gilt auch beim Start von außen
+
+            ## Leer
+
+            **Full Changelog**: https://github.com/owner/repo/compare/build-1...build-2
+        """.trimIndent()
+        assertEquals(
+            "Neu:\n• Einstellung „Sprache“\nBehoben:\n• Serien wechseln nicht mehr die Sprache\n• App-Sperre gilt auch beim Start von außen",
+            AppUpdater.cleanChangelog(body),
+        )
+    }
+
+    @Test
+    fun skipsNewContributorsAndAHeadingCutOffAtTheEnd() {
+        val body = "## What's Changed\n* Fix by @a in https://x/pull/1\n## New Contributors\n* @a made their first contribution in https://x/pull/1"
+        assertEquals("• Fix", AppUpdater.cleanChangelog(body))
+        // Zehnte Zeile wäre die Überschrift „Neu:“ ohne ihren Punkt – sie fällt weg.
+        val many = "## Behoben\n" + (1..8).joinToString("\n") { "- Punkt $it" } + "\n## Neu\n- später"
+        assertEquals(9, AppUpdater.cleanChangelog(many)!!.lines().size)
+        assertEquals("• Punkt 8", AppUpdater.cleanChangelog(many)!!.lines().last())
+        // Deutscher Satz auf „in …“ bleibt ganz; Punkt mit Doppelpunkt ist keine Überschrift.
+        assertEquals("• Ton läuft wieder in Ordnung\n• Neu:", AppUpdater.cleanChangelog("- Ton läuft wieder in Ordnung\n- Neu:"))
     }
 
     @Test

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -35,14 +36,31 @@ import com.mg.player.ui.theme.Dimens
  * "unten" unbemerkt in der Liste hinter dem Dialog). "Zurück" schließt ihn.
  */
 @Composable
-fun ConfirmDialog(title: String, confirmText: String, dismissText: String, onConfirm: () -> Unit, onDismiss: () -> Unit, message: String? = null) {
+fun ConfirmDialog(
+    title: String,
+    confirmText: String,
+    dismissText: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    message: String? = null,
+    /** Längere Texte mit Stichpunkten (Update-Hinweis) linksbündig; kurze Fragen bleiben mittig. */
+    messageAlign: TextAlign = TextAlign.Center,
+) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        ConfirmContent(title, confirmText, dismissText, onConfirm, onDismiss, message)
+        ConfirmContent(title, confirmText, dismissText, onConfirm, onDismiss, message, messageAlign)
     }
 }
 
 @Composable
-private fun ConfirmContent(title: String, confirmText: String, dismissText: String, onConfirm: () -> Unit, onDismiss: () -> Unit, message: String?) {
+private fun ConfirmContent(
+    title: String,
+    confirmText: String,
+    dismissText: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    message: String?,
+    messageAlign: TextAlign,
+) {
     val confirmRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { confirmRequester.requestFocusWhenReady() }
     Box(
@@ -66,8 +84,8 @@ private fun ConfirmContent(title: String, confirmText: String, dismissText: Stri
                     message,
                     style = MaterialTheme.typography.bodyMedium,
                     color = AppColors.TextSecondary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 8.dp),
+                    textAlign = messageAlign,
+                    modifier = Modifier.padding(top = 8.dp).then(if (messageAlign == TextAlign.Center) Modifier else Modifier.fillMaxWidth()),
                 )
             }
             Spacer(Modifier.height(24.dp))
