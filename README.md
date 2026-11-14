@@ -283,6 +283,12 @@ Arbeitsspeicher**, in genau der Größe, in der die Anzeige das Bild braucht (da
 mit fester Größe). Poster und Logo werden dafür aus derselben Quelle gebaut wie in der Anzeige (`ImageRequests`), sonst träfe
 die Anzeige den Eintrag nicht.
 
+**Streams (Zapping):** Läuft ein Sender ruhig (etwa 3 s), wird der nächste oder vorige Sender der Liste **vorgeladen, wenn er auf
+einem anderen Zugang liegt** (eigene Verbindung) und dieser nachweislich einen freien Platz hat – nie auf dem Zugang des
+laufenden Senders. Wer auf genau diesen Sender zappt, sieht ihn ohne Puffern. Bleibt der Wechsel aus, wird die vorgeladene
+Verbindung beim nächsten Senderstart freigegeben. Wie bisher nur auf leistungsstarken Geräten (≥ 3,5 GB RAM) – Fire TV mit 2 GB
+laden keine Streams vor. Die Sehgewohnheits-Vorladung (nach 2 min) gilt unverändert und hat Vorrang.
+
 **Wie viel, entscheidet der freie Speicher** (nicht nur die Geräteklasse):
 - *Aus:* „wenig Speicher“ laut Android, 2 min nach einer Speicherwarnung, unter 24 MB freiem Heap oder **unter 500 MB freiem
   internen Speicher** – dann wird auch alles bisher Vorgeladene und nie Gezeigte sofort freigegeben.

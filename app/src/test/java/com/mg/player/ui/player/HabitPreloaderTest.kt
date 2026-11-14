@@ -60,4 +60,20 @@ class HabitPreloaderTest {
         // "Alle Zugänge" ist keine echte Einzelverbindung - weder als laufender noch als Ziel-Zugang.
         assertNull(pick(listOf("B1"), currentId = "X", currentPlaylistId = Combined.ID))
     }
+
+    @Test
+    fun habitsComeBeforeTheZapNeighboursButBothMustBeOnAFreeOtherAccount() = runBlocking {
+        freeSlots += 2L
+        freeSlots += 3L
+        // Gewohnheit B1 (Zugang 2) schlägt den Nachbarn C1 (Zugang 3), weil sie zuerst in der Liste steht.
+        assertEquals("B1", pick(listOf("B1", "C1"), currentId = "A1", currentPlaylistId = 1L))
+        // Ohne Gewohnheit zählt der erste Nachbar auf einem anderen Zugang; der Nachbar A2 (gleicher Zugang) wird übersprungen.
+        assertEquals("C1", pick(listOf("A2", "C1"), currentId = "A1", currentPlaylistId = 1L))
+    }
+
+    @Test
+    fun aNeighbourOnTheSameAccountIsNeverPreloadedEvenIfTheAccountReportsMoreConnections() = runBlocking {
+        freeSlots += 1L
+        assertNull(pick(listOf("A2"), currentId = "A1", currentPlaylistId = 1L))
+    }
 }

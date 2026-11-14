@@ -24,8 +24,11 @@ class LiveSession(
     /** Zustand des Players, den die Live-Logik mitpflegt (Sendernummer, EPG, Favorit). */
     private val ui: MutableStateFlow<PlayerUiState>,
     private val start: suspend (Playable) -> Unit,
-    /** Sehgewohnheits-Vorladung anstoßen (siehe [HabitPreloader]) - erst, wenn ein Sender ruhig eine Weile lief. */
-    private val predictHabit: (Channel) -> Unit = {},
+    /**
+     * Stream-Vorladung auf einem **anderen** Zugang anstoßen (siehe [HabitPreloader]). Die Nachbarsender kommen kurz nach dem
+     * Start, die Sehgewohnheiten (`includeHabits`) erst, wenn ein Sender ruhig eine Weile lief.
+     */
+    private val preloadOtherAccount: (Channel, List<String>, Boolean) -> Unit = { _, _, _ -> },
 ) {
 
     private val resolver = PlayableResolver(container)
@@ -80,6 +83,8 @@ class LiveSession(
             // Einstellungsdatei neu (Flash-Schreiblast auf Sticks) und landete im Verlauf.
             delay(SETTLE_MS)
             if (currentChannelId != channel.id) return@launch
+            // Nachbarsender auf einem anderen Zugang (eigene Verbindung): schon geladen, bevor man hinzappt.
+            preloadOtherAccount(channel, ZapNeighbours.of(channelIds, channel.id), false)
             container.playbackRepository.markChannelWatched(channel.id)
             // „Ohne Verlauf“: auch den letzten Sender nicht merken.
             if (!container.settingsRepository.current().noHistory) {
@@ -91,7 +96,7 @@ class LiveSession(
             delay(HABIT_MS - SETTLE_MS)
             if (currentChannelId == channel.id && !container.settingsRepository.current().noHistory) {
                 withContext(Dispatchers.IO) { container.channelHabits.record(channel.id) }
-                predictHabit(channel)
+                preloadOtherAccount(channel, ZapNeighbours.of(channelIds, channel.id), true)
             }
         }
         observeChannel(channel)
@@ -100,16 +105,15 @@ class LiveSession(
 
     /**
      * Senderwechsel ohne Warten: Die Nachbarsender (±1) werden kurz nach dem Start schon aufgelöst (Datenbank,
-     * Varianten, Stream-Adresse, Namensauflösung). Ein zweiter Stream wird bewusst NICHT geöffnet – viele Anbieter
-     * erlauben nur eine Verbindung.
+     * Varianten, Stream-Adresse, Namensauflösung). Ein zweiter Stream wird hier bewusst NICHT geöffnet – viele Anbieter
+     * erlauben nur eine Verbindung. Ausnahme ist ein Nachbarsender auf einem **anderen** Zugang: Den lädt [HabitPreloader] vor.
      */
     private fun prepareNeighbours(channelId: String) {
         prepareJob?.cancel()
         prepareJob = scope.launch {
             delay(PREPARE_DELAY_MS)
-            val index = channelIds.indexOf(channelId)
-            if (index < 0 || channelIds.size < 2) return@launch
-            val ids = listOf(index + 1, index - 1).map { channelIds[Math.floorMod(it, channelIds.size)] }.distinct()
+            val ids = ZapNeighbours.of(channelIds, channelId)
+            if (ids.isEmpty()) return@launch
             prepared.keys.retainAll(ids.toSet())
             for (id in ids) {
                 val playable = runCatchingCancellable { resolver.channel(id) }.getOrNull() ?: continue

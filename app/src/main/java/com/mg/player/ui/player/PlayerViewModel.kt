@@ -46,7 +46,13 @@ class PlayerViewModel(internal val container: AppContainer, internal val request
     internal val accounts = AccountGate(container)
     internal var switchingAccount = false
     internal val progress = PlayerProgress(container)
-    internal val live = LiveSession(container, scope, uiState, { playable -> startPlayable(playable) }, { channel -> habitPreload.predict(channel) })
+    internal val live = LiveSession(
+        container,
+        scope,
+        uiState,
+        { playable -> startPlayable(playable) },
+        { channel, neighbours, habits -> habitPreload.predict(channel, neighbours, habits) },
+    )
     internal val bingeSession = BingeSession(container, scope)
     val binge: StateFlow<BingeState> = bingeSession.state
     internal val audioRestorer = AudioTrackRestorer(container.playback.trackMemory)
