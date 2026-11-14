@@ -52,47 +52,51 @@ internal class HabitPreloader(private val vm: PlayerViewModel) {
         if (!playingSteadily()) return
         job = vm.scope.launch {
             try {
-                val top = if (includeHabits) withContext(Dispatchers.IO) { vm.container.channelHabits.top() } else emptyList()
-                val candidateId = pickCandidate(
-                    habitChannelIds = (top + neighbourIds).distinct(),
-                    currentChannelId = current.id,
-                    currentPlaylistId = current.playlistId,
-                    playlistIdOf = { id ->
-                        try {
-                            vm.container.liveRepository.channel(id)?.playlistId
-                        } catch (e: CancellationException) {
-                            throw e
-                        } catch (e: Exception) {
-                            AppLog.error("Player", "Sehgewohnheits-Sender $id nicht auflösbar", e)
-                            null
-                        }
-                    },
-                    // Der Zugang, auf dem wir selbst gerade vorgeladen halten, zeigt „voll“ (unsere eigene Verbindung): bleibt erlaubt.
-                    hasFreeSlot = { playlistId ->
-                        (playlistId == forPlaylistId && engine != null) ||
-                            StandbyPreloader.hasFreeSlot(vm.container.connectionMonitor.status.value[playlistId])
-                    },
-                )
-                if (candidateId == null) {
-                    dropEngine()
-                    return@launch
-                }
-                if (candidateId == forChannelId && engine != null) return@launch
-                dropEngine()
-                val playable = resolver.channel(candidateId) ?: return@launch
-                val preload = vm.container.playback.engineFactory.create(PlayerEngineType.MEDIA3)
-                preload.setMuted(true)
-                preload.prepare(vm.streamRequest(playable, 0, autoPlay = false))
-                engine = preload
-                forChannelId = candidateId
-                forPlaylistId = playable.channel?.playlistId
-                AppLog.log("Player", "Vorgeladen auf einem anderen Zugang: ${playable.title}")
+                loadCandidate(current, neighbourIds, includeHabits)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 AppLog.error("Player", "Sehgewohnheits-Sender nicht vorladbar", e)
             }
         }
+    }
+
+    private suspend fun loadCandidate(current: Channel, neighbourIds: List<String>, includeHabits: Boolean) {
+        val top = if (includeHabits) withContext(Dispatchers.IO) { vm.container.channelHabits.top() } else emptyList()
+        val candidateId = pickCandidate(
+            habitChannelIds = (top + neighbourIds).distinct(),
+            currentChannelId = current.id,
+            currentPlaylistId = current.playlistId,
+            playlistIdOf = { id ->
+                try {
+                    vm.container.liveRepository.channel(id)?.playlistId
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    AppLog.error("Player", "Sehgewohnheits-Sender $id nicht auflösbar", e)
+                    null
+                }
+            },
+            // Der Zugang, auf dem wir selbst gerade vorgeladen halten, zeigt „voll“ (unsere eigene Verbindung): bleibt erlaubt.
+            hasFreeSlot = { playlistId ->
+                (playlistId == forPlaylistId && engine != null) ||
+                    StandbyPreloader.hasFreeSlot(vm.container.connectionMonitor.status.value[playlistId])
+            },
+        )
+        if (candidateId == null) {
+            dropEngine()
+            return
+        }
+        if (candidateId == forChannelId && engine != null) return
+        dropEngine()
+        val playable = resolver.channel(candidateId) ?: return
+        val preload = vm.container.playback.engineFactory.create(PlayerEngineType.MEDIA3)
+        preload.setMuted(true)
+        preload.prepare(vm.streamRequest(playable, 0, autoPlay = false))
+        engine = preload
+        forChannelId = candidateId
+        forPlaylistId = playable.channel?.playlistId
+        AppLog.log("Player", "Vorgeladen auf einem anderen Zugang: ${playable.title}")
     }
 
     /** Vorgeladene Engine für genau diesen Sender (danach gehört sie dem Player), sonst null. */

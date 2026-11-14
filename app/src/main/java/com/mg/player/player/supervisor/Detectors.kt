@@ -336,7 +336,7 @@ class AvPresenceDetector : Detector {
     private fun audioOnly(s: HealthSnapshot, now: Long, ctx: DetectContext): Finding? {
         val soundFor = soundFor(s, now) ?: return null
         return when (s.hasVideoTrack) {
-            false -> withoutVideoTrack(s, ctx, soundFor)
+            false -> withoutVideoTrack(ctx, soundFor)
             true -> withoutPicture(s, ctx, soundFor)
             null -> null
         }
@@ -358,7 +358,7 @@ class AvPresenceDetector : Detector {
      * - Hatte schon ein Bild, oder die Datenrate ist höher als bei Radio → Störung (sicher).
      * - Sonst, mit Ersatzquelle → Störung als Vermutung (wenige Versuche, dann als Radio merken); ohne → Hinweis.
      */
-    private fun withoutVideoTrack(s: HealthSnapshot, ctx: DetectContext, soundFor: Long): Finding? {
+    private fun withoutVideoTrack(ctx: DetectContext, soundFor: Long): Finding? {
         val cfg = ctx.config
         val flowingKb = rate.bytesPerSecond()?.takeIf { it >= cfg.videoDataRate }?.let { it / BYTES_PER_KB }
         val dataFlows = flowingKb != null

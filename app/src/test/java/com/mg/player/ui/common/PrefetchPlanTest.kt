@@ -43,7 +43,7 @@ class PrefetchPlanTest {
     }
 
     private fun window(first: Int, last: Int, behind: Int, ahead: Int, total: Int = urls.size) =
-        PrefetchPlan.window(first, last, total, behind, ahead) { urls.getOrNull(it) }
+        PrefetchPlan.window(Visible(first, last), total, behind, ahead) { urls.getOrNull(it) }
 
     @Test
     fun windowCoversTheVisibleItemsPlusKeepBehindAndAhead() {

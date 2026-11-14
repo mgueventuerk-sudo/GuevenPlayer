@@ -31,13 +31,7 @@ internal class HealthDiagnostics(private val intervalMs: Long = DEFAULT_INTERVAL
         val frames = delta(current.renderedFrames, previous?.renderedFrames)
         val audio = delta(current.audioUnits, previous?.audioUnits)
         val bytes = delta(current.bytesLoaded, previous?.bytesLoaded)
-        val shown = current.pictureShown
-        val pictureMonitoring = when {
-            current.hasVideoTrack == false -> "keine Videospur"
-            current.renderedFrames == null && shown != null -> "ohne Bilderzähler, erstes Bild ${if (shown) "gezeigt" else "fehlt"}"
-            current.renderedFrames == null -> "Standbildprüfung eingeschränkt"
-            else -> "Standbildprüfung aktiv"
-        }
+        val pictureMonitoring = pictureMonitoring(current)
         val activity = activityOf(current)
         return "Player-Zustand $engine: ${current.status}/$activity; " +
             "Position ${current.positionMs} ms ($position); " +
@@ -45,6 +39,16 @@ internal class HealthDiagnostics(private val intervalMs: Long = DEFAULT_INTERVAL
             "Tonblöcke ${current.audioUnits?.toString() ?: "n/a"} (${audio ?: "Δ n/a"}); " +
             "Bytes ${current.bytesLoaded?.toString() ?: "n/a"} (${bytes ?: "Δ n/a"}); " +
             "Videodecoder-Warnungen ${current.videoLagEvents?.toString() ?: "n/a"}"
+    }
+
+    private fun pictureMonitoring(current: HealthSnapshot): String {
+        val shown = current.pictureShown
+        return when {
+            current.hasVideoTrack == false -> "keine Videospur"
+            current.renderedFrames == null && shown != null -> "ohne Bilderzähler, erstes Bild ${if (shown) "gezeigt" else "fehlt"}"
+            current.renderedFrames == null -> "Standbildprüfung eingeschränkt"
+            else -> "Standbildprüfung aktiv"
+        }
     }
 
     private fun activityOf(current: HealthSnapshot): String = when {

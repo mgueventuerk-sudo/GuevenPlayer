@@ -90,6 +90,15 @@ object PreloadPolicyRules {
     private const val DISK_AHEAD_TIGHT = 30
 
     /**
+     * Nur interner Speicher gewählt: Arbeitsspeicher bleibt tabu, die Platte reicht so weit, wie der Platz es erlaubt
+     * (Heap nur für das kurze Dekodieren kleiner Bilder nötig).
+     */
+    private fun diskOnlyBudget(memory: MemoryReading, disk: Int, lightAhead: Int): PreloadBudget {
+        val reach = if (memory.heapFreeMb >= MIN_HEAP_FREE_MB) maxOf(disk, lightAhead) else lightAhead
+        return PreloadBudget(PreloadLevel.LIGHT, lightAhead, diskAhead = reach)
+    }
+
+    /**
      * Zwei getrennte Fragen: Darf der **Arbeitsspeicher** mitmachen (nur bei viel freiem RAM und Heap)? Und darf die
      * **Festplatte** vorladen (bei genug freiem Platz, auch wenn der RAM knapp ist – dann ist sie der Ausweg)? Aus bleibt
      * nur, wenn Android Speichernot meldet, der Platz nicht reicht oder kaum Heap übrig ist.
@@ -102,12 +111,7 @@ object PreloadPolicyRules {
         val roomy = ramFine && memory.availMb >= memory.thresholdMb + FULL_RESERVE_MB && memory.heapFreeMb >= FULL_HEAP_FREE_MB
         val disk = storageAhead(tier, memory.storageFreeMb)
         val lightAhead = LIGHT_AHEAD.getValue(tier)
-        // Nur interner Speicher gewählt: Arbeitsspeicher bleibt tabu, die Platte reicht so weit, wie der Platz es erlaubt
-        // (Heap nur für das kurze Dekodieren kleiner Bilder nötig).
-        if (diskOnly) {
-            val reach = if (memory.heapFreeMb >= MIN_HEAP_FREE_MB) maxOf(disk, lightAhead) else lightAhead
-            return PreloadBudget(PreloadLevel.LIGHT, lightAhead, diskAhead = reach)
-        }
+        if (diskOnly) return diskOnlyBudget(memory, disk, lightAhead)
         val fullAhead = FULL_AHEAD[tier]
         return when {
             roomy && fullAhead != null ->

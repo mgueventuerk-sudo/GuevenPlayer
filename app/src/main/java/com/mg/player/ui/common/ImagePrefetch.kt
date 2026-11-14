@@ -116,7 +116,7 @@ internal object ImagePrefetcher {
         synchronized(this) { memoryDone.clear() }
     }
 
-    suspend fun prefetch(context: Context, kind: PrefetchKind, view: Visible, itemCount: Int, urlAt: (Int) -> String?, posterSize: IntSize?) {
+    suspend fun prefetch(context: Context, kind: PrefetchKind, view: Visible, items: PrefetchItems, posterSize: IntSize?) {
         val loader = SingletonImageLoader.get(context)
         // Misst auch den freien Platz im Dateisystem: nicht im Hauptthread.
         val budget = withContext(Dispatchers.IO) { PreloadPolicy.current(context) }
@@ -125,28 +125,36 @@ internal object ImagePrefetcher {
             return
         }
         val reach = if (budget.warmMemory) maxOf(budget.imagesAhead, 0) else 0
-        val wanted = PrefetchPlan.window(view.first, view.last, itemCount, budget.keepBehind, reach, urlAt)
+        val wanted = PrefetchPlan.window(view, items.count, budget.keepBehind, reach, items.urlAt)
         release(loader.memoryCache, ledger.outsideWindow(wanted), "außerhalb des Fensters")
         release(loader.memoryCache, ledger.expired(UNUSED_TTL_MS), "ungenutzt abgelaufen")
         // Die nächsten Einträge (imagesAhead) kommen fertig in den Arbeitsspeicher, alles weiter voraus nur in den Datei-Cache.
-        val upcoming = PrefetchPlan.ahead(view.last, itemCount, maxOf(budget.diskAhead, reach), urlAt)
+        val upcoming = PrefetchPlan.ahead(view.last, items.count, maxOf(budget.diskAhead, reach), items.urlAt)
         val todo = upcoming.withIndex().filter { (i, url) -> if (budget.warmMemory && i < reach) !memoryKnown(url) else !diskKnown(url) }
         if (todo.isEmpty()) return
         log(context, budget, todo.size)
         for ((i, url) in todo) {
             val memory = budget.warmMemory && i < reach && roomInMemory(loader)
-            gate.withPermit { load(context, loader, kind, url, memory = memory, posterSize = posterSize) }
+            val plan = requestFor(context, kind, url, memory, posterSize)
+            gate.withPermit { load(loader, url, plan) }
         }
     }
 
-    private suspend fun load(context: Context, loader: ImageLoader, kind: PrefetchKind, url: String, memory: Boolean, posterSize: IntSize?) {
+    /** Die Anfrage und ob sie in den Arbeitsspeicher geht. */
+    private class LoadPlan(val request: ImageRequest, val toMemory: Boolean)
+
+    private fun requestFor(context: Context, kind: PrefetchKind, url: String, memory: Boolean, posterSize: IntSize?): LoadPlan {
         val ahead = when (kind) {
             PrefetchKind.POSTER -> posterSize?.let { ImageRequests.posterAhead(context, url, it) }
             PrefetchKind.LOGO -> ImageRequests.channelLogoAhead(context, url)
         }
         // Ohne gemessene Kachelgröße (noch kein Poster gezeigt) bleibt es beim Datei-Cache.
-        val toMemory = memory && ahead != null
-        val request = (if (toMemory) ahead else diskOnly(context, kind, url)) ?: return
+        return if (memory && ahead != null) LoadPlan(ahead, toMemory = true) else LoadPlan(diskOnly(context, kind, url), toMemory = false)
+    }
+
+    private suspend fun load(loader: ImageLoader, url: String, plan: LoadPlan) {
+        val request = plan.request
+        val toMemory = plan.toMemory
         if (!begin(url)) return
         try {
             val result = loader.execute(request)
@@ -283,7 +291,7 @@ private fun PrefetchAhead(
         snapshotFlow { visible() to scrolling() }.distinctUntilChanged().collectLatest { (view, moving) ->
             if (moving || view.last < 0) return@collectLatest
             delay(IDLE_MS)
-            ImagePrefetcher.prefetch(context, kind, view, currentCount(), currentUrlAt, currentSize())
+            ImagePrefetcher.prefetch(context, kind, view, PrefetchItems(currentCount(), currentUrlAt), currentSize())
         }
     }
 }

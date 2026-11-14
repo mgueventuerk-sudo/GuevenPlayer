@@ -3,9 +3,9 @@ package com.mg.player.ui.common
 import android.content.Context
 import androidx.compose.ui.unit.IntSize
 import coil3.request.ImageRequest
-import coil3.request.Precision
 import coil3.request.allowRgb565
 import coil3.request.crossfade
+import coil3.size.Precision
 import coil3.size.Scale
 
 /**
