@@ -103,6 +103,14 @@ object PreloadPolicyRules {
         return PreloadBudget(PreloadLevel.LIGHT, lightAhead, diskAhead = reach)
     }
 
+    /** Genug Arbeitsspeicher, dass er überhaupt mitmachen darf (Android-Schwelle + 200 MB, 48 MB Heap). */
+    private fun ramFine(memory: MemoryReading) =
+        memory.availMb >= memory.thresholdMb + MIN_RESERVE_MB && memory.heapFreeMb >= MIN_HEAP_FREE_MB
+
+    /** Viel Arbeitsspeicher: die große Stufe (Android-Schwelle + 500 MB, 96 MB Heap). */
+    private fun ramRoomy(memory: MemoryReading) =
+        memory.availMb >= memory.thresholdMb + FULL_RESERVE_MB && memory.heapFreeMb >= FULL_HEAP_FREE_MB
+
     /**
      * Zwei getrennte Fragen: Darf der **Arbeitsspeicher** mitmachen (nur bei viel freiem RAM und Heap)? Und darf die
      * **Festplatte** vorladen (bei genug freiem Platz, auch wenn der RAM knapp ist – dann ist sie der Ausweg)? Aus bleibt
@@ -112,8 +120,8 @@ object PreloadPolicyRules {
         val warned = memory.lowMemory || memory.trimmedRecently
         val noRoom = memory.storageFreeMb < MIN_STORAGE_MB || memory.heapFreeMb < MIN_HEAP_DISK_MB
         if (!enabled || warned || noRoom) return PreloadBudget.OFF
-        val ramFine = memory.availMb >= memory.thresholdMb + MIN_RESERVE_MB && memory.heapFreeMb >= MIN_HEAP_FREE_MB
-        val roomy = ramFine && memory.availMb >= memory.thresholdMb + FULL_RESERVE_MB && memory.heapFreeMb >= FULL_HEAP_FREE_MB
+        val ramFine = ramFine(memory)
+        val roomy = ramFine && ramRoomy(memory)
         val disk = storageAhead(tier, memory.storageFreeMb)
         val lightAhead = LIGHT_AHEAD.getValue(tier)
         if (diskOnly) return diskOnlyBudget(memory, disk, lightAhead)

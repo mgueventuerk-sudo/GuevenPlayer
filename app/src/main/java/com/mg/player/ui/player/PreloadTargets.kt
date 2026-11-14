@@ -22,15 +22,26 @@ internal object PreloadTargets {
         val chosen = LinkedHashMap<Long, PreloadTarget>()
         for (id in candidateIds) {
             if (chosen.size >= maxTargets) break
-            if (chosen.values.any { it.channelId == id }) continue
-            for ((playlistId, itemId) in variantsOf(id)) {
-                if (playlistId <= 0 || playlistId == activePlaylistId || playlistId in chosen) continue
-                if (free.getOrPut(playlistId) { hasFreeSlot(playlistId) }) {
-                    chosen[playlistId] = PreloadTarget(id, itemId, playlistId)
-                    break
-                }
+            if (chosen.values.none { it.channelId == id }) {
+                firstUsable(id, activePlaylistId, chosen.keys, variantsOf) { free.getOrPut(it) { hasFreeSlot(it) } }
+                    ?.let { chosen[it.playlistId] = it }
             }
         }
         return chosen.values.toList()
+    }
+
+    /** Die beste Variante des Senders auf einem echten, noch nicht belegten anderen Zugang mit freiem Platz – oder null. */
+    private suspend fun firstUsable(
+        channelId: String,
+        activePlaylistId: Long,
+        takenPlaylists: Set<Long>,
+        variantsOf: suspend (String) -> List<Pair<Long, String>>,
+        isFree: suspend (Long) -> Boolean,
+    ): PreloadTarget? {
+        for ((playlistId, itemId) in variantsOf(channelId)) {
+            val candidate = playlistId > 0 && playlistId != activePlaylistId && playlistId !in takenPlaylists
+            if (candidate && isFree(playlistId)) return PreloadTarget(channelId, itemId, playlistId)
+        }
+        return null
     }
 }
