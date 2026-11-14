@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -24,6 +25,9 @@ import com.mg.player.ui.common.ActionButton
 import com.mg.player.ui.common.isTouch
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val MAX_CONF_BYTES = 16_000
 
@@ -35,10 +39,14 @@ private const val MAX_CONF_BYTES = 16_000
 internal fun VpnImportForm(onImport: (text: String, fileName: String?) -> Unit, status: String?, done: Boolean, onDone: () -> Unit) {
     val context = LocalContext.current
     var hint by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        val text = readSmallText(context, uri)
-        if (text == null) hint = "Die Datei ließ sich nicht lesen." else onImport(text, displayName(context, uri))
+        scope.launch {
+            // Datei und Name über den Dateianbieter lesen – nicht im Hauptthread (Labor-Build: StrictMode beendet sonst die App).
+            val (text, name) = withContext(Dispatchers.IO) { readSmallText(context, uri) to displayName(context, uri) }
+            if (text == null) hint = "Die Datei ließ sich nicht lesen." else onImport(text, name)
+        }
     }
     Column(Modifier.widthIn(max = 560.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("So geht's mit Surfshark", style = MaterialTheme.typography.titleMedium)

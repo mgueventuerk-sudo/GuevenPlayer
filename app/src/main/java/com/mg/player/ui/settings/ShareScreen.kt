@@ -59,7 +59,9 @@ import com.mg.player.ui.theme.AnimatedIcon
 import com.mg.player.ui.theme.AppColors
 import com.mg.player.ui.theme.AppIcons
 import com.mg.player.ui.theme.Dimens
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Sicherung und Fehlerprotokoll übers Handy: QR-Code scannen, Datei laden oder hochladen. */
 @Composable
@@ -196,7 +198,10 @@ private fun NativeBackupAction(mode: ShareMode, vm: ShareViewModel) {
                 fileStatus = if (text == null) {
                     "Sicherung konnte nicht erstellt werden."
                 } else {
-                    val saved = runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray(Charsets.UTF_8)) } }.isSuccess
+                    // Dateizugriff nicht im Hauptthread (Labor-Build: StrictMode beendet sonst die App).
+                    val saved = withContext(Dispatchers.IO) {
+                        runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray(Charsets.UTF_8)) } }.isSuccess
+                    }
                     if (saved) "Sicherung gespeichert ✓" else "Speichern fehlgeschlagen."
                 }
             }
@@ -206,7 +211,9 @@ private fun NativeBackupAction(mode: ShareMode, vm: ShareViewModel) {
         val openDoc = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri == null) return@rememberLauncherForActivityResult
             scope.launch {
-                val text = runCatching { context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } }.getOrNull()
+                val text = withContext(Dispatchers.IO) {
+                    runCatching { context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } }.getOrNull()
+                }
                 if (text.isNullOrBlank()) fileStatus = "Datei konnte nicht gelesen werden." else vm.loadPickedBackup(text)
             }
         }
