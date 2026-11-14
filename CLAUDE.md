@@ -97,7 +97,7 @@ Zwei Baselines verstecken Altlasten. Ihre Größe zum Stand dieser Datei:
 
 | Baseline | Einträge | Datei |
 |---|---|---|
-| detekt | 388 | `config/detekt/baseline.xml` |
+| detekt | 387 | `config/detekt/baseline.xml` |
 | Android Lint | 5 | `app/lint-baseline.xml` |
 
 - Ein neuer Eintrag in einer Baseline ist **keine Lösung**, sondern eine

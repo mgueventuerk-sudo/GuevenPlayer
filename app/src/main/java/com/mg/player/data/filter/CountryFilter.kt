@@ -55,7 +55,7 @@ class CountryFilter(
                 ContentType.MOVIE.name -> 1
                 else -> 2
             }
-            counts.getOrPut(code) { IntArray(3) }[slot]++
+            counts.getOrPut(code) { IntArray(AREAS) }[slot]++
         }
         val list = counts.map { (code, c) -> CountryCount(code, CountryDetector.info(code).label, c[0], c[1], c[2]) }
             .sortedByDescending { it.total }
@@ -68,51 +68,62 @@ class CountryFilter(
 
     /** Speichert die Auswahl und blendet alle Gruppen entsprechend ein oder aus. */
     suspend fun apply(playlistId: Long, selection: CountrySelection) {
-        withContext(Dispatchers.IO) { mutex.withLock { writeAll(readAll() + (playlistId to selection)) } }
-        update(playlistId, selection, onlyNew = false)
+        val previous = withContext(Dispatchers.IO) {
+            mutex.withLock {
+                val all = readAll()
+                writeAll(all + (playlistId to selection))
+                all[playlistId]
+            }
+        }
+        update(playlistId, selection, previous, onlyNew = false)
     }
 
-    /** Hebt den Filter auf: alle vom Filter ausgeblendeten Gruppen sind wieder sichtbar. */
+    /** Hebt den Filter auf: alle vom Filter ausgeblendeten Gruppen sind wieder sichtbar, von Hand ausgeblendete bleiben aus. */
     suspend fun clear(playlistId: Long) {
-        withContext(Dispatchers.IO) { mutex.withLock { writeAll(readAll() - playlistId) } }
-        update(playlistId, CountrySelection(CountryDetector.countries.keys, keepUnknown = true), onlyNew = false)
+        val previous = withContext(Dispatchers.IO) {
+            mutex.withLock {
+                val all = readAll()
+                writeAll(all - playlistId)
+                all[playlistId]
+            }
+        } ?: return
+        update(playlistId, CountrySelection(CountryDetector.countries.keys, keepUnknown = true), previous, onlyNew = false)
     }
 
     /** Nach einer Aktualisierung: Neue Gruppen gemäß gespeicherter Auswahl ein- oder ausblenden. */
     suspend fun applyToNewGroups(playlistId: Long) {
         val selection = selection(playlistId) ?: return
-        update(playlistId, selection, onlyNew = true)
+        update(playlistId, selection, selection, onlyNew = true)
     }
 
-    private suspend fun update(playlistId: Long, selection: CountrySelection, onlyNew: Boolean) = withContext(Dispatchers.IO) {
+    private suspend fun update(playlistId: Long, selection: CountrySelection, previous: CountrySelection?, onlyNew: Boolean) = withContext(Dispatchers.IO) {
         val prefs = db.categoryPrefDao().forPlaylist(playlistId).associateBy { it.categoryId }
         val changes = db.categoryDao().allForPlaylist(playlistId).mapNotNull { category ->
             val existing = prefs[category.id]
-            if (onlyNew && existing != null) return@mapNotNull null
             // Selbst gewählte Favoriten-Gruppen bleiben immer sichtbar.
             if (existing?.pinned == true) return@mapNotNull null
             val code = CountryDetector.detect(category.name)
-            val visible = if (code == null) selection.keepUnknown else code in selection.countries
-            when {
-                existing == null && visible -> null
-
-                existing != null && existing.hidden == !visible -> null
-
-                else -> CategoryPrefEntity(
-                    categoryId = category.id,
-                    playlistId = playlistId,
-                    hidden = !visible,
-                    locked = existing?.locked ?: false,
-                    pinned = false,
-                    position = existing?.position,
-                )
-            }
+            val hidden = CountryFilterRules.hiddenAfter(code, existing?.hidden, selection, previous, onlyNew)
+                ?: return@mapNotNull null
+            CategoryPrefEntity(
+                categoryId = category.id,
+                playlistId = playlistId,
+                hidden = hidden,
+                locked = existing?.locked ?: false,
+                pinned = false,
+                position = existing?.position,
+            )
         }
         if (changes.isNotEmpty()) {
             db.categoryPrefDao().upsertAll(changes)
             onPrefsChanged(playlistId)
         }
         AppLog.log("Länder", "Filter für Zugang $playlistId angewendet: ${changes.size} Gruppen geändert")
+    }
+
+    private companion object {
+        /** Live, Filme, Serien. */
+        const val AREAS = 3
     }
 
     private fun readAll(): Map<Long, CountrySelection> {
