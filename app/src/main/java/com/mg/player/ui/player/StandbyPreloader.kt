@@ -4,6 +4,7 @@ import com.mg.player.core.device.DeviceTier
 import com.mg.player.core.log.AppLog
 import com.mg.player.domain.model.ConnectionStatus
 import com.mg.player.domain.model.PlayerEngineType
+import com.mg.player.domain.model.playlistIdOf
 import com.mg.player.player.engine.EngineState
 import com.mg.player.player.engine.PlaybackStatus
 import com.mg.player.player.engine.VideoPlayerEngine
@@ -83,7 +84,11 @@ internal class StandbyPreloader(private val vm: PlayerViewModel) {
         if (!idle || !playable.isLive || vm.uiState.value.engineType != PlayerEngineType.MEDIA3) return null
         val next = playable.nextSourceIndex() ?: return null
         val target = playable.variants.getOrNull(next) ?: return null
-        return next.takeIf { hasFreeSlot(vm.container.connectionMonitor.status.value[target.playlistId]) }
+        // Der Stand ist zwischengespeichert und kann von vor dem eigenen Start stammen („0/1“): Auf dem Zugang, über den
+        // gerade gespielt wird, zählt der laufende Stream deshalb immer mit – sonst läge eine zweite Verbindung darauf.
+        val playing = playable.activePlaylistId ?: playlistIdOf(playable.id)
+        val own = if (target.playlistId == playing) 1 else 0
+        return next.takeIf { hasFreeSlot(vm.container.connectionMonitor.status.value[target.playlistId], ownStreams = own) }
     }
 
     private fun preload(playable: Playable) {
@@ -117,8 +122,12 @@ internal class StandbyPreloader(private val vm: PlayerViewModel) {
         /** Auf mittleren Geräten und TV-Sticks kann ein zusätzlicher Decoder/Puffer den laufenden Stream destabilisieren. */
         fun supportsStandbyPreload(tier: DeviceTier): Boolean = tier == DeviceTier.HIGH
 
-        /** Nur mit bekannter Grenze und mindestens einem freien Platz (die laufende Verbindung zählt schon mit). */
-        fun hasFreeSlot(status: ConnectionStatus?): Boolean = status != null && status.max > 0 && status.max - status.active >= 1
+        /**
+         * Nur mit bekannter Grenze und mindestens einem freien Platz. [ownStreams]: so viele eigene Streams laufen sicher
+         * über diesen Zugang – sie zählen mindestens mit, auch wenn der Stand des Anbieters älter ist als sie.
+         */
+        fun hasFreeSlot(status: ConnectionStatus?, ownStreams: Int = 0): Boolean =
+            status != null && status.max > 0 && status.max - maxOf(status.active, ownStreams) >= 1
         private const val PRELOAD_CONFIRM_MS = 1_000L
     }
 }
