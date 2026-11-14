@@ -321,7 +321,7 @@ frei … MB); im Speicher vorgeladen a, davon gezeigt b, freigegeben c, noch ung
 y, Netz z“. Ist „davon gezeigt“ dauerhaft 0, trifft das Vorladen den Cache-Schlüssel der Anzeige nicht – dann ist das kein
 Gewinn, und die Einträge werden nach 2 min wieder freigegeben.
 
-**Ausschalten:** *Einstellungen → Wiedergabe → Vorladen* (Standard: an, in der Sicherung enthalten).
+**Ausschalten:** *Einstellungen → Darstellung → Lesbarkeit und Tempo → Vorladen* (Standard: an, in der Sicherung enthalten).
 
 **Nicht angefasst:** Die zusätzlichen Decoder (Ersatz-Variante auf Vorrat, Sehgewohnheits-Sender) gibt es weiter nur für die
 Geräteklasse „stark“ (ab 3,5 GB RAM) und nur über einen Zugang mit freier Verbindung – ein zweiter Stream auf demselben Zugang

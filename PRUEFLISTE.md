@@ -357,7 +357,7 @@ schicken (Zeilen beginnen mit „Wächter:“).
 Ziel ist ein Vergleich, kein Haken: Bitte mit und ohne Vorladen dieselbe Liste gleich lang scrollen und die Zeile „Bildzeiten …“
 im Fehlerprotokoll vergleichen (siehe K3, 3.22). Ergebnis in `config/perf-budget.md` eintragen – mit Gerät, Android-Stufe und Datum.
 
-- [ ] U1 *Einstellungen → Wiedergabe → Vorladen* ist an; aus- und wieder einschalten funktioniert.
+- [ ] U1 *Einstellungen → Darstellung → Lesbarkeit und Tempo → Vorladen* ist an; aus- und wieder einschalten funktioniert.
 - [ ] U2 Filme: 20 s durch ein großes Raster blättern, kurz anhalten, weiterblättern: Die Poster hinter dem Sichtbaren erscheinen ohne Nachladen.
 - [ ] U3 Senderliste: dasselbe mit den Logos.
 - [ ] U4 Protokoll nach U2/U3: Zeile „Vorladen: … Stufe …“. Bei Stufe VOLL: „im Speicher vorgeladen“ > 0 **und „davon gezeigt“ > 0** – ist „gezeigt“ dauerhaft 0, trifft das Vorladen die Anzeige nicht (bitte melden).
@@ -368,7 +368,7 @@ im Fehlerprotokoll vergleichen (siehe K3, 3.22). Ergebnis in `config/perf-budget
 - [ ] U9 W1 (30 min normal schauen) wiederholen: Wiedergabe wie vorher, kein zusätzliches Ruckeln beim Blättern.
 - [ ] U11 Protokollzeile „Vorladen: …“ nennt jetzt „Speicherplatz frei … MB, Datei-Cache … voraus, Arbeitsspeicher … voraus“: bei viel freiem Platz bis 120 voraus, bei wenig Platz (500–1000 MB) 30; unter 500 MB frei kein Vorladen.
 - [ ] U12 Viele andere Apps offen (Arbeitsspeicher knapp), aber Platz frei: Stufe LEICHT, „Arbeitsspeicher 0 voraus“, Datei-Cache weiter > 0 – Blättern trotzdem ohne Nachladeruckeln bei bereits besuchten/vorgeladenen Listen.
-- [ ] U13 *Einstellungen → Wiedergabe → „Vorladen nur im internen Speicher“* an: Protokoll zeigt „Arbeitsspeicher 0 voraus“ und „im Speicher vorgeladen“ steigt nicht mehr; Datei-Cache voraus > 0. Nach dem Ausschalten wieder Stufe VOLL (bei viel freiem Speicher).
+- [ ] U13 *Einstellungen → Darstellung → Lesbarkeit und Tempo → „Vorladen nur im internen Speicher“* an: Protokoll zeigt „Arbeitsspeicher 0 voraus“ und „im Speicher vorgeladen“ steigt nicht mehr; Datei-Cache voraus > 0. Nach dem Ausschalten wieder Stufe VOLL (bei viel freiem Speicher).
 - [ ] U14 („Alle Zugänge“ mit mindestens zwei Zugängen, je 1 Verbindung; Sender mit Quellen auf beiden) Sender laufen lassen, 5 s warten: Protokoll „Vorgeladen auf einem anderen Zugang: … (Zugang N)“. Zu diesem Sender zappen: Bild ohne Puffern; Protokoll „Vorrat … übernommen“ bzw. „war vorgeladen“. Funktioniert auch am Fire TV (mittleres Gerät), solange der Speicher reicht.
 - [ ] U15 Dasselbe in einer Einzel-Playlist: keine Protokollzeile, kein zweiter Stream auf demselben Zugang. Nach dem Zappen auf einen anderen Sender wird die vorgeladene Verbindung freigegeben (der andere Zugang zeigt wieder 0/1).
 - [ ] U10 Vorher/Nachher: „Bildzeiten live/…: … % verpasst“ je 3 Läufe mit und ohne Vorladen; dazu „angezeigt seit zuletzt: Speicher/Platte/Netz“.
