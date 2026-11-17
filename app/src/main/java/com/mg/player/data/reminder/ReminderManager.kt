@@ -115,6 +115,7 @@ class ReminderManager(private val context: Context, private val clock: () -> Lon
 
     private fun cancel(reminder: Reminder) {
         runCatching { context.getSystemService(AlarmManager::class.java)?.cancel(alarmIntent(reminder.id)) }
+            .onFailure { AppLog.error("Erinnerung", "Wecker konnte nicht abgebrochen werden", it) }
     }
 
     private fun alarmIntent(id: String): PendingIntent = PendingIntent.getBroadcast(

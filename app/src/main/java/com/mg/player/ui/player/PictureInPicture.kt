@@ -18,6 +18,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.PictureInPictureModeChangedInfo
 import androidx.core.util.Consumer
+import com.mg.player.core.log.AppLog
 import com.mg.player.ui.common.findActivity
 import com.mg.player.ui.common.isTouch
 
@@ -50,6 +51,7 @@ fun rememberPictureInPicture(playing: Boolean, videoBounds: Rect? = null): State
             // Vor Android 12 gibt es kein automatisches Bild-im-Bild.
             if (wantPip && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
                 runCatching { component.enterPictureInPictureMode(pipParams(autoEnter = false, bounds)) }
+                    .onFailure { AppLog.error("Player", "Bild-im-Bild nicht möglich", it) }
             }
         }
         component.addOnPictureInPictureModeChangedListener(modeListener)

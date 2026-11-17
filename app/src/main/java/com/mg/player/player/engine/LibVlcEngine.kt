@@ -268,7 +268,7 @@ class LibVlcEngine(context: Context) : VideoPlayerEngine {
             // Die LibVLC-Referenz erst nach dem nativen MediaPlayer freigeben. Sonst kann onTrimMemory()
             // die gemeinsame Instanz zerstören, während stop()/release() noch auf dem Worker laufen.
             worker.finish {
-                runCatching { mp.stop() }
+                runCatching { mp.stop() }.onFailure { AppLog.error("Player", "LibVLC-Stopp vor Freigabe fehlgeschlagen", it) }
                 runCatching { mp.release() }
                     .onSuccess { SharedLibVlc.releaseUse() }
                     .onFailure { AppLog.log("Player", "LibVLC-Freigabe fehlgeschlagen: ${it.javaClass.simpleName}") }
