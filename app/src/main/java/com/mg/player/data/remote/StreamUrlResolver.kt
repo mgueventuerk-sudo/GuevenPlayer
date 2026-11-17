@@ -74,14 +74,19 @@ class StreamUrlResolver(private val db: AppDatabase, private val api: XtreamApi)
         if (channel.catchupType == XtreamImporter.CATCHUP_XTREAM) {
             val playlist = db.playlistDao().get(channel.playlistId) ?: return@withContext null
             val creds = credentialsFor(channel.playlistId) ?: return@withContext null
-            CatchupUrlBuilder.xtream(
-                baseUrl = creds.baseUrl,
-                username = creds.username,
-                password = creds.password,
-                streamId = channel.remoteId,
-                startMs = startMs,
-                endMs = endMs,
-                serverTimezone = playlist.serverTimezone.ifBlank { TimeZone.getDefault().id },
+            // Wie Live/Film/Serie über die HTTP-Freigabe des Zugangs: Benutzername und Passwort stehen im Pfad, und nur
+            // Media3Engine sperrt Klartext selbst - LibVLC und die System-Engine spielten sonst auch ohne Freigabe.
+            requireHttpAllowed(
+                channel.playlistId,
+                CatchupUrlBuilder.xtream(
+                    baseUrl = creds.baseUrl,
+                    username = creds.username,
+                    password = creds.password,
+                    streamId = channel.remoteId,
+                    startMs = startMs,
+                    endMs = endMs,
+                    serverTimezone = playlist.serverTimezone.ifBlank { TimeZone.getDefault().id },
+                ),
             )
         } else {
             // Header ("|User-Agent=…") abtrennen, Catch-up-Adresse bauen, Header wieder anhängen.
