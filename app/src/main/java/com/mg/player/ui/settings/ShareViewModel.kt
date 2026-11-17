@@ -205,6 +205,7 @@ class ShareViewModel(private val container: AppContainer, private val mode: Shar
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
+        AppLog.error("Sicherung", "Wiederherstellen fehlgeschlagen", e)
         val message = e.message ?: "Unbekannter Fehler"
         _status.value = "Wiederherstellen fehlgeschlagen: $message"
         message
