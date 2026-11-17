@@ -16,10 +16,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -67,17 +71,24 @@ fun TrailerScreen(youtubeKey: String) {
     var failDetail by remember { mutableStateOf<String?>(null) }
     var baseUrl by remember { mutableStateOf<String?>(null) }
 
-    DisposableEffect(youtubeKey) {
-        val server = TrailerLocalServer(youtubeKey)
-        val url = server.start()
+    val server = remember(youtubeKey) { TrailerLocalServer(youtubeKey) }
+    // start() wartet bis zu BIND_TIMEOUT_MS auf das Binden - nicht im Hauptthread.
+    LaunchedEffect(server) {
+        val url = try {
+            withContext(Dispatchers.IO) { server.start() }
+        } catch (e: CancellationException) {
+            // Das Blockieren in start() ist nicht abbrechbar: Der Socket steht dann schon und muss wieder zu.
+            server.stop()
+            throw e
+        }
         if (url == null) {
             failed = true
             failDetail = server.lastFailureReason
         } else {
             baseUrl = url
         }
-        onDispose { server.stop() }
     }
+    DisposableEffect(server) { onDispose { server.stop() } }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         val url = baseUrl
