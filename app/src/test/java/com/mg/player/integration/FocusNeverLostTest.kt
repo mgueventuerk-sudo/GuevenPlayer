@@ -14,6 +14,7 @@ import com.mg.player.screenshots.remote
 import com.mg.player.screenshots.settle
 import com.mg.player.screenshots.waitForText
 import com.mg.player.ui.home.HomeScreen
+import com.mg.player.ui.settings.SettingsScreen
 import kotlin.random.Random
 import org.junit.After
 import org.junit.Assert.assertTrue
@@ -47,9 +48,20 @@ class FocusNeverLostTest {
     fun tearDown() = server.shutdown()
 
     @Test
-    fun randomDpadWalkNeverLeavesTheScreenWithoutFocus() {
+    fun randomDpadWalkNeverLeavesTheHomeScreenWithoutFocus() {
         compose.setContent { TvHost(container) { HomeScreen() } }
         compose.waitForText("Quellen")
+        walk()
+    }
+
+    @Test
+    fun randomDpadWalkNeverLeavesSettingsWithoutFocus() {
+        compose.setContent { TvHost(container) { SettingsScreen() } }
+        compose.waitForText("Wiedergabe")
+        walk()
+    }
+
+    private fun walk() {
         compose.settle()
         val keys = listOf(Key.DirectionUp, Key.DirectionDown, Key.DirectionLeft, Key.DirectionRight)
         for (seed in SEEDS) {
