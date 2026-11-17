@@ -12,6 +12,7 @@ import androidx.annotation.OptIn
 import androidx.core.net.toUri
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.AspectRatioFrameLayout
+import com.mg.player.core.log.AppLog
 import com.mg.player.core.network.IPTV_USER_AGENT
 import com.mg.player.core.util.StreamTarget
 import com.mg.player.domain.model.ChapterInfo
@@ -178,7 +179,8 @@ class NativeEngine(context: Context) : VideoPlayerEngine {
         try {
             player?.selectTrack(index)
         } catch (e: Exception) {
-            // Manche Geräte erlauben keinen Spurwechsel während der Wiedergabe.
+            // Manche Geräte erlauben keinen Spurwechsel während der Wiedergabe - das gehört dann ins Protokoll.
+            AppLog.error("Player", "Tonspur-Wechsel nicht möglich", e)
         }
     }
 
