@@ -86,7 +86,7 @@ class EventGroupRefresh(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                AppLog.log("Sport", "Event-Gruppen vor Anstoß (Zugang ${playlist.id}): ${e.javaClass.simpleName}")
+                AppLog.error("Sport", "Event-Gruppen vor Anstoß (Zugang ${playlist.id})", e)
                 0
             }
         }

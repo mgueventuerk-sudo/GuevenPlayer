@@ -25,6 +25,7 @@ import com.mg.player.player.engine.PlaybackStatus
 import com.mg.player.player.engine.PlayerEngineFactory
 import com.mg.player.player.engine.StreamRequest
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -43,6 +44,7 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
     private val recognizer by lazy { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
     private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
     private val imageReaderFailureLogged = AtomicBoolean(false)
+    private val ocrFailureLogged = AtomicBoolean(false)
 
     /** null = Sender lief nicht an (Fehler, kein Bild in [START_TIMEOUT_MS]). */
     suspend fun look(request: StreamRequest): ProofLook? = withContext(Dispatchers.Main) {
@@ -90,7 +92,7 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
                 frames.map { frame -> frame.scale(DIFF_W, DIFF_H).let { small -> FrameDiff.gray(pixels(small)).also { small.recycle() } } }
             }
             // Mit Frist: Hängt die Texterkennung, bliebe sonst die Verbindung des Zugangs (und die Suchrunde) belegt.
-            val texts = if (readText) withTimeoutOrNull(OCR_TIMEOUT_MS) { recognize(frames.last()) }.orEmpty() else emptyList()
+            val texts = if (readText) withTimeoutOrNull(OCR_TIMEOUT_MS) { recognizeSafely(frames.last()) }.orEmpty() else emptyList()
             ProofLook(texts, FrameDiff.isStatic(grays))
         } finally {
             reader.setOnImageAvailableListener(null, null)
@@ -167,6 +169,20 @@ class ProofProbe(private val engines: PlayerEngineFactory, private val readText:
 
     private fun pixels(bitmap: Bitmap): IntArray = IntArray(bitmap.width * bitmap.height).also {
         bitmap.getPixels(it, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+    }
+
+    /**
+     * Ein Fehler der Texterkennung darf den ganzen Blick nicht verwerfen: Die Standbild-Prüfung (Platzhalter) braucht
+     * keinen Text, und ohne diese Kapselung scheiterte jede Runde wie auf Geräten ohne Texterkennung
+     * ("Bildbeweis: NullPointerException", 9× in 10 min, Protokoll 12.11.). Einmal mit Stelle protokollieren.
+     */
+    private suspend fun recognizeSafely(bitmap: Bitmap): List<String> = try {
+        recognize(bitmap)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        if (ocrFailureLogged.compareAndSet(false, true)) AppLog.error("Sport", "Bildbeweis: Texterkennung", e)
+        emptyList()
     }
 
     private suspend fun recognize(bitmap: Bitmap): List<String> = suspendCancellableCoroutine { cont ->

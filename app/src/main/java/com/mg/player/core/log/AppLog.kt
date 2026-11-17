@@ -108,8 +108,22 @@ object AppLog {
     }
 
     fun error(tag: String, message: String, throwable: Throwable) {
-        write(tag, "$message: ${throwable.javaClass.simpleName}: ${throwable.message}")
+        write(tag, "$message: ${throwable.javaClass.simpleName}: ${throwable.message}${location(throwable)}")
     }
+
+    /**
+     * Fehlerstelle für das Protokoll: Ein NPE hat keinen Text ("NullPointerException: null") - ohne Stelle ließ sich
+     * z. B. "Bildbeweis: NullPointerException" (9× in 10 min, Protokoll 12.11.) nie auffinden. Nur die obersten Frames
+     * (Klasse.Methode:Zeile), im Release per R8-Mapping (mapping.txt aus dem Build) zurückführbar.
+     */
+    internal fun location(throwable: Throwable): String {
+        val frames = throwable.stackTrace.take(LOCATION_FRAMES).joinToString(" < ") {
+            "${it.className.substringAfterLast('.')}.${it.methodName}:${it.lineNumber}"
+        }
+        return if (frames.isEmpty()) "" else " @ $frames"
+    }
+
+    private const val LOCATION_FRAMES = 3
 
     fun read(): String = file?.takeIf { it.exists() }?.readText().orEmpty()
 

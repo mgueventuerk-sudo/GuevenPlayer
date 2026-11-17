@@ -55,7 +55,7 @@ class ProofHunter(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                AppLog.log("Sport", "Bildbeweis: ${e.javaClass.simpleName}")
+                AppLog.error("Sport", "Bildbeweis", e)
             }
             delay(INTERVAL_MS)
         }

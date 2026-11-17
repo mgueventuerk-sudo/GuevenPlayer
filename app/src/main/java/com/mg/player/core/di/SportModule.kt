@@ -163,7 +163,7 @@ class SportModule(private val container: AppContainer) {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                AppLog.log("Sport", "Prüfgerät-Austausch: ${e.javaClass.simpleName}")
+                AppLog.error("Sport", "Prüfgerät-Austausch", e)
             }
             delay(SHARE_INTERVAL_MS)
         }

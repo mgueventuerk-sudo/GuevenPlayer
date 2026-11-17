@@ -41,7 +41,7 @@ class KickoffCheck(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                AppLog.log("Sport", "Kontrolle vor Anstoß: ${e.javaClass.simpleName}")
+                AppLog.error("Sport", "Kontrolle vor Anstoß", e)
             }
             delay(INTERVAL_MS)
         }
