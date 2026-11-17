@@ -9,6 +9,7 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assert
@@ -34,6 +35,7 @@ class FocusMemoryTest {
     val compose = createComposeRule()
 
     private var onScreen by mutableStateOf(true)
+    private var favoriteFocusable by mutableStateOf(true)
 
     private fun show() {
         compose.setContent {
@@ -48,7 +50,11 @@ class FocusMemoryTest {
                         Row {
                             ActionButton("Abspielen", onClick = {}, modifier = Modifier.focusRequester(play).remembered(memory, "play"))
                             ActionButton("Trailer", onClick = {}, modifier = Modifier.remembered(memory, "trailer"))
-                            ActionButton("Favorit", onClick = {}, modifier = Modifier.remembered(memory, "favorite"))
+                            ActionButton(
+                                "Favorit",
+                                onClick = {},
+                                modifier = Modifier.focusProperties { canFocus = favoriteFocusable }.remembered(memory, "favorite"),
+                            )
                         }
                     }
                 }
@@ -73,5 +79,19 @@ class FocusMemoryTest {
         onScreen = true
         compose.settle()
         compose.onNode(isFocused()).assert(hasText("Favorit"))
+    }
+
+    /** Das gemerkte Element ist beim Zurückkehren da, aber nicht mehr fokussierbar: Der Ersatz muss greifen, nicht das Nichts. */
+    @Test
+    fun unfocusableRememberedButtonFallsBackToDefault() {
+        show()
+        compose.onNode(hasText("Favorit") and hasClickAction()).performSemanticsAction(SemanticsActions.RequestFocus)
+        compose.settle(300)
+        favoriteFocusable = false
+        onScreen = false
+        compose.settle(300)
+        onScreen = true
+        compose.settle()
+        compose.onNode(isFocused()).assert(hasText("Abspielen"))
     }
 }
