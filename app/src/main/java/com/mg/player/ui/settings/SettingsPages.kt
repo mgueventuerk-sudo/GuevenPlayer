@@ -206,6 +206,8 @@ private fun AutoBackupRow(c: SettingsContext) {
         scope.launch {
             AutoBackup.configure(container.settingsRepository, uri.toString())
             AutoBackupWorker.schedule(context.applicationContext)
+            // Gleich zeigen: Das Kennwort steht nur auf diesem Gerät - ohne Notiz ist die Sicherung nach einem Verlust wertlos.
+            c.onConfirm(passphraseRequest(container.settingsRepository.current().autoBackupPassphrase))
         }
     }
     Column {
@@ -248,7 +250,18 @@ private fun AutoBackupRow(c: SettingsContext) {
     }
 }
 
-private fun LazyListScope.systemItems(c: SettingsContext) {
+/** Das Kennwort der automatischen Sicherung zum Aufschreiben (in Blöcken, damit es sich abschreiben lässt). */
+private fun passphraseRequest(passphrase: String) = ConfirmRequest(
+    "Kennwort der automatischen Sicherung",
+    "Ohne dieses Kennwort lässt sich die Sicherung nach einem Geräteverlust nicht öffnen. Bitte aufschreiben " +
+        "(ohne Leerzeichen eingeben):\n\n${passphrase.chunked(PASSPHRASE_BLOCK).joinToString(" ")}",
+    "Notiert",
+    {},
+)
+
+private const val PASSPHRASE_BLOCK = 8
+
+private fun LazyListScope.backupItems(c: SettingsContext) {
     settingsGroup("backup", "Sicherung") {
         // Sicherungen enthalten alle Zugangsdaten und ersetzen beim Wiederherstellen PIN und Sperren.
         row("backup-export") {
@@ -268,7 +281,21 @@ private fun LazyListScope.systemItems(c: SettingsContext) {
             )
         }
         row("backup-auto") { AutoBackupRow(c) }
+        if (!c.s.autoBackupFolderUri.isNullOrBlank()) {
+            row("backup-auto-pass") {
+                ActionRow(
+                    "Kennwort der automatischen Sicherung",
+                    { c.gate.runWithPin { c.onConfirm(passphraseRequest(c.s.autoBackupPassphrase)) } },
+                    "Anzeigen – wird zum Wiederherstellen auf einem anderen Gerät gebraucht",
+                    icon = AppIcons.Shield,
+                )
+            }
+        }
     }
+}
+
+private fun LazyListScope.systemItems(c: SettingsContext) {
+    backupItems(c)
     settingsGroup("storage", "Speicher") {
         row("clear-images") {
             ActionRow("Bild-Cache leeren", c.vm::clearImageCache, "Logos und Cover werden neu geladen", icon = AppIcons.Storage, chevron = false)

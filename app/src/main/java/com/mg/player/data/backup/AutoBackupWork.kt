@@ -21,10 +21,13 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
-/** Zufälliges Kennwort für die automatische Sicherung - niemand gibt es ein, also lang statt merkbar. */
+/**
+ * Zufälliges Kennwort für die automatische Sicherung - lang statt merkbar. Man schreibt es einmal ab (nach Geräteverlust
+ * ist die Sicherung sonst nicht lesbar), deshalb ohne verwechselbare Zeichen: kein 0/O, 1/l/I.
+ */
 object AutoBackupPassphrase {
     private const val LENGTH = 32
-    private const val CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    const val CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"
 
     fun generate(random: Random = Random): String = (1..LENGTH).map { CHARS[random.nextInt(CHARS.length)] }.joinToString("")
 }
